@@ -11,6 +11,12 @@ RUN npm install
 # Copiar código
 COPY . .
 
+# Generar el build web estatico a partir del codigo fuente actual.
+# Antes esto faltaba: se servia el dist/ que habia quedado commiteado
+# en el repo (viejo, de antes de existir app/(tabs)), y nunca se
+# actualizaba aunque cambiara el codigo fuente.
+RUN npx expo export --platform web
+
 # Crear servidor estático
 RUN cat > server.js << 'EOF'
 const http = require('http');
