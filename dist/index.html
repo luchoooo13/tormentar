@@ -1,316 +1,735 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tormentar - Predicción de Alertas</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow-x: hidden; }
-        .container { max-width: 100%; padding: 20px; padding-bottom: 100px; }
-        .header { text-align: center; padding: 20px 0; margin-bottom: 20px; }
-        .header h1 { font-size: 28px; margin-bottom: 5px; }
-        .header p { color: #aaa; font-size: 14px; }
-        .section { display: none; }
-        .section.active { display: block; }
-        
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Tormentar — Alertas de Clima</title>
+<meta name="theme-color" content="#0B1220" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B1220;
+    --bg-elevated: #121B2E;
+    --surface: #17233A;
+    --surface-2: #1E2C46;
+    --border: #2A3A5A;
+    --text: #EAF0FB;
+    --muted: #93A3C2;
+    --leve: #F5A524;
+    --moderada: #FB7B3D;
+    --severa: #F0454A;
+    --ok: #34D399;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(120% 160% at 15% -10%, #16233F 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding-bottom: 84px;
+  }
+  a{color:inherit;}
+  .app{ max-width: 560px; margin: 0 auto; padding: 20px 16px 8px; }
 
-        .alert-card {
-            background: #1a1a1a;
-            border-left: 4px solid #FFA500;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            animation: blink 2s infinite ease-in-out;
-        }
-        
-        /* Colores solicitados: Azul simulacro, Rojo real/predictiva */
-        .alert-card.simulacro { background: #007AFF !important; border-left-color: #fff !important; color: white; }
-        .alert-card.predictiva { background: #EF4444 !important; border-left-color: #fff !important; color: white; }
-        .alert-card.moderada { border-left-color: #FF6B35; }
-        .alert-card.severa { border-left-color: #EF4444; }
-        
-        .alert-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-        .alert-desc { font-size: 14px; color: rgba(255,255,255,0.9); margin-bottom: 8px; }
-        .alert-time { font-size: 12px; color: rgba(255,255,255,0.7); }
-        
-        .alert-action {
-            margin-top: 10px;
-            padding: 10px;
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.4);
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-        }
-        
-        .weather-info { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
-        .weather-info h2 { font-size: 24px; margin-bottom: 10px; }
-        .weather-info p { color: #aaa; font-size: 14px; margin-bottom: 5px; }
-        
-        .tabs-container { position: fixed; bottom: 0; left: 0; right: 0; background: #000; border-top: 1px solid #333; display: flex; z-index: 1000; }
-        .tab-btn { flex: 1; padding: 15px; background: #000; border: none; color: #aaa; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; }
-        .tab-btn.active { background: #1a1a1a; color: #FFA500; border-top: 3px solid #FFA500; }
-        
-        #map { height: 400px; width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; background: #1a1a1a; }
-        .filter-btn { padding: 10px 16px; margin: 5px; background: #333; border: 2px solid #666; color: #fff; cursor: pointer; border-radius: 6px; font-size: 14px; }
-        .filter-btn.active { background: #FFA500; border-color: #FFA500; color: #000; }
-    </style>
+  /* Header */
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom: 18px; }
+  .brand-mark{
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(145deg, var(--moderada), var(--severa));
+    display:flex; align-items:center; justify-content:center;
+    font-size: 19px; box-shadow: 0 6px 20px -6px rgba(251,123,61,0.55);
+  }
+  .brand h1{ font-family: var(--font-display); font-size: 19px; margin:0; letter-spacing: -0.01em; }
+  .brand small{ display:block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+
+  /* Cards */
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card-title{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
+
+  /* Location row */
+  .loc-row{ display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+  .loc-name{ font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+  .loc-coords{ color: var(--muted); font-size: 12px; margin-top:2px; }
+  .btn-ghost{
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .btn-ghost:hover{ background: var(--border); }
+
+  /* Weather now */
+  .weather-now{ display:flex; align-items:center; justify-content:space-between; }
+  .temp{ font-family: var(--font-display); font-size: 46px; font-weight: 700; line-height:1; }
+  .temp small{ font-size: 18px; color: var(--muted); font-weight:500; }
+  .cond{ color: var(--muted); font-size: 13px; margin-top: 6px; text-transform: capitalize; }
+  .metrics{ display:flex; gap: 14px; margin-top: 10px; }
+  .metric{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:5px;}
+  .weather-icon{ font-size: 44px; opacity: 0.9; }
+
+  /* Severity selector */
+  .sev-row{ display:flex; gap: 8px; }
+  .sev-btn{
+    flex:1; padding: 11px 6px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--surface-2); color: var(--muted); font-weight: 700; font-size: 12.5px;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .sev-btn.active[data-lvl="leve"]{ border-color: var(--leve); color: var(--leve); background: color-mix(in srgb, var(--leve) 14%, var(--surface-2)); }
+  .sev-btn.active[data-lvl="moderada"]{ border-color: var(--moderada); color: var(--moderada); background: color-mix(in srgb, var(--moderada) 14%, var(--surface-2)); }
+  .sev-btn.active[data-lvl="severa"]{ border-color: var(--severa); color: var(--severa); background: color-mix(in srgb, var(--severa) 14%, var(--surface-2)); }
+  .sev-hint{ color: var(--muted); font-size: 11.5px; margin-top: 9px; line-height: 1.5; }
+
+  /* Alerts list */
+  .alerts-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+  .alerts-head h2{ font-family: var(--font-display); font-size: 17px; margin:0; display:flex; align-items:center; gap:8px; }
+  .count-pill{ background: var(--severa); color:#fff; font-size:11px; font-weight:700; padding: 3px 9px; border-radius: 20px; }
+  .alert-card{ border-left: 4px solid; border-radius: 12px; padding: 13px 14px; margin-bottom: 10px; background: var(--surface-2); border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .alert-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .alert-badge{ font-size:11px; font-weight:800; letter-spacing:0.04em; }
+  .alert-title{ font-weight:700; font-size:14.5px; margin-bottom:5px; }
+  .alert-desc{ color: var(--muted); font-size:12.5px; line-height:1.5; margin-bottom:8px; }
+  .alert-time{ color: var(--muted); font-size:11.5px; display:flex; align-items:center; gap:5px; }
+  .empty-state{ text-align:center; padding: 30px 10px; color: var(--muted); }
+  .empty-state .ico{ font-size: 34px; margin-bottom: 6px; }
+
+  .banner{ padding: 11px 13px; border-radius: 12px; font-size: 12.5px; margin-bottom: 14px; display:flex; gap:9px; align-items:flex-start; }
+  .banner.error{ background: color-mix(in srgb, var(--severa) 16%, var(--bg-elevated)); color:#FFC9C9; border:1px solid color-mix(in srgb, var(--severa) 40%, transparent); }
+  .banner.info{ background: color-mix(in srgb, var(--moderada) 14%, var(--bg-elevated)); color:#FFD9BE; border:1px solid color-mix(in srgb, var(--moderada) 35%, transparent); }
+
+  /* Toggle rows (settings) */
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; padding: 12px 4px; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child{ border-bottom:none; }
+  .toggle-label{ font-size: 13.5px; font-weight:600; }
+  .toggle-sub{ font-size:11.5px; color: var(--muted); margin-top:2px; }
+  .switch{ position:relative; width:44px; height:26px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background: var(--border); border-radius: 20px; cursor:pointer; transition: .2s; }
+  .slider:before{ content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  input:checked + .slider{ background: var(--moderada); }
+  input:checked + .slider:before{ transform: translateX(18px); }
+
+  .interval-row{ display:flex; gap:8px; margin-top:10px; }
+  .interval-btn{ flex:1; padding:9px; border-radius:9px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); font-size:12px; font-weight:700; cursor:pointer; }
+  .interval-btn.active{ background: var(--moderada); color:#fff; border-color: var(--moderada); }
+
+  .search-row{ display:flex; gap:8px; margin-top:10px; }
+  .search-row input{ flex:1; background: var(--bg-elevated); border:1px solid var(--border); color:var(--text); border-radius:9px; padding:10px 12px; font-size:13px; font-family: var(--font-body); }
+  .search-row input:focus{ outline: 2px solid var(--moderada); outline-offset: 1px; }
+  .search-row button{ background: var(--moderada); border:none; color:#fff; border-radius:9px; padding: 0 14px; font-weight:700; font-size:12.5px; cursor:pointer; }
+  #cityResults{ margin-top: 8px; display:flex; flex-direction:column; gap:6px; }
+  .city-opt{ text-align:left; background: var(--bg-elevated); border:1px solid var(--border); color:var(--text); padding:9px 11px; border-radius:9px; font-size:12.5px; cursor:pointer; }
+  .city-opt:hover{ background: var(--border); }
+
+  .map-wrap{ height: 260px; border-radius: 14px; overflow:hidden; border: 1px solid var(--border); }
+  #leafletMap{ height:100%; width:100%; }
+  .map-legend{ display:flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+  .map-legend span{ display:flex; align-items:center; gap:6px; font-size:12px; color: var(--muted); }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+  footer.updated{ text-align:center; color: var(--muted); font-size: 11.5px; padding: 6px 0 18px; }
+
+  /* Bottom tab bar */
+  .tabbar{
+    position: fixed; bottom: 0; left:0; right:0;
+    background: rgba(18,27,46,0.92); backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    display:flex; justify-content:center;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    z-index: 50;
+  }
+  .tabbar-inner{ display:flex; gap: 6px; max-width: 560px; width:100%; }
+  .tab-btn{
+    flex:1; background:none; border:none; color: var(--muted); padding: 8px 4px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; font-weight:600;
+    cursor:pointer; border-radius: 10px;
+  }
+  .tab-btn .tab-ico{ font-size: 19px; }
+  .tab-btn.active{ color: var(--moderada); background: color-mix(in srgb, var(--moderada) 12%, transparent); }
+
+  .view{ display:none; }
+  .view.active{ display:block; animation: fadeIn .18s ease; }
+  @keyframes fadeIn{ from{ opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  .spin{ width:22px; height:22px; border-radius:50%; border: 3px solid var(--border); border-top-color: var(--moderada); animation: rot .8s linear infinite; margin: 0 auto; }
+  @keyframes rot{ to{ transform: rotate(360deg); } }
+  .loading-block{ text-align:center; padding: 26px 0; color: var(--muted); font-size:12.5px; }
+  .loading-block .spin{ margin-bottom: 10px; }
+
+  @media (prefers-reduced-motion: reduce){ * { animation: none !important; transition: none !important; } }
+</style>
 </head>
 <body>
-    <div id="alertas" class="section active">
-        <div class="container">
-            <div class="header">
-                <h1>⚡ Tormentar</h1>
-                <p>Predicción de Alertas Propias</p>
-            </div>
-    
-            <div style="margin-bottom: 20px;">
-                <h3>Sensibilidad de Predicción</h3>
-                <div style="text-align: center;">
-                    <button class="filter-btn active" onclick="setFilter(this, 'normal')">Normal</button>
-                    <button class="filter-btn" onclick="setFilter(this, 'alta')">Alta</button>
-                </div>
-            </div>
-    
-            <div class="weather-info" id="weather-container">
-                <h2 id="city-name">📍 Cargando...</h2>
-                <p id="coords">Detectando ubicación...</p>
-                <p id="temp">🌡️ Temperatura: --</p>
-                <p id="humidity">💧 Humedad: --</p>
-                <p id="wind">💨 Viento: --</p>
-                <p id="pressure">⏲️ Presión: --</p>
-            </div>
-    
-            <h3 id="alerts-count">Alertas Predictivas</h3>
-            <div id="alerts-list">
-                <div class="alert-card">
-                    <div class="alert-title">Analizando datos...</div>
-                    <div class="alert-desc">El motor está procesando variables meteorológicas para predecir tormentas.</div>
-                </div>
-            </div>
+
+<div class="app">
+
+  <div class="brand">
+    <div class="brand-mark">⛈️</div>
+    <div>
+      <h1>Tormentar</h1>
+      <small>Alertas de clima en tiempo real</small>
+    </div>
+  </div>
+
+  <!-- ===================== INICIO ===================== -->
+  <section id="view-home" class="view active">
+    <div id="homeBanner"></div>
+
+    <div class="card">
+      <div class="card-title">📍 <span id="locLabel">Ubicación</span></div>
+      <div class="loc-row">
+        <div>
+          <div class="loc-name" id="cityName">—</div>
+          <div class="loc-coords" id="coords">—</div>
         </div>
+        <button class="btn-ghost" id="btnRefresh">↻ Actualizar</button>
+      </div>
     </div>
 
-    <div id="mapa" class="section">
-        <div class="container">
-            <div class="header"><h1>🗺️ Mapa de Afectación</h1></div>
-            <div id="map"></div>
-            <div id="map-alerts-list"></div>
+    <div id="weatherBlock"></div>
+
+    <div class="card">
+      <div class="card-title">⚙️ Severidad mínima para alertar</div>
+      <div class="sev-row" id="sevRowHome"></div>
+      <div class="sev-hint" id="sevHintHome"></div>
+    </div>
+
+    <div class="card">
+      <div class="alerts-head">
+        <h2>⚠️ Alertas activas</h2>
+        <span class="count-pill" id="alertCount" style="display:none;">0</span>
+      </div>
+      <div id="alertsList"></div>
+    </div>
+
+    <footer class="updated" id="lastUpdated"></footer>
+  </section>
+
+  <!-- ===================== MAPA ===================== -->
+  <section id="view-map" class="view">
+    <div class="card">
+      <div class="card-title">🗺️ Mapa de alertas</div>
+      <div class="map-wrap"><div id="leafletMap"></div></div>
+      <div class="map-legend">
+        <span><i class="dot" style="background:var(--leve)"></i> Leve</span>
+        <span><i class="dot" style="background:var(--moderada)"></i> Moderada</span>
+        <span><i class="dot" style="background:var(--severa)"></i> Fuerte</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Alertas en el área</div>
+      <div id="mapAlertsList"></div>
+    </div>
+  </section>
+
+  <!-- ===================== CONFIGURACIÓN ===================== -->
+  <section id="view-settings" class="view">
+    <div class="card">
+      <div class="card-title">📍 Ubicación</div>
+      <div class="loc-row">
+        <div>
+          <div style="font-weight:700; font-size:14px;" id="settingsCity">—</div>
+          <div class="toggle-sub" id="settingsCoords">—</div>
         </div>
+        <button class="btn-ghost" id="btnUseGPS">📡 Usar mi ubicación</button>
+      </div>
+      <div class="search-row">
+        <input id="citySearchInput" placeholder="Buscar ciudad..." />
+        <button id="btnCitySearch">Buscar</button>
+      </div>
+      <div id="cityResults"></div>
     </div>
 
-    <div id="config" class="section">
-        <div class="container">
-            <div class="header"><h1>⚙️ Configuración</h1></div>
-            <div class="config-item"><span>Predicciones Inteligentes</span><button class="config-toggle on"></button></div>
-            <div class="config-item"><span>Fuente: OpenWeatherMap</span><span style="color: #aaa;">API 2.5/3.0</span></div>
+    <div class="card">
+      <div class="card-title">⚙️ Severidad mínima</div>
+      <div class="sev-row" id="sevRowSettings"></div>
+      <div class="sev-hint">Mismo ajuste que en Inicio y Mapa — se aplica también a las notificaciones.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔔 Notificaciones</div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Notificaciones</div>
+          <div class="toggle-sub">Avisar cuando haya una alerta nueva</div>
         </div>
+        <label class="switch"><input type="checkbox" id="toggleNotif"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Sonido</div>
+          <div class="toggle-sub">Reproducir sonido en alertas moderadas/fuertes</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggleSound"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Vibración</div>
+          <div class="toggle-sub">Vibrar al recibir una alerta (si el dispositivo lo permite)</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggleVibration"><span class="slider"></span></label>
+      </div>
+      <div id="notifPermHint" class="sev-hint"></div>
     </div>
 
-    <div class="tabs-container">
-        <button class="tab-btn active" onclick="switchTab('alertas', this)">🏠 Alertas</button>
-        <button class="tab-btn" onclick="switchTab('mapa', this)">🗺️ Mapa</button>
-        <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Config</button>
+    <div class="card">
+      <div class="card-title">⏱️ Actualización</div>
+      <div class="toggle-sub">La app va a volver a consultar el clima cada:</div>
+      <div class="interval-row" id="intervalRow"></div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
-        let map = null;
-        let circlesLayer = null;
-        let alertsData = {};
-        let sensitivity = 'normal';
+    <div class="card">
+      <div class="card-title">ℹ️ Información</div>
+      <div class="toggle-row"><div class="toggle-label">Versión</div><div class="toggle-sub">1.0.0 (web)</div></div>
+      <div class="toggle-row"><div class="toggle-label">Fuente de datos</div><div class="toggle-sub">OpenWeatherMap</div></div>
+    </div>
+  </section>
 
-        async function init() {
-            navigator.geolocation.getCurrentPosition(
-                pos => fetchData(pos.coords.latitude, pos.coords.longitude),
-                err => fetchData(-34.6037, -58.3816)
-            );
-        }
+</div>
 
-        async function fetchData(lat, lon) {
-            try {
-                // Usamos la API 2.5 para asegurar compatibilidad y obtener datos de predicción
-                const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
-                const weather = await weatherRes.json();
-                
-                const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
-                const forecast = await forecastRes.json();
-                
-                updateUI(weather, forecast);
-            } catch (e) {
-                console.error(e);
-                document.getElementById('alerts-list').innerHTML = '<div class="alert-card"><div class="alert-title">Error de Conexión</div><div class="alert-desc">No se pudo conectar con el motor meteorológico.</div></div>';
-            }
-        }
+<nav class="tabbar">
+  <div class="tabbar-inner">
+    <button class="tab-btn active" data-view="home"><span class="tab-ico">🏠</span>Inicio</button>
+    <button class="tab-btn" data-view="map"><span class="tab-ico">🗺️</span>Mapa</button>
+    <button class="tab-btn" data-view="settings"><span class="tab-ico">⚙️</span>Ajustes</button>
+  </div>
+</nav>
 
-        function updateUI(weather, forecast) {
-            // Fix "undefined" city
-            document.getElementById('city-name').innerText = `📍 ${weather.name || 'Ubicación Detectada'}`;
-            document.getElementById('coords').innerText = `Coordenadas: ${weather.coord.lat.toFixed(2)}°, ${weather.coord.lon.toFixed(2)}°`;
-            document.getElementById('temp').innerText = `🌡️ Temperatura: ${Math.round(weather.main.temp)}°C`;
-            document.getElementById('humidity').innerText = `💧 Humedad: ${weather.main.humidity}%`;
-            document.getElementById('wind').innerText = `💨 Viento: ${weather.wind.speed} m/s`;
-            document.getElementById('pressure').innerText = `⏲️ Presión: ${weather.main.pressure} hPa`;
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script>
+(function(){
+  "use strict";
 
-            predictAlerts(weather, forecast);
-        }
+  /* ---------- Config ---------- */
+  const API_KEY = "494ad746f7db3c750a3cd5eb8be4a186"; // OpenWeatherMap - One Call 3.0
+  const BASE_URL = "https://api.openweathermap.org/data/3.0/onecall";
+  const FALLBACK_LOCATION = { latitude: -34.6037, longitude: -58.3816, city: "Buenos Aires", country: "Argentina" };
+  const PREFS_KEY = "tormentar_preferences";
+  const LOCATION_KEY = "tormentar_location";
+  const NOTIFIED_KEY = "tormentar_notified_ids";
 
-        function predictAlerts(weather, forecast) {
-            const alertsList = document.getElementById('alerts-list');
-            const mapAlertsList = document.getElementById('map-alerts-list');
-            alertsList.innerHTML = '';
-            mapAlertsList.innerHTML = '';
-            alertsData = {};
-            
-            let predicted = [];
+  const SEVERITY_ORDER = { severa: 0, moderada: 1, leve: 2 };
+  const SEVERITY_LABEL = { leve: "Leve", moderada: "Moderada", severa: "Fuerte" };
+  const SEVERITY_COLOR_VAR = { leve: "--leve", moderada: "--moderada", severa: "--severa" };
+  const SEVERITY_ICON = { leve: "☁️", moderada: "⛅", severa: "🌩️" };
 
-            // LÓGICA DE PREDICCIÓN PROPIA
-            // 1. Vientos Fuertes
-            if (weather.wind.speed > (sensitivity === 'alta' ? 10 : 15)) {
-                predicted.push({
-                    id: 'wind',
-                    event: 'Alerta: Vientos Fuertes',
-                    desc: `El motor detecta ráfagas de ${weather.wind.speed} m/s. Riesgo de caída de objetos.`,
-                    type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
-                    radio: 8000
-                });
-            }
+  const DEFAULT_PREFS = {
+    minSeverity: "leve",
+    notificationsEnabled: true,
+    soundEnabled: true,
+    vibrationEnabled: true,
+    updateIntervalMinutes: 15,
+  };
 
-            // 2. Tormenta Inminente (Basado en nubes y humedad)
-            if (weather.clouds.all > 80 && weather.main.humidity > 75) {
-                predicted.push({
-                    id: 'storm',
-                    event: 'Predicción: Tormenta Eléctrica',
-                    desc: 'Alta saturación de humedad y nubosidad detectada. Probabilidad elevada de descargas eléctricas.',
-                    type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
-                    radio: 12000
-                });
-            }
+  /* ---------- State ---------- */
+  let prefs = loadPrefs();
+  let location = loadLocation();
+  let weather = null;
+  let refreshTimer = null;
+  let map = null;
+  let mapMarkers = [];
 
-            // 3. Inestabilidad por Presión
-            if (weather.main.pressure < 1008) {
-                predicted.push({
-                    id: 'pressure',
-                    event: 'Aviso: Baja Presión',
-                    desc: 'La presión atmosférica está cayendo, lo que indica un cambio brusco de tiempo y posible formación de tormentas.',
-                    type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
-                    radio: 15000
-                });
-            }
+  function loadPrefs(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || "null");
+      return { ...DEFAULT_PREFS, ...(saved || {}) };
+    }catch(e){ return { ...DEFAULT_PREFS }; }
+  }
+  function savePrefs(partial){
+    prefs = { ...prefs, ...partial };
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    renderAll();
+  }
+  function loadLocation(){
+    try{ return JSON.parse(localStorage.getItem(LOCATION_KEY) || "null"); }catch(e){ return null; }
+  }
+  function saveLocation(loc){
+    location = loc;
+    localStorage.setItem(LOCATION_KEY, JSON.stringify(loc));
+  }
+  function getNotifiedIds(){
+    try{ return new Set(JSON.parse(localStorage.getItem(NOTIFIED_KEY) || "[]")); }catch(e){ return new Set(); }
+  }
+  function addNotifiedId(id){
+    const s = getNotifiedIds(); s.add(id);
+    localStorage.setItem(NOTIFIED_KEY, JSON.stringify([...s].slice(-200)));
+  }
 
-            // 4. Lluvia en el pronóstico próximo
-            const nextRain = forecast.list.slice(0, 3).find(f => f.weather[0].main === 'Rain');
-            if (nextRain) {
-                predicted.push({
-                    id: 'rain',
-                    event: 'Predicción: Lluvia Inminente',
-                    desc: `Se detecta formación de lluvia en las próximas 3 horas. Tome precauciones.`,
-                    type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
-                    radio: 10000
-                });
-            }
+  function effectiveLocation(){ return location || FALLBACK_LOCATION; }
 
-            if (predicted.length === 0) {
-                alertsList.innerHTML = '<div class="weather-info" style="text-align:center;border:none">✅ El motor no detecta riesgos inmediatos.</div>';
-                return;
-            }
+  /* ---------- Severity categorization (misma lógica que la app) ---------- */
+  function categorizeAlertSeverity(event){
+    const e = (event || "").toLowerCase();
+    if (/tornado|severe|hurricane|typhoon|extreme|warning/.test(e)) return "severa";
+    if (/thunderstorm|storm|heavy|watch/.test(e)) return "moderada";
+    return "leve";
+  }
 
-            predicted.forEach(alert => {
-                alertsData[alert.id] = alert;
-                const card = document.createElement('div');
-                card.className = `alert-card ${alert.type}`;
-                card.innerHTML = `
-                    <div class="alert-title">⚡ ${alert.event}</div>
-                    <div class="alert-desc">${alert.desc}</div>
-                    <div class="alert-time">Área estimada: ${alert.radio/1000} km alrededor</div>
-                    <button class="alert-action" onclick="showMap('${alert.id}')">Ver Área Afectada</button>
-                `;
-                alertsList.appendChild(card);
+  /* ---------- Fetch clima real ---------- */
+  async function fetchWeather(){
+    const loc = effectiveLocation();
+    const url = `${BASE_URL}?lat=${loc.latitude}&lon=${loc.longitude}&appid=${API_KEY}&units=metric&lang=es`;
+    const res = await fetch(url);
+    if(!res.ok){
+      if(res.status === 401) throw new Error("OpenWeatherMap rechazó la API key. Verificá que tenga habilitado el plan 'One Call 3.0'.");
+      if(res.status === 429) throw new Error("Se superó el límite de llamadas a OpenWeatherMap por hoy.");
+      throw new Error(`Error consultando OpenWeatherMap (${res.status}).`);
+    }
+    const data = await res.json();
+    const alerts = (data.alerts || []).map(a => ({
+      id: `${a.start}-${a.end}-${a.event}`,
+      event: a.event,
+      description: a.description,
+      start: a.start,
+      end: a.end,
+      sender_name: a.sender_name,
+      severity: categorizeAlertSeverity(a.event),
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      radius: 10,
+    }));
+    return {
+      lat: data.lat, lon: data.lon,
+      current: data.current,
+      alerts,
+    };
+  }
 
-                const mapCard = card.cloneNode(true);
-                mapCard.onclick = () => showMap(alert.id);
-                mapAlertsList.appendChild(mapCard);
-            });
-            
-            if (map) updateMap();
-        }
+  async function refreshWeather(){
+    setHomeLoading(true);
+    setBanner("homeBanner", null);
+    try{
+      weather = await fetchWeather();
+      checkAndNotify(weather.alerts || []);
+    }catch(err){
+      weather = null;
+      setBanner("homeBanner", "error", err.message || "No se pudo consultar el clima.");
+    }finally{
+      setHomeLoading(false);
+      renderAll();
+      document.getElementById("lastUpdated").textContent = weather ? `Última actualización: ${new Date().toLocaleTimeString("es-ES")}` : "";
+    }
+  }
 
-        function initMap() {
-            if (map) return;
-            map = L.map('map').setView([-34.60, -58.38], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            circlesLayer = L.layerGroup().addTo(map);
-            updateMap();
-        }
+  function scheduleAutoRefresh(){
+    if(refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(refreshWeather, prefs.updateIntervalMinutes * 60 * 1000);
+  }
 
-        function updateMap() {
-            if (!circlesLayer) return;
-            circlesLayer.clearLayers();
-            Object.values(alertsData).forEach(a => {
-                L.circle([a.lat, a.lon], {
-                    radius: a.radio,
-                    color: '#EF4444',
-                    fillColor: '#EF4444',
-                    fillOpacity: 0.3,
-                    weight: 3
-                }).addTo(circlesLayer).bindPopup(`<b>${a.event}</b><br>${a.desc}`);
-            });
-        }
+  /* ---------- Notificaciones ---------- */
+  async function requestNotifPermission(){
+    if(!("Notification" in window)) return "unsupported";
+    if(Notification.permission === "granted") return "granted";
+    if(Notification.permission === "denied") return "denied";
+    return await Notification.requestPermission();
+  }
 
-        function showMap(id) {
-            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
-            const a = alertsData[id];
-            if (a && map) {
-                setTimeout(() => {
-                    map.invalidateSize();
-                    map.setView([a.lat, a.lon], 11);
-                    circlesLayer.eachLayer(l => {
-                        if (l.getLatLng().lat === a.lat) l.openPopup();
-                    });
-                }, 100);
-            }
-        }
+  function checkAndNotify(alerts){
+    if(!prefs.notificationsEnabled) return;
+    if(!("Notification" in window) || Notification.permission !== "granted") return;
+    const notified = getNotifiedIds();
+    alerts.forEach(alert => {
+      const meets = SEVERITY_ORDER[alert.severity] <= SEVERITY_ORDER[prefs.minSeverity];
+      if(meets && !notified.has(alert.id)){
+        addNotifiedId(alert.id);
+        fireNotification(alert);
+      }
+    });
+  }
 
-        function switchTab(tabId, button) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
-            if (tabId === 'mapa') {
-                initMap();
-                setTimeout(() => map.invalidateSize(), 100);
-            }
-        }
+  function fireNotification(alert){
+    const titleMap = {
+      leve: "⚠️ Alerta de clima leve",
+      moderada: "⚠️ Alerta de clima moderada",
+      severa: "🚨 ALERTA DE TORMENTA FUERTE",
+    };
+    try{
+      const n = new Notification(titleMap[alert.severity] || "Alerta de clima", {
+        body: `${alert.event}: ${alert.description}`.slice(0, 180),
+        tag: alert.id,
+      });
+      n.onclick = () => window.focus();
+    }catch(e){ console.error("No se pudo mostrar la notificación:", e); }
 
-        function setFilter(btn, level) {
-            sensitivity = level;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            init(); // Recargar predicciones
-        }
+    if(prefs.vibrationEnabled && "vibrate" in navigator){
+      navigator.vibrate(alert.severity === "severa" ? [200,100,200,100,200] : [150]);
+    }
+    if(prefs.soundEnabled && alert.severity !== "leve"){
+      playAlertSound();
+    }
+  }
 
-        function toggleConfig(btn) { btn.classList.toggle('on'); }
+  let audioCtx = null;
+  function playAlertSound(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = 660;
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.5);
+    }catch(e){ /* audio no disponible */ }
+  }
 
-        init();
-    </script>
+  /* ---------- Geolocalización / búsqueda de ciudad ---------- */
+  function useGPSLocation(){
+    if(!("geolocation" in navigator)){
+      alert("Tu navegador no soporta geolocalización.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude, longitude } = pos.coords;
+      let city, country;
+      try{
+        const r = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`);
+        const j = await r.json();
+        if(j[0]){ city = j[0].name; country = j[0].country; }
+      }catch(e){}
+      saveLocation({ latitude, longitude, city, country });
+      renderAll();
+      refreshWeather();
+    }, err => {
+      alert("No se pudo obtener tu ubicación: " + err.message);
+    }, { enableHighAccuracy: false, timeout: 8000 });
+  }
+
+  async function searchCity(query){
+    if(!query.trim()) return;
+    const box = document.getElementById("cityResults");
+    box.innerHTML = `<div class="loading-block"><div class="spin"></div></div>`;
+    try{
+      const r = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`);
+      const results = await r.json();
+      if(!Array.isArray(results) || results.length === 0){
+        box.innerHTML = `<div class="toggle-sub">Sin resultados para "${escapeHtml(query)}".</div>`;
+        return;
+      }
+      box.innerHTML = "";
+      results.forEach(r => {
+        const btn = document.createElement("button");
+        btn.className = "city-opt";
+        btn.textContent = `${r.name}${r.state ? ", " + r.state : ""}, ${r.country}`;
+        btn.onclick = () => {
+          saveLocation({ latitude: r.lat, longitude: r.lon, city: r.name, country: r.country });
+          box.innerHTML = "";
+          document.getElementById("citySearchInput").value = "";
+          renderAll();
+          refreshWeather();
+        };
+        box.appendChild(btn);
+      });
+    }catch(e){
+      box.innerHTML = `<div class="toggle-sub">Error al buscar ciudad.</div>`;
+    }
+  }
+
+  /* ---------- Helpers de render ---------- */
+  function escapeHtml(s){
+    return (s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function setBanner(elId, type, msg){
+    const el = document.getElementById(elId);
+    if(!type){ el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="banner ${type}">${type === "error" ? "⚠️" : "ℹ️"} <span>${escapeHtml(msg)}</span></div>`;
+  }
+  function setHomeLoading(isLoading){
+    if(isLoading){
+      document.getElementById("weatherBlock").innerHTML = `<div class="card loading-block"><div class="spin"></div>Consultando OpenWeatherMap...</div>`;
+      document.getElementById("alertsList").innerHTML = "";
+    }
+  }
+
+  function buildSeverityButtons(container, onPick){
+    container.innerHTML = "";
+    ["leve","moderada","severa"].forEach(lvl => {
+      const btn = document.createElement("button");
+      btn.className = "sev-btn" + (prefs.minSeverity === lvl ? " active" : "");
+      btn.dataset.lvl = lvl;
+      btn.textContent = SEVERITY_LABEL[lvl];
+      btn.onclick = () => onPick(lvl);
+      container.appendChild(btn);
+    });
+  }
+
+  function filteredAlerts(){
+    const all = (weather && weather.alerts) || [];
+    return all
+      .filter(a => SEVERITY_ORDER[a.severity] <= SEVERITY_ORDER[prefs.minSeverity])
+      .sort((a,b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+  }
+
+  function alertCardHtml(alert){
+    const colorVar = `var(${SEVERITY_COLOR_VAR[alert.severity]})`;
+    const start = new Date(alert.start * 1000);
+    const end = new Date(alert.end * 1000);
+    const timeLabel = `${start.toLocaleString("es-ES",{hour:"2-digit",minute:"2-digit"})} - ${end.toLocaleString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
+    return `
+      <div class="alert-card" style="border-left-color:${colorVar}">
+        <div class="alert-top">
+          <span class="alert-badge" style="color:${colorVar}">${SEVERITY_ICON[alert.severity]} ${alert.severity === "severa" ? "FUERTE" : SEVERITY_LABEL[alert.severity].toUpperCase()}</span>
+        </div>
+        <div class="alert-title">${escapeHtml(alert.event)}</div>
+        <div class="alert-desc">${escapeHtml(alert.description)}</div>
+        <div class="alert-time">🕒 ${timeLabel}</div>
+      </div>`;
+  }
+
+  function renderHome(){
+    document.getElementById("cityName").textContent = effectiveLocation().city || "Ubicación actual";
+    document.getElementById("coords").textContent = `${effectiveLocation().latitude.toFixed(2)}°, ${effectiveLocation().longitude.toFixed(2)}°`;
+    document.getElementById("locLabel").textContent = location ? "UBICACIÓN ACTUAL" : "UBICACIÓN POR DEFECTO";
+
+    if(weather && weather.current){
+      const c = weather.current;
+      document.getElementById("weatherBlock").innerHTML = `
+        <div class="card weather-now">
+          <div>
+            <div class="temp">${Math.round(c.temp)}°<small>C</small></div>
+            <div class="cond">${(c.weather && c.weather[0] && c.weather[0].description) || ""}</div>
+            <div class="metrics">
+              <span class="metric">💧 ${c.humidity}%</span>
+              <span class="metric">💨 ${Math.round(c.wind_speed)} m/s</span>
+            </div>
+          </div>
+          <div class="weather-icon">☁️</div>
+        </div>`;
+    } else if(!weather){
+      document.getElementById("weatherBlock").innerHTML = "";
+    }
+
+    buildSeverityButtons(document.getElementById("sevRowHome"), lvl => savePrefs({ minSeverity: lvl }));
+    document.getElementById("sevHintHome").textContent = `Vas a recibir alertas de ${prefs.minSeverity === "severa" ? "fuerte" : prefs.minSeverity} en adelante. Se aplica en toda la app.`;
+
+    const list = filteredAlerts();
+    const countPill = document.getElementById("alertCount");
+    if(list.length > 0){ countPill.style.display = "inline-block"; countPill.textContent = list.length; }
+    else { countPill.style.display = "none"; }
+
+    if(weather){
+      document.getElementById("alertsList").innerHTML = list.length
+        ? list.map(alertCardHtml).join("")
+        : `<div class="empty-state"><div class="ico">✅</div>Sin alertas de ${prefs.minSeverity === "severa" ? "fuerte" : prefs.minSeverity} o superior en tu zona</div>`;
+    }
+  }
+
+  function renderSettings(){
+    document.getElementById("settingsCity").textContent = effectiveLocation().city || "Ubicación actual";
+    document.getElementById("settingsCoords").textContent = `${effectiveLocation().latitude.toFixed(2)}°, ${effectiveLocation().longitude.toFixed(2)}°`;
+    buildSeverityButtons(document.getElementById("sevRowSettings"), lvl => savePrefs({ minSeverity: lvl }));
+
+    document.getElementById("toggleNotif").checked = prefs.notificationsEnabled;
+    document.getElementById("toggleSound").checked = prefs.soundEnabled;
+    document.getElementById("toggleVibration").checked = prefs.vibrationEnabled;
+
+    const permHint = document.getElementById("notifPermHint");
+    if("Notification" in window){
+      if(Notification.permission === "denied"){
+        permHint.textContent = "Bloqueaste las notificaciones para este sitio en el navegador. Habilitalas desde la configuración del sitio para recibir avisos.";
+      } else if(Notification.permission === "default"){
+        permHint.textContent = "Vamos a pedirte permiso de notificaciones la primera vez que actives esta opción.";
+      } else {
+        permHint.textContent = "";
+      }
+    } else {
+      permHint.textContent = "Tu navegador no soporta notificaciones.";
+    }
+
+    const row = document.getElementById("intervalRow");
+    row.innerHTML = "";
+    [5,10,15,30].forEach(min => {
+      const btn = document.createElement("button");
+      btn.className = "interval-btn" + (prefs.updateIntervalMinutes === min ? " active" : "");
+      btn.textContent = `${min}m`;
+      btn.onclick = () => { savePrefs({ updateIntervalMinutes: min }); scheduleAutoRefresh(); };
+      row.appendChild(btn);
+    });
+  }
+
+  function renderMap(){
+    const list = filteredAlerts();
+    document.getElementById("mapAlertsList").innerHTML = list.length
+      ? list.map(alertCardHtml).join("")
+      : `<div class="empty-state"><div class="ico">✅</div>Sin alertas en tu zona por ahora</div>`;
+
+    if(!map && window.L){
+      map = L.map("leafletMap", { zoomControl: true, attributionControl: false }).setView([effectiveLocation().latitude, effectiveLocation().longitude], 9);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(map);
+    }
+    if(map){
+      map.setView([effectiveLocation().latitude, effectiveLocation().longitude], map.getZoom() || 9);
+      mapMarkers.forEach(m => map.removeLayer(m));
+      mapMarkers = [];
+      const homeMarker = L.circleMarker([effectiveLocation().latitude, effectiveLocation().longitude], {
+        radius: 7, color: "#EAF0FB", fillColor: "#4C8DFF", fillOpacity: 1, weight: 2
+      }).addTo(map).bindPopup("Tu ubicación");
+      mapMarkers.push(homeMarker);
+      list.forEach(alert => {
+        const colorMap = { leve: "#F5A524", moderada: "#FB7B3D", severa: "#F0454A" };
+        const circle = L.circle([alert.latitude, alert.longitude], {
+          radius: (alert.radius || 10) * 1000,
+          color: colorMap[alert.severity], fillColor: colorMap[alert.severity], fillOpacity: 0.18, weight: 2
+        }).addTo(map).bindPopup(`<b>${escapeHtml(alert.event)}</b><br>${escapeHtml(alert.description).slice(0,120)}`);
+        mapMarkers.push(circle);
+      });
+    }
+  }
+
+  function renderAll(){
+    renderHome();
+    renderSettings();
+    if(document.getElementById("view-map").classList.contains("active")) renderMap();
+  }
+
+  /* ---------- Tabs ---------- */
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("view-" + btn.dataset.view).classList.add("active");
+      if(btn.dataset.view === "map"){ setTimeout(() => { renderMap(); if(map) map.invalidateSize(); }, 50); }
+    });
+  });
+
+  /* ---------- Wire up controls ---------- */
+  document.getElementById("btnRefresh").addEventListener("click", refreshWeather);
+  document.getElementById("btnUseGPS").addEventListener("click", useGPSLocation);
+  document.getElementById("btnCitySearch").addEventListener("click", () => searchCity(document.getElementById("citySearchInput").value));
+  document.getElementById("citySearchInput").addEventListener("keydown", e => { if(e.key === "Enter") searchCity(e.target.value); });
+
+  document.getElementById("toggleNotif").addEventListener("change", async e => {
+    if(e.target.checked){
+      const perm = await requestNotifPermission();
+      if(perm !== "granted"){ e.target.checked = false; renderSettings(); return; }
+    }
+    savePrefs({ notificationsEnabled: e.target.checked });
+  });
+  document.getElementById("toggleSound").addEventListener("change", e => savePrefs({ soundEnabled: e.target.checked }));
+  document.getElementById("toggleVibration").addEventListener("change", e => savePrefs({ vibrationEnabled: e.target.checked }));
+
+  /* ---------- Init ---------- */
+  renderAll();
+  if(!API_KEY){
+    setBanner("homeBanner", "error", "Falta configurar la API key de OpenWeatherMap.");
+  } else {
+    refreshWeather();
+  }
+  scheduleAutoRefresh();
+
+})();
+</script>
 </body>
 </html>
