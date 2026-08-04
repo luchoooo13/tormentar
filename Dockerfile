@@ -2,24 +2,51 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Instalar pnpm
-RUN npm install -g pnpm
+# Copiar solo package.json
+COPY package.json ./
 
-# Copiar archivos de dependencias
-COPY package.json pnpm-lock.yaml ./
+# Instalar con npm (más estable que pnpm)
+RUN npm install
 
-# Instalar dependencias sin frozen-lockfile
-RUN pnpm install --no-frozen-lockfile
-
-# Copiar código fuente
+# Copiar código
 COPY . .
 
-# Construir la app web de Expo
-RUN npx expo export --platform web
+# Crear servidor estático
+RUN cat > server.js << 'EOF'
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
-# Crear servidor estático simple
-RUN echo 'const http=require("http"),fs=require("fs"),path=require("path");const PORT=process.env.PORT||3000;const D=path.join(__dirname,"dist");const M={".html":"text/html",".js":"application/javascript",".css":"text/css",".json":"application/json",".png":"image/png",".jpg":"image/jpeg",".svg":"image/svg+xml",".ico":"image/x-icon"};http.createServer((q,s)=>{let u=q.url.split("?")[0];if(u==="/")u="/index.html";const f=path.join(D,u);fs.readFile(f,(e,d)=>{if(e){fs.readFile(path.join(D,"index.html"),(e2,d2)=>{if(e2){s.writeHead(404);s.end("Not found");return;}s.writeHead(200,{"Content-Type":"text/html"});s.end(d2);});return;}s.writeHead(200,{"Content-Type":M[path.extname(f)]||"application/octet-stream"});s.end(d);});}).listen(PORT,()=>console.log("Server on "+PORT));' > /app/serve.js
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+  let filePath = req.url === '/' ? '/index.html' : req.url;
+  filePath = path.join(__dirname, 'dist', filePath);
+  
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      fs.readFile(path.join(__dirname, 'dist', 'index.html'), (e, d) => {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(d || '<h1>Tormentar</h1>');
+      });
+      return;
+    }
+    const ext = path.extname(filePath);
+    const mime = {
+      '.html': 'text/html',
+      '.js': 'application/javascript',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.svg': 'image/svg+xml'
+    };
+    res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
+    res.end(data);
+  });
+}).listen(PORT, () => console.log(`Server on ${PORT}`));
+EOF
 
 EXPOSE 3000
 
-CMD ["node", "serve.js"]
+CMD ["node", "server.js"]
