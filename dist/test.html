@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tormentar - Alertas de Tormentas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 20px 0; border-bottom: 1px solid #333; margin-bottom: 20px; }
+        .alert-card { background: #1a1a1a; border-left: 4px solid #FFA500; padding: 15px; margin-bottom: 15px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .alert-card:hover { background: #222; }
+        .alert-card.moderada { border-left-color: #FF6B35; }
+        .alert-card.severa { border-left-color: #EF4444; }
+        .alert-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .alert-desc { font-size: 14px; color: #aaa; margin-bottom: 8px; }
+        .alert-time { font-size: 12px; color: #666; }
+        .tabs { display: flex; gap: 10px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; }
+        .tab-btn { flex: 1; padding: 15px; background: #1a1a1a; border: none; color: #fff; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+        .tab-btn:hover { background: #FFA500; color: #000; }
+        .tab-btn.active { background: #FFA500; color: #000; }
+        .filter-btn { padding: 8px 16px; margin: 5px; background: #333; border: 2px solid #666; color: #fff; cursor: pointer; border-radius: 6px; }
+        .filter-btn.active { background: #FFA500; border-color: #FFA500; color: #000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Tormentar</h1>
+            <p>Alertas de Tormentas en Tiempo Real</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin-bottom: 10px;">Severidad Mínima para Notificaciones</h3>
+            <button class="filter-btn active" onclick="setFilter('leve')">Leve</button>
+            <button class="filter-btn" onclick="setFilter('moderada')">Moderada</button>
+            <button class="filter-btn" onclick="setFilter('severa')">Severa</button>
+        </div>
+
+        <h2 style="margin-bottom: 15px;">📍 Buenos Aires, Argentina</h2>
+        <p style="color: #aaa; margin-bottom: 20px;">24°C | Humedad 65% | Viento 12 m/s</p>
+
+        <h3 style="margin-bottom: 15px;">Alertas Activas (2)</h3>
+
+        <div class="alert-card" onclick="showAlert('Tormenta Leve')">
+            <div class="alert-title">🌧️ Tormenta Leve</div>
+            <div class="alert-desc">Se esperan lluvias ligeras en el área. Condiciones normales.</div>
+            <div class="alert-time">Hoy 14:00 - 15:00 | Radio: 15 km</div>
+            <div style="margin-top: 10px; color: #FFA500; font-size: 12px;">👉 Toca para ver en el mapa</div>
+        </div>
+
+        <div class="alert-card moderada" onclick="showAlert('Tormenta Moderada')">
+            <div class="alert-title">⛈️ Tormenta Moderada</div>
+            <div class="alert-desc">Se esperan tormentas moderadas con vientos de 40-60 km/h.</div>
+            <div class="alert-time">Hoy 16:00 - 18:00 | Radio: 25 km</div>
+            <div style="margin-top: 10px; color: #FF6B35; font-size: 12px;">👉 Toca para ver en el mapa</div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('alertas')">🏠 Alertas</button>
+            <button class="tab-btn" onclick="switchTab('mapa')">🗺️ Mapa</button>
+            <button class="tab-btn" onclick="switchTab('config')">⚙️ Configuración</button>
+        </div>
+    </div>
+
+    <script>
+        function showAlert(title) {
+            alert('Alerta: ' + title + '\n\nEsta es una demostración. En la app móvil verás más detalles y un mapa interactivo.');
+        }
+        function switchTab(tab) {
+            alert('Navegando a: ' + tab);
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        function setFilter(level) {
+            alert('Filtro de severidad: ' + level);
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
