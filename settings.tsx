@@ -336,7 +336,7 @@ export default function SettingsScreen() {
                 <MaterialIcons name="cloud" size={16} color={colors.muted} />
                 <Text className="text-muted text-sm">Fuente de Datos</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">OpenWeatherMap</Text>
+              <Text className="text-foreground font-semibold text-sm">Open-Meteo</Text>
             </View>
 
             <View className="h-px" style={{ backgroundColor: colors.border }} />
