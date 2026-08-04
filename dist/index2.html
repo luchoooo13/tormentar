@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tormentar - Alertas de Tormentas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
             margin: 0;
@@ -188,14 +189,29 @@
             border-top: 3px solid #FFA500;
         }
         
-        .map-placeholder {
-            background: #1a1a1a;
-            border: 2px dashed #333;
+        #map {
+            height: 400px;
+            width: 100%;
             border-radius: 8px;
-            padding: 40px;
-            text-align: center;
             margin-bottom: 20px;
-            color: #666;
+            border: 1px solid #333;
+            background: #1a1a1a;
+        }
+
+        /* Popups de Leaflet con el estilo oscuro de la app */
+        .leaflet-popup-content-wrapper {
+            background: #1a1a1a;
+            color: #fff;
+            border-radius: 8px;
+        }
+        .leaflet-popup-tip {
+            background: #1a1a1a;
+        }
+        .leaflet-popup-content b {
+            color: #FFA500;
+        }
+        .leaflet-container {
+            background: #1a1a1a;
         }
         
         .config-item {
@@ -277,14 +293,14 @@
                 <div class="alert-title">🌧️ Tormenta Leve</div>
                 <div class="alert-desc">Se esperan lluvias ligeras en el área. Condiciones normales.</div>
                 <div class="alert-time">Hoy 14:00 - 15:00 | Radio: 15 km</div>
-                <button class="alert-action" onclick="showMap('Tormenta Leve')">Ver en Mapa</button>
+                <button class="alert-action" onclick="showMap('leve')">Ver en Mapa</button>
             </div>
 
             <div class="alert-card moderada">
                 <div class="alert-title">⛈️ Tormenta Moderada</div>
                 <div class="alert-desc">Se esperan tormentas moderadas con vientos de 40-60 km/h.</div>
                 <div class="alert-time">Hoy 16:00 - 18:00 | Radio: 25 km</div>
-                <button class="alert-action" onclick="showMap('Tormenta Moderada')">Ver en Mapa</button>
+                <button class="alert-action" onclick="showMap('moderada')">Ver en Mapa</button>
             </div>
         </div>
     </div>
@@ -297,20 +313,17 @@
                 <p>Visualiza las áreas afectadas</p>
             </div>
 
-            <div class="map-placeholder">
-                📍 Mapa Interactivo<br>
-                (Área de cobertura de tormentas)
-            </div>
+            <div id="map"></div>
 
             <h3>Alertas en el Área</h3>
 
-            <div class="alert-card">
+            <div class="alert-card" onclick="showMap('leve')">
                 <div class="alert-title">🌧️ Tormenta Leve</div>
                 <div class="alert-desc">Lluvia ligera - Radio: 15 km</div>
                 <div class="alert-time">Coordenadas: -34.60°, -58.38°</div>
             </div>
 
-            <div class="alert-card moderada">
+            <div class="alert-card moderada" onclick="showMap('moderada')">
                 <div class="alert-title">⛈️ Tormenta Moderada</div>
                 <div class="alert-desc">Tormentas con vientos - Radio: 25 km</div>
                 <div class="alert-time">Coordenadas: -34.50°, -58.50°</div>
@@ -368,7 +381,59 @@
         <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Config</button>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Datos de las alertas: coordenadas y radio (en metros) de cada una
+        const alertsData = {
+            leve: {
+                nombre: 'Tormenta Leve',
+                desc: 'Lluvia ligera',
+                lat: -34.60,
+                lng: -58.38,
+                radio: 15000, // 15 km
+                color: '#FFA500'
+            },
+            moderada: {
+                nombre: 'Tormenta Moderada',
+                desc: 'Tormenta con vientos de 40-60 km/h',
+                lat: -34.50,
+                lng: -58.50,
+                radio: 25000, // 25 km
+                color: '#FF6B35'
+            }
+        };
+
+        let map = null;
+        let circlesLayer = null;
+
+        function initMap() {
+            if (map) return; // ya inicializado, no recrear
+
+            map = L.map('map', {
+                zoomControl: true
+            }).setView([-34.60, -58.38], 9);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            circlesLayer = L.layerGroup().addTo(map);
+
+            // Dibuja todas las alertas en el mapa
+            Object.keys(alertsData).forEach(key => {
+                const a = alertsData[key];
+                L.circle([a.lat, a.lng], {
+                    radius: a.radio,
+                    color: a.color,
+                    fillColor: a.color,
+                    fillOpacity: 0.15,
+                    weight: 2
+                }).addTo(circlesLayer)
+                  .bindPopup('<b>' + a.nombre + '</b><br>' + a.desc);
+            });
+        }
+
         function switchTab(tabId, button) {
             // Ocultar todas las secciones
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -379,6 +444,14 @@
             // Actualizar botones activos
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             button.classList.add('active');
+
+            // Si es la pestaña del mapa, inicializarlo (o recalcular tamaño)
+            if (tabId === 'mapa') {
+                initMap();
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 50);
+            }
         }
         
         function setFilter(button, level) {
@@ -387,9 +460,24 @@
             console.log('Filtro de severidad: ' + level);
         }
         
-        function showMap(alertName) {
-            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
-            alert('Mostrando: ' + alertName + ' en el mapa');
+        function showMap(alertKey) {
+            const mapTabBtn = document.querySelectorAll('.tab-btn')[1];
+            switchTab('mapa', mapTabBtn);
+
+            const a = alertsData[alertKey];
+            if (!a) return;
+
+            setTimeout(() => {
+                map.invalidateSize();
+                map.setView([a.lat, a.lng], 10);
+                // Abre el popup de esa alerta
+                circlesLayer.eachLayer(layer => {
+                    const latlng = layer.getLatLng();
+                    if (latlng.lat === a.lat && latlng.lng === a.lng) {
+                        layer.openPopup();
+                    }
+                });
+            }, 100);
         }
         
         function toggleConfig(button) {
