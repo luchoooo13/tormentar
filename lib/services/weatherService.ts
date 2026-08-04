@@ -102,6 +102,18 @@ export async function getWeatherAlerts(
       alerts,
     };
   } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401) {
+        throw new Error(
+          "OpenWeatherMap rechazó la API key. Verificá que sea correcta y que tenga habilitado el plan 'One Call 3.0'."
+        );
+      }
+      if (status === 429) {
+        throw new Error("Se superó el límite de llamadas a OpenWeatherMap por hoy.");
+      }
+      throw new Error(`Error consultando OpenWeatherMap (${status ?? "sin conexión"}).`);
+    }
     console.error("Error fetching weather data:", error);
     return null;
   }
