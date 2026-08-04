@@ -60,7 +60,7 @@ export function useWeatherNotifications() {
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       severa: {
-        title: "🚨 ALERTA DE TORMENTA SEVERA",
+        title: "🚨 ALERTA DE TORMENTA FUERTE",
         sound: "alert",
         priority: Notifications.AndroidNotificationPriority.MAX,
       },
@@ -100,8 +100,16 @@ export function useWeatherNotifications() {
     }
   };
 
-  // Enviar notificación local
-  const sendNotification = async (alert: WeatherAlert) => {
+  // Enviar notificación local. Respeta las preferencias de sonido y
+  // vibración elegidas en Configuración (antes se ignoraban siempre
+  // se reproducía sonido, sin importar los toggles del usuario).
+  const sendNotification = async (
+    alert: WeatherAlert,
+    options?: { soundEnabled?: boolean; vibrationEnabled?: boolean }
+  ) => {
+    const soundEnabled = options?.soundEnabled ?? true;
+    const vibrationEnabled = options?.vibrationEnabled ?? true;
+
     try {
       const config = getNotificationConfig(alert.severity);
 
@@ -116,14 +124,15 @@ export function useWeatherNotifications() {
             severity: alert.severity,
             event: alert.event,
           },
-          sound: config.sound,
+          sound: soundEnabled ? config.sound : null,
           priority: config.priority,
+          vibrate: vibrationEnabled ? [0, 250, 250, 250] : undefined,
         } as any,
         trigger: null,
       });
 
-      // Reproducir sonido si no es leve
-      if (alert.severity !== "leve") {
+      // Reproducir sonido si corresponde y el usuario lo tiene activado
+      if (soundEnabled && alert.severity !== "leve") {
         await playAlertSound(alert.severity);
       }
     } catch (error) {
