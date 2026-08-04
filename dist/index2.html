@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tormentar - Alertas de Tormentas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .alert-card {
+            background: #1a1a1a;
+            border-left: 4px solid #FFA500;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .alert-card:active {
+            background: #222;
+            transform: scale(0.98);
+        }
+        
+        .alert-card.moderada {
+            border-left-color: #FF6B35;
+        }
+        
+        .alert-card.severa {
+            border-left-color: #EF4444;
+        }
+        
+        .alert-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .alert-desc {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        
+        .alert-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .alert-action {
+            margin-top: 10px;
+            padding: 10px;
+            background: #FFA500;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        
+        .alert-action:active {
+            background: #FF8C00;
+            transform: scale(0.95);
+        }
+        
+        .filter-btn {
+            padding: 10px 16px;
+            margin: 5px;
+            background: #333;
+            border: 2px solid #666;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .filter-btn:active {
+            background: #FFA500;
+            border-color: #FFA500;
+            color: #000;
+            transform: scale(0.95);
+        }
+        
+        .filter-btn.active {
+            background: #FFA500;
+            border-color: #FFA500;
+            color: #000;
+        }
+        
+        .weather-info {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        
+        .weather-info h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .weather-info p {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .tabs-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #000;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 0;
+            padding: 0;
+            z-index: 1000;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: #000;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            border-radius: 0;
+            transition: all 0.2s;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .tab-btn:active {
+            background: #1a1a1a;
+            color: #FFA500;
+            transform: scale(0.95);
+        }
+        
+        .tab-btn.active {
+            background: #1a1a1a;
+            color: #FFA500;
+            border-top: 3px solid #FFA500;
+        }
+        
+        .map-placeholder {
+            background: #1a1a1a;
+            border: 2px dashed #333;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        
+        .config-item {
+            background: #1a1a1a;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .config-toggle {
+            width: 50px;
+            height: 30px;
+            background: #333;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .config-toggle.on {
+            background: #FFA500;
+        }
+        
+        .config-toggle::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+        
+        .config-toggle.on::after {
+            left: 22px;
+        }
+        
+        h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <!-- SECCIÓN ALERTAS -->
+    <div id="alertas" class="section active">
+        <div class="container">
+            <div class="header">
+                <h1>⚡ Tormentar</h1>
+                <p>Alertas de Tormentas en Tiempo Real</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3>Severidad Mínima para Notificaciones</h3>
+                <div style="text-align: center;">
+                    <button class="filter-btn active" onclick="setFilter(this, 'leve')">Leve</button>
+                    <button class="filter-btn" onclick="setFilter(this, 'moderada')">Moderada</button>
+                    <button class="filter-btn" onclick="setFilter(this, 'severa')">Severa</button>
+                </div>
+            </div>
+
+            <div class="weather-info">
+                <h2>📍 Buenos Aires</h2>
+                <p>Coordenadas: -34.60°, -58.38°</p>
+                <p>🌡️ Temperatura: 24°C (Sensación: 23°C)</p>
+                <p>💧 Humedad: 65%</p>
+                <p>💨 Viento: 12 m/s</p>
+            </div>
+
+            <h3>Alertas Activas (2)</h3>
+
+            <div class="alert-card">
+                <div class="alert-title">🌧️ Tormenta Leve</div>
+                <div class="alert-desc">Se esperan lluvias ligeras en el área. Condiciones normales.</div>
+                <div class="alert-time">Hoy 14:00 - 15:00 | Radio: 15 km</div>
+                <button class="alert-action" onclick="showMap('Tormenta Leve')">Ver en Mapa</button>
+            </div>
+
+            <div class="alert-card moderada">
+                <div class="alert-title">⛈️ Tormenta Moderada</div>
+                <div class="alert-desc">Se esperan tormentas moderadas con vientos de 40-60 km/h.</div>
+                <div class="alert-time">Hoy 16:00 - 18:00 | Radio: 25 km</div>
+                <button class="alert-action" onclick="showMap('Tormenta Moderada')">Ver en Mapa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN MAPA -->
+    <div id="mapa" class="section">
+        <div class="container">
+            <div class="header">
+                <h1>🗺️ Mapa de Alertas</h1>
+                <p>Visualiza las áreas afectadas</p>
+            </div>
+
+            <div class="map-placeholder">
+                📍 Mapa Interactivo<br>
+                (Área de cobertura de tormentas)
+            </div>
+
+            <h3>Alertas en el Área</h3>
+
+            <div class="alert-card">
+                <div class="alert-title">🌧️ Tormenta Leve</div>
+                <div class="alert-desc">Lluvia ligera - Radio: 15 km</div>
+                <div class="alert-time">Coordenadas: -34.60°, -58.38°</div>
+            </div>
+
+            <div class="alert-card moderada">
+                <div class="alert-title">⛈️ Tormenta Moderada</div>
+                <div class="alert-desc">Tormentas con vientos - Radio: 25 km</div>
+                <div class="alert-time">Coordenadas: -34.50°, -58.50°</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN CONFIGURACIÓN -->
+    <div id="config" class="section">
+        <div class="container">
+            <div class="header">
+                <h1>⚙️ Configuración</h1>
+                <p>Personaliza tu experiencia</p>
+            </div>
+
+            <h3>Notificaciones</h3>
+            <div class="config-item">
+                <span>Notificaciones Activas</span>
+                <button class="config-toggle on" onclick="toggleConfig(this)"></button>
+            </div>
+
+            <div class="config-item">
+                <span>Sonido de Alerta</span>
+                <button class="config-toggle on" onclick="toggleConfig(this)"></button>
+            </div>
+
+            <div class="config-item">
+                <span>Vibración</span>
+                <button class="config-toggle on" onclick="toggleConfig(this)"></button>
+            </div>
+
+            <h3 style="margin-top: 30px;">Actualización</h3>
+            <div class="config-item">
+                <span>Intervalo: 15 minutos</span>
+                <span style="color: #FFA500;">✓</span>
+            </div>
+
+            <h3 style="margin-top: 30px;">Información</h3>
+            <div class="config-item">
+                <span>Versión</span>
+                <span style="color: #aaa;">1.0.0</span>
+            </div>
+
+            <div class="config-item">
+                <span>Fuente de Datos</span>
+                <span style="color: #aaa;">OpenWeatherMap</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS DE NAVEGACIÓN -->
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('alertas', this)">🏠 Alertas</button>
+        <button class="tab-btn" onclick="switchTab('mapa', this)">🗺️ Mapa</button>
+        <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Config</button>
+    </div>
+
+    <script>
+        function switchTab(tabId, button) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            // Mostrar la sección seleccionada
+            document.getElementById(tabId).classList.add('active');
+            
+            // Actualizar botones activos
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+        }
+        
+        function setFilter(button, level) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            console.log('Filtro de severidad: ' + level);
+        }
+        
+        function showMap(alertName) {
+            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
+            alert('Mostrando: ' + alertName + ' en el mapa');
+        }
+        
+        function toggleConfig(button) {
+            button.classList.toggle('on');
+        }
+    </script>
+</body>
+</html>
