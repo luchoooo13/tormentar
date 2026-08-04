@@ -9,6 +9,13 @@ import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/we
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || "";
 const BASE_URL = "https://api.openweathermap.org/data/3.0/onecall";
 
+// Indica si hay una API key configurada. Sin esto, la app no puede
+// consultar alertas reales y las pantallas deben mostrarlo claramente
+// en vez de caer en datos de demostración silenciosos.
+export function hasApiKey(): boolean {
+  return API_KEY.length > 0;
+}
+
 // Categorizar alertas por severidad basado en el tipo de evento
 function categorizeAlertSeverity(event: string): AlertSeverity {
   const eventLower = event.toLowerCase();
@@ -44,6 +51,13 @@ export async function getWeatherAlerts(
   latitude: number,
   longitude: number
 ): Promise<WeatherData | null> {
+  if (!hasApiKey()) {
+    console.error(
+      "Falta configurar EXPO_PUBLIC_OPENWEATHER_API_KEY: no se pueden obtener alertas reales."
+    );
+    return null;
+  }
+
   try {
     const response = await axios.get(BASE_URL, {
       params: {
