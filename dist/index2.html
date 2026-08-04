@@ -49,6 +49,13 @@
             display: block;
         }
         
+        /* Estilos solicitados por el usuario */
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
         .alert-card {
             background: #1a1a1a;
             border-left: 4px solid #FFA500;
@@ -56,7 +63,12 @@
             margin-bottom: 15px;
             border-radius: 8px;
             transition: all 0.2s;
+            animation: blink 1.6s infinite ease-in-out;
         }
+        
+        /* Preferencias: Azul para simulacro, Rojo para el resto */
+        .alert-card.simulacro { background: #007AFF !important; border-left-color: #fff !important; }
+        .alert-card.real-alert { background: #EF4444 !important; border-left-color: #fff !important; }
         
         .alert-card:active {
             background: #222;
@@ -79,21 +91,21 @@
         
         .alert-desc {
             font-size: 14px;
-            color: #aaa;
+            color: #eee;
             margin-bottom: 8px;
         }
         
         .alert-time {
             font-size: 12px;
-            color: #666;
+            color: #ccc;
         }
         
         .alert-action {
             margin-top: 10px;
             padding: 10px;
-            background: #FFA500;
-            color: #000;
-            border: none;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.4);
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
@@ -102,7 +114,7 @@
         }
         
         .alert-action:active {
-            background: #FF8C00;
+            background: rgba(255,255,255,0.3);
             transform: scale(0.95);
         }
         
@@ -198,7 +210,6 @@
             background: #1a1a1a;
         }
 
-        /* Popups de Leaflet con el estilo oscuro de la app */
         .leaflet-popup-content-wrapper {
             background: #1a1a1a;
             color: #fff;
@@ -269,7 +280,7 @@
                 <h1>⚡ Tormentar</h1>
                 <p>Alertas de Tormentas en Tiempo Real</p>
             </div>
-
+    
             <div style="margin-bottom: 20px;">
                 <h3>Severidad Mínima para Notificaciones</h3>
                 <div style="text-align: center;">
@@ -278,29 +289,23 @@
                     <button class="filter-btn" onclick="setFilter(this, 'severa')">Severa</button>
                 </div>
             </div>
-
-            <div class="weather-info">
-                <h2>📍 Buenos Aires</h2>
-                <p>Coordenadas: -34.60°, -58.38°</p>
-                <p>🌡️ Temperatura: 24°C (Sensación: 23°C)</p>
-                <p>💧 Humedad: 65%</p>
-                <p>💨 Viento: 12 m/s</p>
+    
+            <div class="weather-info" id="weather-container">
+                <h2 id="city-name">📍 Buenos Aires</h2>
+                <p id="coords">Coordenadas: -34.60°, -58.38°</p>
+                <p id="temp">🌡️ Temperatura: 24°C (Sensación: 23°C)</p>
+                <p id="humidity">💧 Humedad: 65%</p>
+                <p id="wind">💨 Viento: 12 m/s</p>
             </div>
-
-            <h3>Alertas Activas (2)</h3>
-
-            <div class="alert-card">
-                <div class="alert-title">🌧️ Tormenta Leve</div>
-                <div class="alert-desc">Se esperan lluvias ligeras en el área. Condiciones normales.</div>
-                <div class="alert-time">Hoy 14:00 - 15:00 | Radio: 15 km</div>
-                <button class="alert-action" onclick="showMap('leve')">Ver en Mapa</button>
-            </div>
-
-            <div class="alert-card moderada">
-                <div class="alert-title">⛈️ Tormenta Moderada</div>
-                <div class="alert-desc">Se esperan tormentas moderadas con vientos de 40-60 km/h.</div>
-                <div class="alert-time">Hoy 16:00 - 18:00 | Radio: 25 km</div>
-                <button class="alert-action" onclick="showMap('moderada')">Ver en Mapa</button>
+    
+            <h3 id="alerts-count">Alertas Activas (Cargando...)</h3>
+    
+            <div id="alerts-list">
+                <!-- Las alertas reales se inyectarán aquí -->
+                <div class="alert-card">
+                    <div class="alert-title">Cargando...</div>
+                    <div class="alert-desc">Obteniendo alertas reales de OpenWeatherMap.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -317,16 +322,8 @@
 
             <h3>Alertas en el Área</h3>
 
-            <div class="alert-card" onclick="showMap('leve')">
-                <div class="alert-title">🌧️ Tormenta Leve</div>
-                <div class="alert-desc">Lluvia ligera - Radio: 15 km</div>
-                <div class="alert-time">Coordenadas: -34.60°, -58.38°</div>
-            </div>
-
-            <div class="alert-card moderada" onclick="showMap('moderada')">
-                <div class="alert-title">⛈️ Tormenta Moderada</div>
-                <div class="alert-desc">Tormentas con vientos - Radio: 25 km</div>
-                <div class="alert-time">Coordenadas: -34.50°, -58.50°</div>
+            <div id="map-alerts-list">
+                <!-- Lista de alertas para el mapa -->
             </div>
         </div>
     </div>
@@ -383,31 +380,108 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Datos de las alertas: coordenadas y radio (en metros) de cada una
-        const alertsData = {
-            leve: {
-                nombre: 'Tormenta Leve',
-                desc: 'Lluvia ligera',
-                lat: -34.60,
-                lng: -58.38,
-                radio: 15000, // 15 km
-                color: '#FFA500'
-            },
-            moderada: {
-                nombre: 'Tormenta Moderada',
-                desc: 'Tormenta con vientos de 40-60 km/h',
-                lat: -34.50,
-                lng: -58.50,
-                radio: 25000, // 25 km
-                color: '#FF6B35'
-            }
-        };
-
+        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
+        let alertsData = {};
         let map = null;
         let circlesLayer = null;
 
+        async function fetchWeatherData() {
+            try {
+                // Intentar obtener ubicación real
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    await loadData(pos.coords.latitude, pos.coords.longitude);
+                }, async (err) => {
+                    console.warn("Usando ubicación por defecto (Buenos Aires)");
+                    await loadData(-34.6037, -58.3816);
+                });
+            } catch (e) {
+                await loadData(-34.6037, -58.3816);
+            }
+        }
+
+        async function loadData(lat, lon) {
+            try {
+                const response = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
+                const data = await response.json();
+                
+                updateWeatherUI(data);
+                updateAlertsUI(data);
+                
+                if (map) {
+                    updateMap(data);
+                }
+            } catch (e) {
+                console.error("Error al cargar datos:", e);
+                document.getElementById('alerts-list').innerHTML = '<div class="alert-card"><div class="alert-title">Error</div><div class="alert-desc">No se pudieron cargar las alertas reales.</div></div>';
+            }
+        }
+
+        function updateWeatherUI(data) {
+            document.getElementById('city-name').innerText = `📍 ${data.timezone}`;
+            document.getElementById('coords').innerText = `Coordenadas: ${data.lat.toFixed(2)}°, ${data.lon.toFixed(2)}°`;
+            document.getElementById('temp').innerText = `🌡️ Temperatura: ${Math.round(data.current.temp)}°C (Sensación: ${Math.round(data.current.feels_like)}°C)`;
+            document.getElementById('humidity').innerText = `💧 Humedad: ${data.current.humidity}%`;
+            document.getElementById('wind').innerText = `💨 Viento: ${data.current.wind_speed} m/s`;
+        }
+
+        function updateAlertsUI(data) {
+            const alertsList = document.getElementById('alerts-list');
+            const mapAlertsList = document.getElementById('map-alerts-list');
+            const alertsCount = document.getElementById('alerts-count');
+            
+            alertsList.innerHTML = '';
+            mapAlertsList.innerHTML = '';
+            alertsData = {};
+
+            if (!data.alerts || data.alerts.length === 0) {
+                alertsCount.innerText = 'Alertas Activas (0)';
+                alertsList.innerHTML = '<div class="weather-info" style="text-align:center; border:none; background:transparent;">✅ No hay alertas reales en tu zona.</div>';
+                return;
+            }
+
+            alertsCount.innerText = `Alertas Activas (${data.alerts.length})`;
+
+            data.alerts.forEach((alert, index) => {
+                const id = `alert-${index}`;
+                const isSimulacro = alert.event.toLowerCase().includes('simulacro') || alert.event.toLowerCase().includes('test');
+                const cardClass = isSimulacro ? 'simulacro' : 'real-alert';
+                
+                alertsData[id] = {
+                    nombre: alert.event,
+                    desc: alert.description,
+                    lat: data.lat,
+                    lng: data.lon,
+                    radio: 15000,
+                    color: isSimulacro ? '#007AFF' : '#EF4444'
+                };
+
+                const startTime = new Date(alert.start * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const endTime = new Date(alert.end * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                const cardHtml = `
+                    <div class="alert-card ${cardClass}">
+                        <div class="alert-title">${isSimulacro ? '⚠️ ' : '🚨 '}${alert.event}</div>
+                        <div class="alert-desc">${alert.description}</div>
+                        <div class="alert-time">Vigencia: ${startTime} - ${endTime}</div>
+                        <button class="alert-action" onclick="showMap('${id}')">Ver en Mapa</button>
+                    </div>
+                `;
+                alertsList.innerHTML += cardHtml;
+                
+                // También agregar a la lista del mapa
+                const mapCardHtml = `
+                    <div class="alert-card ${cardClass}" onclick="showMap('${id}')">
+                        <div class="alert-title">${alert.event}</div>
+                        <div class="alert-desc">${alert.description.substring(0, 50)}...</div>
+                        <div class="alert-time">Coordenadas: ${data.lat.toFixed(2)}, ${data.lon.toFixed(2)}</div>
+                    </div>
+                `;
+                mapAlertsList.innerHTML += mapCardHtml;
+            });
+        }
+
         function initMap() {
-            if (map) return; // ya inicializado, no recrear
+            if (map) return;
 
             map = L.map('map', {
                 zoomControl: true
@@ -419,33 +493,41 @@
             }).addTo(map);
 
             circlesLayer = L.layerGroup().addTo(map);
-
-            // Dibuja todas las alertas en el mapa
+            
+            // Si ya tenemos datos, dibujarlos
             Object.keys(alertsData).forEach(key => {
-                const a = alertsData[key];
-                L.circle([a.lat, a.lng], {
-                    radius: a.radio,
-                    color: a.color,
-                    fillColor: a.color,
-                    fillOpacity: 0.15,
-                    weight: 2
-                }).addTo(circlesLayer)
-                  .bindPopup('<b>' + a.nombre + '</b><br>' + a.desc);
+                drawAlertOnMap(alertsData[key]);
             });
         }
 
+        function updateMap(data) {
+            if (!circlesLayer) return;
+            circlesLayer.clearLayers();
+            Object.keys(alertsData).forEach(key => {
+                drawAlertOnMap(alertsData[key]);
+            });
+            if (data) {
+                map.setView([data.lat, data.lon], 9);
+            }
+        }
+
+        function drawAlertOnMap(a) {
+            L.circle([a.lat, a.lng], {
+                radius: a.radio,
+                color: a.color,
+                fillColor: a.color,
+                fillOpacity: 0.2,
+                weight: 2
+            }).addTo(circlesLayer)
+              .bindPopup('<b>' + a.nombre + '</b><br>' + a.desc);
+        }
+
         function switchTab(tabId, button) {
-            // Ocultar todas las secciones
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            
-            // Mostrar la sección seleccionada
             document.getElementById(tabId).classList.add('active');
-            
-            // Actualizar botones activos
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             button.classList.add('active');
 
-            // Si es la pestaña del mapa, inicializarlo (o recalcular tamaño)
             if (tabId === 'mapa') {
                 initMap();
                 setTimeout(() => {
@@ -470,7 +552,6 @@
             setTimeout(() => {
                 map.invalidateSize();
                 map.setView([a.lat, a.lng], 10);
-                // Abre el popup de esa alerta
                 circlesLayer.eachLayer(layer => {
                     const latlng = layer.getLatLng();
                     if (latlng.lat === a.lat && latlng.lng === a.lng) {
@@ -483,6 +564,9 @@
         function toggleConfig(button) {
             button.classList.toggle('on');
         }
+
+        // Cargar datos al iniciar
+        fetchWeatherData();
     </script>
 </body>
 </html>
