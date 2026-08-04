@@ -22,7 +22,7 @@ const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { preferences, updatePreferences, toggleSeverity } = useAlertPreferences();
+  const { preferences, updatePreferences, setMinSeverity } = useAlertPreferences();
   const { location } = useLocation();
 
   const [searchCity, setSearchCity] = useState("");
@@ -194,16 +194,17 @@ export default function SettingsScreen() {
 
           <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
             <Text className="text-xs text-muted mb-3">
-              Elegi que niveles de severidad queres recibir. Este ajuste es unico para toda
-              la app: se aplica en Inicio, Mapa y en las notificaciones push.
+              Elegi la severidad minima que queres recibir: vas a recibir esa y todo lo que sea
+              igual o mas grave. Este ajuste es unico para toda la app: se aplica en Inicio,
+              Mapa y en las notificaciones push.
             </Text>
             <View className="flex-row gap-2">
               {SEVERITY_LEVELS.map((level) => {
-                const isActive = preferences.enabledSeverities.includes(level.id);
+                const isActive = preferences.minSeverity === level.id;
                 return (
                   <Pressable
                     key={level.id}
-                    onPress={() => toggleSeverity(level.id)}
+                    onPress={() => setMinSeverity(level.id)}
                     style={({ pressed }) => ({
                       flex: 1,
                       paddingVertical: 10,

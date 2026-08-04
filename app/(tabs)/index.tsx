@@ -38,7 +38,7 @@ const SEVERITY_ICONS: Record<AlertSeverity, string> = {
 
 export default function HomeScreen() {
   const colors = useColors();
-  const { preferences, toggleSeverity } = useAlertPreferences();
+  const { preferences, setMinSeverity } = useAlertPreferences();
   const {
     location,
     filteredAlerts,
@@ -180,21 +180,21 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Filtro de severidad: seleccion multiple e independiente */}
+        {/* Filtro de severidad mínima: selección única */}
         <View className="px-4 py-3">
           <View className="flex-row items-center gap-2 mb-2">
             <MaterialIcons name="filter-list" size={18} color={colors.foreground} />
             <Text className="text-sm font-semibold text-foreground">
-              Severidades que quiero recibir
+              Severidad mínima que quiero recibir
             </Text>
           </View>
           <View className="flex-row gap-2">
             {SEVERITY_LEVELS.map((level) => {
-              const isActive = preferences.enabledSeverities.includes(level.id);
+              const isActive = preferences.minSeverity === level.id;
               return (
                 <Pressable
                   key={level.id}
-                  onPress={() => toggleSeverity(level.id)}
+                  onPress={() => setMinSeverity(level.id)}
                   style={({ pressed }) => ({
                     flex: 1,
                     paddingVertical: 10,
@@ -206,25 +206,18 @@ export default function HomeScreen() {
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <View className="flex-row items-center justify-center gap-1">
-                    <MaterialIcons
-                      name={isActive ? "check-box" : "check-box-outline-blank"}
-                      size={14}
-                      color={isActive ? level.color : colors.muted}
-                    />
-                    <Text
-                      className="text-xs font-semibold text-center"
-                      style={{ color: isActive ? level.color : colors.foreground }}
-                    >
-                      {level.label}
-                    </Text>
-                  </View>
+                  <Text
+                    className="text-xs font-semibold text-center"
+                    style={{ color: isActive ? level.color : colors.foreground }}
+                  >
+                    {level.label}
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
           <Text className="text-xs text-muted mt-2">
-            Esta seleccion se usa en toda la app (Inicio, Mapa y notificaciones).
+            Vas a recibir alertas de {preferences.minSeverity === "severa" ? "fuerte" : preferences.minSeverity} en adelante. Se aplica en toda la app (Inicio, Mapa y notificaciones).
           </Text>
         </View>
 
