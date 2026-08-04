@@ -5,8 +5,12 @@ WORKDIR /app
 # Copiar solo package.json
 COPY package.json ./
 
-# Instalar con npm (más estable que pnpm)
-RUN npm install
+# Instalar con npm (más estable que pnpm). Se fuerza --include=dev
+# porque NODE_ENV=production (seteado en Render) hace que npm salte
+# las devDependencies por defecto, y ahi estan "typescript" y
+# "tailwindcss", que Metro necesita para poder compilar el proyecto
+# (sin ellos, "npx expo export" fallaba en el paso de babel-transformer).
+RUN npm install --include=dev
 
 # Copiar código
 COPY . .
