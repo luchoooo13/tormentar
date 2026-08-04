@@ -124,6 +124,21 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* Cartel de estado: todo el sistema de clima funcionando */}
+        {weather?.current && !error && (
+          <View className="px-4 pt-3">
+            <View
+              className="flex-row items-center gap-2 p-3 rounded-xl border"
+              style={{ backgroundColor: colors.success + "20", borderColor: colors.success }}
+            >
+              <MaterialIcons name="check-circle" size={18} color={colors.success} />
+              <Text className="text-xs font-semibold flex-1" style={{ color: colors.success }}>
+                Sistema de clima funcionando correctamente
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Estado del clima actual (solo si hay datos reales) */}
         {weather?.current && (
           <View className="px-4 py-3">

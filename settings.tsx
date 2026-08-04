@@ -1,22 +1,18 @@
 /**
  * Settings Screen
- * Pantalla de configuración mejorada con Material Design 3
+ * Pantalla de configuracion. Ahora usa useAlertPreferences: la MISMA
+ * fuente de datos que Inicio y Mapa, en vez de un estado local propio
+ * guardado bajo una clave distinta ("tormentar_settings") que quedaba
+ * desincronizada del resto de la app.
  */
-
 import { useState } from "react";
-import {
-  ScrollView,
-  Text,
-  View,
-  Pressable,
-  Switch,
-  TextInput,
-} from "react-native";
+import { ScrollView, Text, View, Pressable, Switch, TextInput } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
+import { useLocation } from "@/hooks/useLocation";
 import type { AlertSeverity } from "@/shared/types/weather";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
   { id: "leve", label: "Leve", color: "#FFA500" },
@@ -26,25 +22,11 @@ const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { preferences: settings, updatePreferences, setMinSeverity } = useAlertPreferences();
+  const { preferences, updatePreferences, setMinSeverity } = useAlertPreferences();
+  const { location } = useLocation();
 
   const [searchCity, setSearchCity] = useState("");
   const [showCitySearch, setShowCitySearch] = useState(false);
-
-  // Cambiar notificaciones
-  const toggleNotifications = () => {
-    updatePreferences({ notificationsEnabled: !settings.notificationsEnabled });
-  };
-
-  // Cambiar sonido
-  const toggleSound = () => {
-    updatePreferences({ soundEnabled: !settings.soundEnabled });
-  };
-
-  // Cambiar vibración
-  const toggleVibration = () => {
-    updatePreferences({ vibrationEnabled: !settings.vibrationEnabled });
-  };
 
   const SettingRow = ({
     icon,
@@ -100,7 +82,7 @@ export default function SettingsScreen() {
         <View className="px-4 pt-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
           <View className="flex-row items-center gap-2">
             <MaterialIcons name="settings" size={24} color={colors.primary} />
-            <Text className="text-2xl font-bold text-foreground">Configuración</Text>
+            <Text className="text-2xl font-bold text-foreground">Configuracion</Text>
           </View>
         </View>
 
@@ -108,7 +90,7 @@ export default function SettingsScreen() {
         <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="location-on" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Ubicación</Text>
+            <Text className="text-sm font-semibold text-foreground uppercase">Ubicacion</Text>
           </View>
 
           <Pressable
@@ -128,9 +110,11 @@ export default function SettingsScreen() {
                 <MaterialIcons name="edit-location" size={20} color={colors.primary} />
                 <View className="flex-1">
                   <Text className="text-foreground font-semibold text-sm">
-                    Cambiar Ubicación
+                    Cambiar Ubicacion
                   </Text>
-                  <Text className="text-xs text-muted">Buenos Aires, Argentina</Text>
+                  <Text className="text-xs text-muted">
+                    {location?.city ?? "Sin ubicacion configurada"}
+                  </Text>
                 </View>
               </View>
               <MaterialIcons
@@ -159,19 +143,10 @@ export default function SettingsScreen() {
                   fontSize: 14,
                 }}
               />
-              <Pressable
-                style={({ pressed }) => ({
-                  backgroundColor: colors.primary,
-                  padding: 12,
-                  borderRadius: 8,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <View className="flex-row items-center justify-center gap-2">
-                  <MaterialIcons name="search" size={18} color="white" />
-                  <Text className="text-white font-semibold">Buscar</Text>
-                </View>
-              </Pressable>
+              <Text className="text-xs text-muted">
+                La busqueda por nombre de ciudad requiere geocodificacion (pendiente de
+                implementar); por ahora se puede fijar una ubicacion manual por coordenadas.
+              </Text>
             </View>
           )}
         </View>
@@ -187,101 +162,45 @@ export default function SettingsScreen() {
             icon="notifications-active"
             title="Notificaciones"
             subtitle="Recibir alertas de clima"
-            value={settings.notificationsEnabled}
-            onToggle={toggleNotifications}
+            value={preferences.notificationsEnabled}
+            onToggle={() => updatePreferences({ notificationsEnabled: !preferences.notificationsEnabled })}
           />
 
           <SettingRow
             icon="volume-up"
             title="Sonido"
             subtitle="Reproducir sonido de alerta"
-            value={settings.soundEnabled && settings.notificationsEnabled}
-            onToggle={toggleSound}
+            value={preferences.soundEnabled && preferences.notificationsEnabled}
+            onToggle={() => updatePreferences({ soundEnabled: !preferences.soundEnabled })}
           />
 
           <SettingRow
             icon="vibration"
-            title="Vibración"
-            subtitle="Vibración en alertas"
-            value={settings.vibrationEnabled && settings.notificationsEnabled}
-            onToggle={toggleVibration}
+            title="Vibracion"
+            subtitle="Vibracion en alertas"
+            value={preferences.vibrationEnabled && preferences.notificationsEnabled}
+            onToggle={() => updatePreferences({ vibrationEnabled: !preferences.vibrationEnabled })}
           />
         </View>
 
-        {/* Sección de Actualización */}
+        {/* Sección de Sensibilidad (unica en toda la app) */}
         <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="schedule" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Actualización</Text>
-          </View>
-
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-foreground font-semibold">Intervalo de Actualización</Text>
-              <View
-                style={{
-                  backgroundColor: colors.primary,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 20,
-                }}
-              >
-                <Text className="text-white text-sm font-bold">
-                  {settings.updateIntervalMinutes} min
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row gap-2">
-              {[5, 10, 15, 30].map((interval) => (
-                <Pressable
-                  key={interval}
-                  onPress={() => updatePreferences({ updateIntervalMinutes: interval })}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    backgroundColor:
-                      settings.updateIntervalMinutes === interval
-                        ? colors.primary
-                        : colors.border,
-                    paddingVertical: 8,
-                    borderRadius: 6,
-                    opacity: pressed ? 0.8 : 1,
-                  })}
-                >
-                  <Text
-                    className="text-center font-semibold text-xs"
-                    style={{
-                      color:
-                        settings.updateIntervalMinutes === interval
-                          ? "white"
-                          : colors.foreground,
-                    }}
-                  >
-                    {interval}m
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text className="text-xs text-muted mt-3">
-              La app actualizará las alertas cada {settings.updateIntervalMinutes} minutos
-            </Text>
-          </View>
-        </View>
-
-        {/* Sección de Severidad mínima */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="filter-list" size={18} color={colors.foreground} />
+            <MaterialIcons name="tune" size={18} color={colors.foreground} />
             <Text className="text-sm font-semibold text-foreground uppercase">
-              Severidad mínima
+              Sensibilidad de alertas
             </Text>
           </View>
 
           <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+            <Text className="text-xs text-muted mb-3">
+              Elegi la severidad minima que queres recibir: vas a recibir esa y todo lo que sea
+              igual o mas grave. Este ajuste es unico para toda la app: se aplica en Inicio,
+              Mapa y en las notificaciones push.
+            </Text>
             <View className="flex-row gap-2">
               {SEVERITY_LEVELS.map((level) => {
-                const isActive = settings.minSeverity === level.id;
+                const isActive = preferences.minSeverity === level.id;
                 return (
                   <Pressable
                     key={level.id}
@@ -289,11 +208,10 @@ export default function SettingsScreen() {
                     style={({ pressed }) => ({
                       flex: 1,
                       paddingVertical: 10,
-                      paddingHorizontal: 12,
                       borderRadius: 8,
                       borderWidth: 2,
                       borderColor: isActive ? level.color : colors.border,
-                      backgroundColor: isActive ? level.color + "20" : colors.surface,
+                      backgroundColor: isActive ? level.color + "20" : colors.background,
                       opacity: pressed ? 0.7 : 1,
                     })}
                   >
@@ -307,8 +225,61 @@ export default function SettingsScreen() {
                 );
               })}
             </View>
+          </View>
+        </View>
+
+        {/* Sección de Actualización */}
+        <View className="px-4 py-4">
+          <View className="flex-row items-center gap-2 mb-3">
+            <MaterialIcons name="schedule" size={18} color={colors.foreground} />
+            <Text className="text-sm font-semibold text-foreground uppercase">Actualizacion</Text>
+          </View>
+
+          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-foreground font-semibold">Intervalo de Actualizacion</Text>
+              <View
+                style={{
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                }}
+              >
+                <Text className="text-white text-sm font-bold">
+                  {preferences.updateIntervalMinutes} min
+                </Text>
+              </View>
+            </View>
+
+            <View className="flex-row gap-2">
+              {[5, 10, 15, 30].map((interval) => (
+                <Pressable
+                  key={interval}
+                  onPress={() => updatePreferences({ updateIntervalMinutes: interval })}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    backgroundColor:
+                      preferences.updateIntervalMinutes === interval ? colors.primary : colors.border,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    opacity: pressed ? 0.8 : 1,
+                  })}
+                >
+                  <Text
+                    className="text-center font-semibold text-xs"
+                    style={{
+                      color: preferences.updateIntervalMinutes === interval ? "white" : colors.foreground,
+                    }}
+                  >
+                    {interval}m
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             <Text className="text-xs text-muted mt-3">
-              Vas a recibir alertas de {settings.minSeverity === "severa" ? "fuerte" : settings.minSeverity} en adelante. Este ajuste es el mismo en Inicio, Mapa y notificaciones.
+              La app actualizara las alertas cada {preferences.updateIntervalMinutes} minutos
             </Text>
           </View>
         </View>
@@ -317,14 +288,14 @@ export default function SettingsScreen() {
         <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="info" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Información</Text>
+            <Text className="text-sm font-semibold text-foreground uppercase">Informacion</Text>
           </View>
 
           <View className="bg-surface p-4 rounded-lg border gap-3" style={{ borderColor: colors.border }}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
                 <MaterialIcons name="info" size={16} color={colors.muted} />
-                <Text className="text-muted text-sm">Versión</Text>
+                <Text className="text-muted text-sm">Version</Text>
               </View>
               <Text className="text-foreground font-semibold text-sm">1.0.0</Text>
             </View>
@@ -349,20 +320,6 @@ export default function SettingsScreen() {
               <Text className="text-foreground font-semibold text-sm">Tormentar</Text>
             </View>
           </View>
-        </View>
-
-        {/* Botón de ayuda */}
-        <View className="px-4 py-4">
-          <Pressable
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <View className="bg-primary p-4 rounded-lg flex-row items-center justify-center gap-2">
-              <MaterialIcons name="help" size={20} color="white" />
-              <Text className="text-white font-semibold">Necesitas ayuda?</Text>
-            </View>
-          </Pressable>
         </View>
 
         {/* Espaciador */}
