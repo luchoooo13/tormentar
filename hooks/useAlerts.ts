@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
-import { useAlertPreferences } from "@/hooks/useAlertPreferences";
+import { useAlertPreferences, getEnabledSeverities } from "@/hooks/useAlertPreferences";
 import { useWeatherNotifications } from "@/hooks/useWeatherNotifications";
 import { getWeatherAlerts, hasApiKey, sortAlertsBySeverity } from "@/lib/services/weatherService";
 import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
@@ -67,8 +67,9 @@ export function useAlerts() {
       const prefs = preferencesRef.current;
 
       if (prefs.notificationsEnabled && !isFirstLoad.current) {
+        const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
         const newRelevantAlerts = currentAlerts.filter(
-          (a) => !knownAlertIds.current.has(a.id) && prefs.enabledSeverities.includes(a.severity)
+          (a) => !knownAlertIds.current.has(a.id) && enabledSeverities.includes(a.severity)
         );
         for (const alert of newRelevantAlerts) {
           await sendNotification(alert, {
@@ -110,8 +111,9 @@ export function useAlerts() {
   }, [location, preferences.updateIntervalMinutes, fetchAlerts]);
 
   const allAlerts: WeatherAlert[] = weather?.alerts || [];
+  const enabledSeverities = getEnabledSeverities(preferences.minSeverity);
   const filteredAlerts = sortAlertsBySeverity(
-    allAlerts.filter((a) => preferences.enabledSeverities.includes(a.severity))
+    allAlerts.filter((a) => enabledSeverities.includes(a.severity))
   );
 
   return {

@@ -1,13 +1,18 @@
 /**
  * useAlertPreferences Hook
- * Preferencias UNIFICADAS de alertas: única fuente de verdad para toda
- * la app (Inicio, Mapa y Configuración leen y escriben el mismo estado).
+ * Preferencias UNIFICADAS de alertas: unica fuente de verdad para toda
+ * la app (Inicio, Mapa y Configuracion leen y escriben el mismo estado).
  *
- * Antes existían dos claves de almacenamiento distintas y desincronizadas
- * ("tormentar_settings" en Configuración y "tormentar_min_severity" en
- * Inicio). Ahora todo vive en una sola clave, con un caché en memoria y
+ * Antes existian dos claves de almacenamiento distintas y desincronizadas
+ * ("tormentar_settings" en Configuracion y "tormentar_min_severity" en
+ * Inicio). Ahora todo vive en una sola clave, con un cache en memoria y
  * un sistema de listeners para que un cambio hecho en cualquier pantalla
- * se refleje al instante en las demás sin recargar.
+ * se refleje al instante en las demas sin recargar.
+ *
+ * La sensibilidad es un unico valor "minSeverity" (severidad minima):
+ * el usuario elige leve, moderada o fuerte, y recibe esa alerta y todo
+ * lo que sea igual o mas grave. Por ejemplo, elegir "moderada" trae
+ * alertas moderadas y fuertes, pero no leves.
  */
 import { useCallback, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,27 +20,43 @@ import type { AlertSeverity } from "@/shared/types/weather";
 
 const PREFERENCES_KEY = "tormentar_preferences";
 
+// Orden de gravedad: cuanto mas bajo el numero, mas grave la alerta.
+export const SEVERITY_ORDER: Record<AlertSeverity, number> = {
+  severa: 0,
+  moderada: 1,
+  leve: 2,
+};
+
+// Dado un umbral minimo, devuelve todos los niveles que hay que
+// aceptar (el elegido y todos los mas graves que el).
+export function getEnabledSeverities(minSeverity: AlertSeverity): AlertSeverity[] {
+  const threshold = SEVERITY_ORDER[minSeverity];
+  return (Object.keys(SEVERITY_ORDER) as AlertSeverity[]).filter(
+    (severity) => SEVERITY_ORDER[severity] <= threshold
+  );
+}
+
 export interface AlertPreferences {
-  // Niveles de severidad que el usuario quiere recibir (filtro elegido
-  // por el usuario: leve, moderada y/o fuerte).
-  enabledSeverities: AlertSeverity[];
+  // Severidad minima que el usuario quiere recibir (leve, moderada o
+  // fuerte/severa). Unica para toda la app.
+  minSeverity: AlertSeverity;
   notificationsEnabled: boolean;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
-  // Intervalo único de actualización, usado por todas las pantallas.
+  // Intervalo unico de actualizacion, usado por todas las pantallas.
   updateIntervalMinutes: number;
 }
 
 export const DEFAULT_PREFERENCES: AlertPreferences = {
-  enabledSeverities: ["leve", "moderada", "severa"],
+  minSeverity: "leve",
   notificationsEnabled: true,
   soundEnabled: true,
   vibrationEnabled: true,
   updateIntervalMinutes: 15,
 };
 
-// Caché en memoria compartido entre todos los componentes que usan el
-// hook, para que la sensibilidad sea realmente única en toda la app.
+// Cache en memoria compartido entre todos los componentes que usan el
+// hook, para que la sensibilidad sea realmente unica en toda la app.
 let memoryCache: AlertPreferences | null = null;
 let loadPromise: Promise<AlertPreferences> | null = null;
 const listeners = new Set<(prefs: AlertPreferences) => void>();
@@ -89,22 +110,10 @@ export function useAlertPreferences() {
     }
   }, []);
 
-  // Activar/desactivar un nivel de severidad (filtro por elección del
-  // usuario). No permite dejar todos los niveles apagados: si se
-  // desactivara el último, no llegaría ninguna alerta y el usuario
-  // probablemente no lo notaría hasta que sea tarde.
-  const toggleSeverity = useCallback(
+  // Elegir la severidad minima (unica seleccion, no multiple).
+  const setMinSeverity = useCallback(
     (severity: AlertSeverity) => {
-      const current = memoryCache ?? DEFAULT_PREFERENCES;
-      const isEnabled = current.enabledSeverities.includes(severity);
-      const nextSeverities = isEnabled
-        ? current.enabledSeverities.filter((s) => s !== severity)
-        : [...current.enabledSeverities, severity];
-
-      if (nextSeverities.length === 0) return false;
-
-      updatePreferences({ enabledSeverities: nextSeverities });
-      return true;
+      updatePreferences({ minSeverity: severity });
     },
     [updatePreferences]
   );
@@ -113,6 +122,7 @@ export function useAlertPreferences() {
     preferences,
     loading,
     updatePreferences,
-    toggleSeverity,
+    setMinSeverity,
+    enabledSeverities: getEnabledSeverities(preferences.minSeverity),
   };
 }
