@@ -982,13 +982,13 @@
         
         // ========== SONIDO Y POPUP ==========
         
-        function playEmergencySound() {
+        function playEmergencySound(severity) {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             const ctx = audioContext;
             const now = ctx.currentTime;
-            const duration = 10;
+            const duration = (severity === 'leve') ? 10 : 30;
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
@@ -996,7 +996,8 @@
             osc.frequency.setValueAtTime(800, now);
             osc.frequency.setValueAtTime(600, now + 0.1);
             gain.gain.setValueAtTime(0.3, now);
-            for (let i = 0; i < 10; i++) {
+            var beepCount = (severity === 'leve') ? 10 : 30;
+            for (let i = 0; i < beepCount; i++) {
                 gain.gain.setValueAtTime(0.3, now + i);
                 gain.gain.setValueAtTime(0, now + i + 0.5);
             }
@@ -1006,14 +1007,15 @@
         }
         
         function triggerAlert(zone, severity) {
-            playEmergencySound();
+            playEmergencySound(severity);
             const popup = document.getElementById('alertPopup');
             const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[severity];
-            const title = { leve: 'Tormenta Leve', moderada: 'Tormenta Moderada', severa: '⚠️ ALERTA SEVERA' }[severity];
+            const title = { leve: 'Tormenta Leve', moderada: '⚠️ ALERTA MODERADA', severa: '⚠️ ALERTA SEVERA' }[severity];
             document.getElementById('popupTitle').textContent = icon + ' ' + title;
             document.getElementById('popupDesc').textContent = 'Se ha detectado una tormenta en ' + zone + '. Toma precauciones.';
             popup.classList.add('show');
-            setTimeout(function() { closeAlertPopup(); }, 10000);
+            var popupDuration = (severity === 'leve') ? 10000 : 30000;
+            setTimeout(function() { closeAlertPopup(); }, popupDuration);
             switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
         }
         
@@ -1090,9 +1092,9 @@
                     div.innerHTML = '<div style="background:rgba(0,0,0,0.8);padding:10px 14px;border-radius:8px;color:#fff;font-size:12px;line-height:1.8;">' +
                         '<b style="color:#FFA500;">Leyenda</b><br>' +
                         '<span style="color:#FFA500;">●</span> Sin alerta<br>' +
-                        '<span style="color:#48BB78;">●</span> Leve<br>' +
-                        '<span style="color:#FF6B35;">●</span> Moderada<br>' +
-                        '<span style="color:#EF4444;">●</span> Severa<br>' +
+                        '<span style="color:#48BB78;">●</span> Leve (10s sonido)<br>' +
+                        '<span style="color:#EF4444;">●</span> Moderada (30s sonido)<br>' +
+                        '<span style="color:#EF4444;">●</span> Severa (30s sonido)<br>' +
                         '<span style="color:#FFD700;">●</span> Tu ubicación</span>' +
                         '</div>';
                     return div;
@@ -1126,7 +1128,7 @@
         function drawRegionalMarkers() {
             var colors = {
                 severa: '#EF4444',
-                moderada: '#FF6B35',
+                moderada: '#EF4444',
                 leve: '#48BB78',
                 none: '#FFA500'
             };
@@ -1134,13 +1136,13 @@
             zonasAmaba.forEach(function(zona) {
                 var alert = regionalAlerts.find(function(a) { return a.zoneName === zona.name; });
                 var severity = alert ? alert.severity : 'none';
-                var color = colors[severity];
+                // En el mapa, moderadas se muestran como severas (rojo)
+                var displaySeverity = (severity === 'moderada') ? 'severa' : severity;
+                var color = colors[displaySeverity];
                 var radius = 12;
                 
-                if (severity === 'severa') {
+                if (displaySeverity === 'severa') {
                     radius = 16;
-                } else if (severity === 'moderada') {
-                    radius = 14;
                 }
                 
                 var marker = L.circleMarker([zona.lat, zona.lng], {
