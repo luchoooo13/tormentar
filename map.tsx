@@ -71,6 +71,17 @@ export default function MapScreen() {
           </View>
         </View>
 
+        {!hasApiKey && (
+          <View className="px-4 pb-2">
+            <View className="p-4 rounded-xl border" style={{ backgroundColor: colors.surface, borderColor: colors.error }}>
+              <Text className="text-sm font-semibold text-foreground mb-1">Alertas no configuradas</Text>
+              <Text className="text-xs text-muted">
+                Falta EXPO_PUBLIC_OPENWEATHER_API_KEY para obtener alertas reales.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Lista de alertas en el mapa */}
         <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">

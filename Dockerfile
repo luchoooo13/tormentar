@@ -14,6 +14,14 @@ RUN npm install --include=dev
 # Copiar código
 COPY . .
 
+# La API key debe estar disponible durante el build de Expo (las
+# variables EXPO_PUBLIC_* se incrustan en el JS en el momento de
+# `expo export`, no en runtime). Render traduce automáticamente las
+# variables configuradas en el dashboard en build args con el mismo
+# nombre, pero hay que declararlas acá para que el proceso las vea.
+ARG EXPO_PUBLIC_OPENWEATHER_API_KEY
+ENV EXPO_PUBLIC_OPENWEATHER_API_KEY=$EXPO_PUBLIC_OPENWEATHER_API_KEY
+
 # Generar el build web estatico a partir del codigo fuente actual (dist/).
 RUN npx expo export --platform web
 

@@ -3,13 +3,15 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -73,29 +75,19 @@ async function startServer() {
     }),
   );
 
-  // Servir el frontend web exportado (npx expo export --platform web) si existe.
-  // En dev, Metro sirve el frontend por su cuenta (puerto 8081) y esta carpeta
-  // no existe, asi que esto no interfiere con "pnpm dev". En produccion
-  // (Docker), el build genera "dist/" al lado de este archivo compilado y
-  // el mismo servidor pasa a servir tanto la API como los archivos estaticos.
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  // El backend compilado vive en server-dist/index.js (ver Dockerfile),
-  // y el frontend exportado (npx expo export) vive en dist/, como carpeta
-  // hermana de server-dist/.
-  const staticDir = path.join(__dirname, "..", "dist");
-
-  if (fs.existsSync(staticDir)) {
-    app.use(express.static(staticDir, { extensions: ["html"] }));
-
-    // Fallback para rutas de cliente (expo-router): cualquier GET que no sea
-    // /api/* y no matcheo un archivo estatico devuelve index.html.
-    app.get(/^(?!\/api\/).*/, (_req, res) => {
-      res.sendFile(path.join(staticDir, "index.html"));
+  // Servir la web exportada por Expo (carpeta dist/, generada en el build
+  // con `expo export -p web`). Va DESPUÉS de las rutas /api para que
+  // sigan teniendo prioridad; cualquier otra ruta GET devuelve index.html
+  // (necesario para las rutas internas de la app, como /settings o /map,
+  // al recargar la página o entrar por link directo).
+  const distPath = path.join(__dirname, "..", "dist");
+  app.use(express.static(distPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(distPath, "index.html"), (err) => {
+      if (err) next(err);
     });
-  } else {
-    console.log("[web] No se encontro carpeta 'dist' junto al servidor, sirviendo solo la API.");
-  }
+  });
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);

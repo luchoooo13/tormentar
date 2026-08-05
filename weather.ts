@@ -1,7 +1,6 @@
 /**
  * Weather Alert Types
- * Tipos para el clima y las alertas generadas automáticamente a partir
- * del análisis del pronóstico horario de Open-Meteo (API gratuita).
+ * Tipos para alertas de clima de OpenWeatherMap
  */
 
 export type AlertSeverity = "leve" | "moderada" | "severa";

@@ -124,21 +124,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Cartel de estado: todo el sistema de clima funcionando */}
-        {weather?.current && !error && (
-          <View className="px-4 pt-3">
-            <View
-              className="flex-row items-center gap-2 p-3 rounded-xl border"
-              style={{ backgroundColor: colors.success + "20", borderColor: colors.success }}
-            >
-              <MaterialIcons name="check-circle" size={18} color={colors.success} />
-              <Text className="text-xs font-semibold flex-1" style={{ color: colors.success }}>
-                Sistema de clima funcionando correctamente
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* Estado del clima actual (solo si hay datos reales) */}
         {weather?.current && (
           <View className="px-4 py-3">
@@ -170,6 +155,27 @@ export default function HomeScreen() {
                 </View>
                 <MaterialIcons name="wb-cloudy" size={60} color={colors.primary} />
               </View>
+            </View>
+          </View>
+        )}
+
+        {/* Aviso si falta configurar la API key */}
+        {!hasApiKey && (
+          <View className="px-4 py-3">
+            <View
+              className="p-4 rounded-xl border"
+              style={{ backgroundColor: colors.surface, borderColor: colors.error }}
+            >
+              <View className="flex-row items-center gap-2 mb-1">
+                <MaterialIcons name="error-outline" size={18} color={colors.error} />
+                <Text className="text-sm font-semibold text-foreground">
+                  Alertas no configuradas
+                </Text>
+              </View>
+              <Text className="text-xs text-muted">
+                Falta la variable EXPO_PUBLIC_OPENWEATHER_API_KEY para poder pedir alertas reales
+                a OpenWeatherMap. Hasta configurarla no se mostrara ninguna alerta.
+              </Text>
             </View>
           </View>
         )}

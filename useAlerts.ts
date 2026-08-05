@@ -1,9 +1,7 @@
 /**
  * useAlerts Hook
- * Trae el pronóstico de Open-Meteo (API gratuita, sin key) y genera
- * alertas propias (leve/moderada/severa) analizando ese pronóstico
- * (antes las pantallas usaban datos hardcodeados de demostración y
- * nunca llamaban a una API real).
+ * Trae alertas REALES desde OpenWeatherMap (antes las pantallas usaban
+ * datos hardcodeados de demostración y nunca llamaban a la API real).
  *
  * - Usa la ubicación real del dispositivo (useLocation).
  * - Actualiza según el intervalo único configurado en las preferencias.
@@ -27,7 +25,7 @@ export function useAlerts() {
     getCurrentLocation,
   } = useLocation();
   const { preferences } = useAlertPreferences();
-  const { sendNotification, setupNotificationChannels } = useWeatherNotifications();
+  const { sendNotification, setupNotificationChannels, requestPermissions } = useWeatherNotifications();
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +40,14 @@ export function useAlerts() {
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
+
+    if (!hasApiKey()) {
+      setError(
+        "Falta configurar la API key de OpenWeatherMap (EXPO_PUBLIC_OPENWEATHER_API_KEY) para recibir alertas reales."
+      );
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(undefined);
@@ -83,8 +89,10 @@ export function useAlerts() {
     }
   }, [location, sendNotification]);
 
-  // Canales de notificación (Android), una sola vez.
+  // Canales de notificación (Android) y permiso de notificaciones, una
+  // sola vez. Sin pedir el permiso, sendNotification no muestra nada.
   useEffect(() => {
+    requestPermissions();
     setupNotificationChannels();
   }, [setupNotificationChannels]);
 
