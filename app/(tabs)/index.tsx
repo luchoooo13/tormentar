@@ -1,40 +1,39 @@
 /**
  * Home Screen - Weather Alerts
  * Pantalla principal con alertas de tormentas reales (OpenWeatherMap).
- * Estilizada con Material Design 3 Expressive.
+ *
+ * Antes esta pantalla mostraba una lista fija DEMO_ALERTS que nunca
+ * cambiaba y no tenia relacion con la ubicacion real del usuario ni con
+ * ningun servicio de clima. Ahora usa useAlerts (ubicacion real +
+ * OpenWeatherMap + preferencias unificadas) y permite elegir, con
+ * checkboxes independientes, que severidades quiere recibir el usuario:
+ * leve, moderada y/o fuerte (severa), no un unico "minimo".
  */
-import { StyleSheet, ScrollView, Text, View, Pressable, RefreshControl } from "react-native";
+import { ScrollView, Text, View, Pressable, RefreshControl } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { formatAlertTime } from "@/lib/services/weatherService";
-import { ShapeRadius, Elevation } from "@/lib/_core/theme";
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string; containerColor: string }[] = [
-  { id: "leve", label: "Leve", color: "#F57C00", containerColor: "#FFF3E0" },
-  { id: "moderada", label: "Moderada", color: "#E64A19", containerColor: "#FBE9E7" },
-  { id: "severa", label: "Fuerte", color: "#D32F2F", containerColor: "#FFEBEE" },
+const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
+  { id: "leve", label: "Leve", color: "#FFA500" },
+  { id: "moderada", label: "Moderada", color: "#FF6B35" },
+  { id: "severa", label: "Fuerte", color: "#EF4444" },
 ];
 
 const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  leve: "#F57C00",
-  moderada: "#E64A19",
-  severa: "#D32F2F",
-};
-
-const SEVERITY_CONTAINER_COLORS: Record<AlertSeverity, string> = {
-  leve: "#FFF3E0",
-  moderada: "#FBE9E7",
-  severa: "#FFEBEE",
+  leve: "#FFA500",
+  moderada: "#FF6B35",
+  severa: "#EF4444",
 };
 
 const SEVERITY_ICONS: Record<AlertSeverity, string> = {
   leve: "cloud-queue",
   moderada: "cloud",
-  severa: "flash-on",
+  severa: "cloud-download",
 };
 
 export default function HomeScreen() {
@@ -52,149 +51,128 @@ export default function HomeScreen() {
 
   const renderAlertCard = (alert: WeatherAlert) => {
     const alertColor = SEVERITY_COLORS[alert.severity];
-    const containerColor = SEVERITY_CONTAINER_COLORS[alert.severity];
     const alertIcon = SEVERITY_ICONS[alert.severity];
 
     return (
       <View
         key={alert.id}
-        style={[
-          styles.alertCard,
-          {
-            backgroundColor: colors.surfaceContainer,
-            borderColor: colors.outline,
-            ...Elevation[1],
-          },
-        ]}
+        className="mb-3 p-4 rounded-xl border-l-4"
+        style={{
+          backgroundColor: colors.surface,
+          borderLeftColor: alertColor,
+          borderWidth: 1,
+          borderLeftWidth: 4,
+          borderColor: colors.border,
+        }}
       >
-        <View style={styles.alertHeader}>
-          <View style={[styles.severityBadge, { backgroundColor: containerColor }]}>
-            <MaterialIcons name={alertIcon as any} size={20} color={alertColor} />
-          </View>
-          <View style={styles.severityInfo}>
-            <Text
-              className="font-semibold"
-              style={[styles.severityLabel, { color: alertColor }]}
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center gap-2 flex-1">
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: alertColor + "20",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              {alert.severity === "severa" ? "FUERTE" : alert.severity.toUpperCase()}
-            </Text>
-            <Text style={[styles.radiusText, { color: colors.onSurfaceVariant }]}>
-              {alert.radius ?? 10} km de radio
-            </Text>
+              <MaterialIcons name={alertIcon as any} size={20} color={alertColor} />
+            </View>
+            <View className="flex-1">
+              <Text className="font-semibold capitalize text-xs" style={{ color: alertColor }}>
+                {alert.severity === "severa" ? "FUERTE" : alert.severity.toUpperCase()}
+              </Text>
+              <Text className="text-xs text-muted">{alert.radius ?? 10} km</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={[styles.alertTitle, { color: colors.onSurface }]}>{alert.event}</Text>
+        <Text className="text-base font-bold text-foreground mb-2">{alert.event}</Text>
 
-        <Text style={[styles.alertDescription, { color: colors.onSurfaceVariant }]} numberOfLines={3}>
+        <Text className="text-sm text-muted mb-3" numberOfLines={3} style={{ lineHeight: 18 }}>
           {alert.description}
         </Text>
 
-        <View style={styles.alertTimeRow}>
-          <MaterialIcons name="schedule" size={14} color={colors.onSurfaceVariant} />
-          <Text style={[styles.alertTime, { color: colors.onSurfaceVariant }]}>
-            {formatAlertTime(alert.start, alert.end)}
-          </Text>
+        <View className="flex-row items-center gap-2">
+          <MaterialIcons name="schedule" size={14} color={colors.muted} />
+          <Text className="text-xs text-muted">{formatAlertTime(alert.start, alert.end)}</Text>
         </View>
       </View>
     );
   };
 
   return (
-    <ScreenContainer className="flex-1 gap-0" style={{ backgroundColor: colors.background }}>
+    <ScreenContainer className="flex-1 gap-0">
       <ScrollView
         className="flex-1"
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
       >
-        {/* Material 3 Large Top App Bar Header */}
-        <View style={[styles.topAppBar, { backgroundColor: colors.primaryContainer }]}>
-          <View style={styles.locationRow}>
-            <View style={[styles.locationIconContainer, { backgroundColor: colors.primary + "20" }]}>
-              <MaterialIcons name="location-on" size={22} color={colors.primary} />
-            </View>
-            <View style={styles.locationTextContainer}>
-              <Text style={[styles.locationLabel, { color: colors.onPrimaryContainer }]}>
-                UBICACION ACTUAL
-              </Text>
-              <Text style={[styles.locationName, { color: colors.onPrimaryContainer }]}>
-                {location?.city ?? "Buscando ubicacion..."}
-              </Text>
-              {location && (
-                <Text style={[styles.locationCoords, { color: colors.onPrimaryContainer }]}>
-                  {location.latitude.toFixed(2)}°, {location.longitude.toFixed(2)}°
-                </Text>
-              )}
-            </View>
+        {/* Encabezado con ubicacion */}
+        <View className="px-4 pt-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+          <View className="flex-row items-center gap-2 mb-2">
+            <MaterialIcons name="location-on" size={20} color={colors.primary} />
+            <Text className="text-xs text-muted font-semibold">UBICACION ACTUAL</Text>
           </View>
+          <Text className="text-2xl font-bold text-foreground">
+            {location?.city ?? "Buscando ubicacion..."}
+          </Text>
+          {location && (
+            <Text className="text-xs text-muted">
+              {location.latitude.toFixed(2)}°, {location.longitude.toFixed(2)}°
+            </Text>
+          )}
         </View>
 
-        {/* Weather Card - Material 3 Elevated Card */}
+        {/* Estado del clima actual (solo si hay datos reales) */}
         {weather?.current && (
-          <View style={styles.weatherSection}>
-            <View
-              style={[
-                styles.weatherCard,
-                {
-                  backgroundColor: colors.surfaceContainer,
-                  borderColor: colors.outline,
-                  ...Elevation[2],
-                },
-              ]}
-            >
-              <View style={styles.weatherTopRow}>
-                <View style={styles.weatherLeft}>
-                  <View style={styles.temperatureRow}>
-                    <MaterialIcons name="thermostat" size={28} color={colors.primary} />
-                    <Text style={[styles.temperatureText, { color: colors.onSurface }]}>
+          <View className="px-4 py-3">
+            <View className="bg-surface p-4 rounded-xl border" style={{ borderColor: colors.border }}>
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <View className="flex-row items-baseline gap-1 mb-2">
+                    <MaterialIcons name="thermostat" size={24} color={colors.primary} />
+                    <Text className="text-3xl font-bold text-foreground">
                       {Math.round(weather.current.temp)}°
                     </Text>
-                    <Text style={[styles.temperatureUnit, { color: colors.onSurfaceVariant }]}>C</Text>
+                    <Text className="text-sm text-muted">C</Text>
                   </View>
-                  <Text style={[styles.weatherDesc, { color: colors.onSurfaceVariant }]}>
+                  <Text className="text-xs text-muted mb-3">
                     {weather.current.weather?.[0]?.description ?? ""}
                   </Text>
+                  <View className="gap-1">
+                    <View className="flex-row items-center gap-2">
+                      <MaterialIcons name="opacity" size={14} color={colors.muted} />
+                      <Text className="text-xs text-muted">Humedad: {weather.current.humidity}%</Text>
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      <MaterialIcons name="air" size={14} color={colors.muted} />
+                      <Text className="text-xs text-muted">
+                        Viento: {Math.round(weather.current.wind_speed)} m/s
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <MaterialIcons name="wb-cloudy" size={56} color={colors.primary} />
-              </View>
-              <View style={styles.weatherDetails}>
-                <View style={[styles.weatherDetail, { backgroundColor: colors.surfaceContainerLow }]}>
-                  <MaterialIcons name="opacity" size={16} color={colors.primary} />
-                  <Text style={[styles.weatherDetailText, { color: colors.onSurface }]}>
-                    Humedad: {weather.current.humidity}%
-                  </Text>
-                </View>
-                <View style={[styles.weatherDetail, { backgroundColor: colors.surfaceContainerLow }]}>
-                  <MaterialIcons name="air" size={16} color={colors.primary} />
-                  <Text style={[styles.weatherDetailText, { color: colors.onSurface }]}>
-                    Viento: {Math.round(weather.current.wind_speed)} m/s
-                  </Text>
-                </View>
+                <MaterialIcons name="wb-cloudy" size={60} color={colors.primary} />
               </View>
             </View>
           </View>
         )}
 
-        {/* Error Card - API Key missing */}
+        {/* Aviso si falta configurar la API key */}
         {!hasApiKey && (
-          <View style={styles.section}>
+          <View className="px-4 py-3">
             <View
-              style={[
-                styles.errorCard,
-                {
-                  backgroundColor: colors.errorContainer,
-                  borderColor: colors.error,
-                },
-              ]}
+              className="p-4 rounded-xl border"
+              style={{ backgroundColor: colors.surface, borderColor: colors.error }}
             >
-              <View style={styles.errorHeader}>
-                <MaterialIcons name="error-outline" size={20} color={colors.onErrorContainer} />
-                <Text style={[styles.errorTitle, { color: colors.onErrorContainer }]}>
+              <View className="flex-row items-center gap-2 mb-1">
+                <MaterialIcons name="error-outline" size={18} color={colors.error} />
+                <Text className="text-sm font-semibold text-foreground">
                   Alertas no configuradas
                 </Text>
               </View>
-              <Text style={[styles.errorDescription, { color: colors.onErrorContainer }]}>
+              <Text className="text-xs text-muted">
                 Falta la variable EXPO_PUBLIC_OPENWEATHER_API_KEY para poder pedir alertas reales
                 a OpenWeatherMap. Hasta configurarla no se mostrara ninguna alerta.
               </Text>
@@ -202,39 +180,35 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Severity Filter - Material 3 Filter Chips */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="filter-list" size={20} color={colors.onSurface} />
-            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-              Severidad minima
+        {/* Filtro de severidad mínima: selección única */}
+        <View className="px-4 py-3">
+          <View className="flex-row items-center gap-2 mb-2">
+            <MaterialIcons name="filter-list" size={18} color={colors.foreground} />
+            <Text className="text-sm font-semibold text-foreground">
+              Severidad mínima que quiero recibir
             </Text>
           </View>
-          <View style={styles.chipRow}>
+          <View className="flex-row gap-2">
             {SEVERITY_LEVELS.map((level) => {
               const isActive = preferences.minSeverity === level.id;
               return (
                 <Pressable
                   key={level.id}
                   onPress={() => setMinSeverity(level.id)}
-                  style={({ pressed }) => [
-                    styles.chip,
-                    {
-                      borderColor: isActive ? level.color : colors.outline,
-                      backgroundColor: isActive ? level.containerColor : colors.surfaceContainer,
-                      opacity: pressed ? 0.85 : 1,
-                      ...Elevation[isActive ? 1 : 0],
-                    },
-                  ]}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: isActive ? level.color : colors.border,
+                    backgroundColor: isActive ? level.color + "20" : colors.surface,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
                 >
-                  {isActive && (
-                    <MaterialIcons name="check" size={14} color={level.color} style={styles.chipCheck} />
-                  )}
                   <Text
-                    style={[
-                      styles.chipLabel,
-                      { color: isActive ? level.color : colors.onSurfaceVariant },
-                    ]}
+                    className="text-xs font-semibold text-center"
+                    style={{ color: isActive ? level.color : colors.foreground }}
                   >
                     {level.label}
                   </Text>
@@ -242,31 +216,35 @@ export default function HomeScreen() {
               );
             })}
           </View>
-          <Text style={[styles.sectionHint, { color: colors.onSurfaceVariant }]}>
-            Vas a recibir alertas de {preferences.minSeverity === "severa" ? "fuerte" : preferences.minSeverity} en adelante. Se aplica en toda la app.
+          <Text className="text-xs text-muted mt-2">
+            Vas a recibir alertas de {preferences.minSeverity === "severa" ? "fuerte" : preferences.minSeverity} en adelante. Se aplica en toda la app (Inicio, Mapa y notificaciones).
           </Text>
         </View>
 
-        {/* Alerts Section */}
-        <View style={styles.alertsSection}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="warning" size={20} color={colors.error} />
-            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Alertas Activas</Text>
+        {/* Alertas */}
+        <View className="px-4 py-4">
+          <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="warning" size={20} color={colors.error} />
+              <Text className="text-lg font-bold text-foreground">Alertas Activas</Text>
+            </View>
             {filteredAlerts.length > 0 && (
-              <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                <Text style={styles.badgeText}>{filteredAlerts.length}</Text>
+              <View
+                style={{
+                  backgroundColor: colors.error,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                }}
+              >
+                <Text className="text-white text-xs font-semibold">{filteredAlerts.length}</Text>
               </View>
             )}
           </View>
 
           {error && hasApiKey && (
-            <View
-              style={[
-                styles.infoCard,
-                { backgroundColor: colors.surfaceContainer, borderColor: colors.error },
-              ]}
-            >
-              <Text style={[styles.infoText, { color: colors.onSurface }]}>{error}</Text>
+            <View className="bg-surface p-4 rounded-xl border mb-3" style={{ borderColor: colors.error }}>
+              <Text className="text-sm text-foreground">{error}</Text>
             </View>
           )}
 
@@ -274,12 +252,13 @@ export default function HomeScreen() {
             <View>{filteredAlerts.map(renderAlertCard)}</View>
           ) : (
             !error && (
-              <View style={[styles.emptyCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outline }]}>
-                <View style={[styles.emptyIconContainer, { backgroundColor: colors.success + "20" }]}>
-                  <MaterialIcons name="check-circle" size={40} color={colors.success} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.onSurface }]}>Sin alertas</Text>
-                <Text style={[styles.emptyDescription, { color: colors.onSurfaceVariant }]}>
+              <View
+                className="bg-surface p-6 rounded-xl border items-center"
+                style={{ borderColor: colors.border }}
+              >
+                <MaterialIcons name="check-circle" size={48} color={colors.success} />
+                <Text className="text-base font-semibold text-foreground mt-2">Sin alertas</Text>
+                <Text className="text-xs text-muted text-center mt-1">
                   No hay alertas activas para los niveles seleccionados en tu zona.
                 </Text>
               </View>
@@ -287,11 +266,10 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <MaterialIcons name="schedule" size={14} color={colors.onSurfaceVariant} />
-            <Text style={[styles.footerText, { color: colors.onSurfaceVariant }]}>
+        <View className="px-4 pb-4">
+          <View className="flex-row items-center justify-center gap-1">
+            <MaterialIcons name="schedule" size={14} color={colors.muted} />
+            <Text className="text-xs text-muted">
               Ultima actualizacion: {new Date().toLocaleTimeString("es-ES")}
             </Text>
           </View>
@@ -300,285 +278,3 @@ export default function HomeScreen() {
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  // Top App Bar
-  topAppBar: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: ShapeRadius.extraLarge,
-    borderBottomRightRadius: ShapeRadius.extraLarge,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  locationIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: ShapeRadius.large,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  locationTextContainer: {
-    flex: 1,
-  },
-  locationLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  locationName: {
-    fontSize: 22,
-    fontWeight: "700",
-    lineHeight: 28,
-  },
-  locationCoords: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-
-  // Weather
-  weatherSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  weatherCard: {
-    borderRadius: ShapeRadius.extraLarge,
-    borderWidth: 1,
-    padding: 20,
-    overflow: "hidden",
-  },
-  weatherTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  weatherLeft: {
-    flex: 1,
-  },
-  temperatureRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-    marginBottom: 8,
-  },
-  temperatureText: {
-    fontSize: 48,
-    fontWeight: "700",
-    lineHeight: 52,
-  },
-  temperatureUnit: {
-    fontSize: 16,
-    lineHeight: 20,
-  },
-  weatherDesc: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  weatherDetails: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 16,
-  },
-  weatherDetail: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: ShapeRadius.medium,
-  },
-  weatherDetailText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-
-  // Sections
-  section: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    lineHeight: 22,
-  },
-  sectionHint: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 8,
-  },
-
-  // Chips
-  chipRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  chip: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: ShapeRadius.medium,
-    borderWidth: 1,
-  },
-  chipCheck: {
-    marginRight: 4,
-  },
-  chipLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  // Alert Card
-  alertsSection: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: ShapeRadius.full,
-    marginLeft: "auto",
-  },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  alertCard: {
-    borderRadius: ShapeRadius.large,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 12,
-  },
-  alertHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
-  },
-  severityBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: ShapeRadius.large,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  severityInfo: {
-    flex: 1,
-  },
-  severityLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  radiusText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  alertTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  alertDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  alertTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  alertTime: {
-    fontSize: 12,
-  },
-
-  // Cards
-  errorCard: {
-    borderRadius: ShapeRadius.large,
-    borderWidth: 1,
-    padding: 16,
-  },
-  errorHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  errorTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  errorDescription: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  infoCard: {
-    borderRadius: ShapeRadius.large,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  emptyCard: {
-    borderRadius: ShapeRadius.extraLarge,
-    borderWidth: 1,
-    padding: 32,
-    alignItems: "center",
-  },
-  emptyIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: ShapeRadius.extraLarge,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-  emptyDescription: {
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: "center",
-  },
-
-  // Footer
-  footer: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-  },
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingTop: 8,
-  },
-  footerText: {
-    fontSize: 12,
-  },
-});

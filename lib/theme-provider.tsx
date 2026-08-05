@@ -38,46 +38,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyScheme(colorScheme);
   }, [applyScheme, colorScheme]);
 
-  // Material 3 Expressive: full token injection
   const themeVariables = useMemo(
     () =>
       vars({
-        // Core Material 3 roles
         "color-primary": SchemeColors[colorScheme].primary,
-        "color-on-primary": SchemeColors[colorScheme].onPrimary,
-        "color-primary-container": SchemeColors[colorScheme].primaryContainer,
-        "color-on-primary-container": SchemeColors[colorScheme].onPrimaryContainer,
-        "color-secondary": SchemeColors[colorScheme].secondary,
-        "color-on-secondary": SchemeColors[colorScheme].onSecondary,
-        "color-secondary-container": SchemeColors[colorScheme].secondaryContainer,
-        "color-on-secondary-container": SchemeColors[colorScheme].onSecondaryContainer,
-        "color-tertiary": SchemeColors[colorScheme].tertiary,
-        "color-on-tertiary": SchemeColors[colorScheme].onTertiary,
-        "color-tertiary-container": SchemeColors[colorScheme].tertiaryContainer,
-        "color-on-tertiary-container": SchemeColors[colorScheme].onTertiaryContainer,
-        "color-error": SchemeColors[colorScheme].error,
-        "color-on-error": SchemeColors[colorScheme].onError,
-        "color-error-container": SchemeColors[colorScheme].errorContainer,
-        "color-on-error-container": SchemeColors[colorScheme].onErrorContainer,
-        // Surface system
         "color-background": SchemeColors[colorScheme].background,
-        "color-on-background": SchemeColors[colorScheme].onBackground,
         "color-surface": SchemeColors[colorScheme].surface,
-        "color-on-surface": SchemeColors[colorScheme].onSurface,
-        "color-surface-variant": SchemeColors[colorScheme].surfaceVariant,
-        "color-on-surface-variant": SchemeColors[colorScheme].onSurfaceVariant,
-        "color-surface-container": SchemeColors[colorScheme].surfaceContainer,
-        "color-surface-container-low": SchemeColors[colorScheme].surfaceContainerLow,
-        "color-surface-container-high": SchemeColors[colorScheme].surfaceContainerHigh,
-        // Outlines
-        "color-outline": SchemeColors[colorScheme].border,
-        "color-outline-variant": SchemeColors[colorScheme].onSurfaceVariant,
-        // Legacy aliases for backward compatibility
-        "color-foreground": SchemeColors[colorScheme].onBackground,
-        "color-muted": SchemeColors[colorScheme].onSurfaceVariant,
+        "color-foreground": SchemeColors[colorScheme].foreground,
+        "color-muted": SchemeColors[colorScheme].muted,
         "color-border": SchemeColors[colorScheme].border,
         "color-success": SchemeColors[colorScheme].success,
         "color-warning": SchemeColors[colorScheme].warning,
+        "color-error": SchemeColors[colorScheme].error,
       }),
     [colorScheme],
   );
@@ -89,6 +61,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }),
     [colorScheme, setColorScheme],
   );
+  console.log(value, themeVariables)
 
   return (
     <ThemeContext.Provider value={value}>
