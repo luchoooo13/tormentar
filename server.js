@@ -6,6 +6,13 @@ const PORT = process.env.PORT || 3000;
 const DIST_DIR = path.join(__dirname, 'dist');
 
 const server = http.createServer((req, res) => {
+  // Endpoint de ping para keep-alive
+  if (req.url === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('pong');
+    return;
+  }
+
   let filePath = req.url === '/' ? '/index.html' : req.url;
   filePath = path.join(DIST_DIR, filePath);
   
