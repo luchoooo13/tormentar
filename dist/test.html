@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tormentar - Predicción de Alertas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow-x: hidden; }
+        .container { max-width: 100%; padding: 20px; padding-bottom: 100px; }
+        .header { text-align: center; padding: 20px 0; margin-bottom: 20px; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { color: #aaa; font-size: 14px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .alert-card {
+            background: #1a1a1a;
+            border-left: 4px solid #FFA500;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            animation: blink 2s infinite ease-in-out;
+        }
+        
+        /* Colores solicitados: Azul simulacro, Rojo real/predictiva */
+        .alert-card.simulacro { background: #007AFF !important; border-left-color: #fff !important; color: white; }
+        .alert-card.predictiva { background: #EF4444 !important; border-left-color: #fff !important; color: white; }
+        .alert-card.moderada { border-left-color: #FF6B35; }
+        .alert-card.severa { border-left-color: #EF4444; }
+        
+        .alert-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .alert-desc { font-size: 14px; color: rgba(255,255,255,0.9); margin-bottom: 8px; }
+        .alert-time { font-size: 12px; color: rgba(255,255,255,0.7); }
+        
+        .alert-action {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .weather-info { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+        .weather-info h2 { font-size: 24px; margin-bottom: 10px; }
+        .weather-info p { color: #aaa; font-size: 14px; margin-bottom: 5px; }
+        
+        .tabs-container { position: fixed; bottom: 0; left: 0; right: 0; background: #000; border-top: 1px solid #333; display: flex; z-index: 1000; }
+        .tab-btn { flex: 1; padding: 15px; background: #000; border: none; color: #aaa; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; }
+        .tab-btn.active { background: #1a1a1a; color: #FFA500; border-top: 3px solid #FFA500; }
+        
+        #map { height: 400px; width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; background: #1a1a1a; }
+        .filter-btn { padding: 10px 16px; margin: 5px; background: #333; border: 2px solid #666; color: #fff; cursor: pointer; border-radius: 6px; font-size: 14px; }
+        .filter-btn.active { background: #FFA500; border-color: #FFA500; color: #000; }
+    </style>
+</head>
+<body>
+    <div id="alertas" class="section active">
+        <div class="container">
+            <div class="header">
+                <h1>⚡ Tormentar</h1>
+                <p>Predicción de Alertas Propias</p>
+            </div>
+    
+            <div style="margin-bottom: 20px;">
+                <h3>Sensibilidad de Predicción</h3>
+                <div style="text-align: center;">
+                    <button class="filter-btn active" onclick="setFilter(this, 'normal')">Normal</button>
+                    <button class="filter-btn" onclick="setFilter(this, 'alta')">Alta</button>
+                </div>
+            </div>
+    
+            <div class="weather-info" id="weather-container">
+                <h2 id="city-name">📍 Cargando...</h2>
+                <p id="coords">Detectando ubicación...</p>
+                <p id="temp">🌡️ Temperatura: --</p>
+                <p id="humidity">💧 Humedad: --</p>
+                <p id="wind">💨 Viento: --</p>
+                <p id="pressure">⏲️ Presión: --</p>
+            </div>
+    
+            <h3 id="alerts-count">Alertas Predictivas</h3>
+            <div id="alerts-list">
+                <div class="alert-card">
+                    <div class="alert-title">Analizando datos...</div>
+                    <div class="alert-desc">El motor está procesando variables meteorológicas para predecir tormentas.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mapa" class="section">
+        <div class="container">
+            <div class="header"><h1>🗺️ Mapa de Afectación</h1></div>
+            <div id="map"></div>
+            <div id="map-alerts-list"></div>
+        </div>
+    </div>
+
+    <div id="config" class="section">
+        <div class="container">
+            <div class="header"><h1>⚙️ Configuración</h1></div>
+            <div class="config-item"><span>Predicciones Inteligentes</span><button class="config-toggle on"></button></div>
+            <div class="config-item"><span>Fuente: OpenWeatherMap</span><span style="color: #aaa;">API 2.5/3.0</span></div>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('alertas', this)">🏠 Alertas</button>
+        <button class="tab-btn" onclick="switchTab('mapa', this)">🗺️ Mapa</button>
+        <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Config</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
+        let map = null;
+        let circlesLayer = null;
+        let alertsData = {};
+        let sensitivity = 'normal';
+
+        async function init() {
+            navigator.geolocation.getCurrentPosition(
+                pos => fetchData(pos.coords.latitude, pos.coords.longitude),
+                err => fetchData(-34.6037, -58.3816)
+            );
+        }
+
+        async function fetchData(lat, lon) {
+            try {
+                // Usamos la API 2.5 para asegurar compatibilidad y obtener datos de predicción
+                const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
+                const weather = await weatherRes.json();
+                
+                const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
+                const forecast = await forecastRes.json();
+                
+                updateUI(weather, forecast);
+            } catch (e) {
+                console.error(e);
+                document.getElementById('alerts-list').innerHTML = '<div class="alert-card"><div class="alert-title">Error de Conexión</div><div class="alert-desc">No se pudo conectar con el motor meteorológico.</div></div>';
+            }
+        }
+
+        function updateUI(weather, forecast) {
+            // Fix "undefined" city
+            document.getElementById('city-name').innerText = `📍 ${weather.name || 'Ubicación Detectada'}`;
+            document.getElementById('coords').innerText = `Coordenadas: ${weather.coord.lat.toFixed(2)}°, ${weather.coord.lon.toFixed(2)}°`;
+            document.getElementById('temp').innerText = `🌡️ Temperatura: ${Math.round(weather.main.temp)}°C`;
+            document.getElementById('humidity').innerText = `💧 Humedad: ${weather.main.humidity}%`;
+            document.getElementById('wind').innerText = `💨 Viento: ${weather.wind.speed} m/s`;
+            document.getElementById('pressure').innerText = `⏲️ Presión: ${weather.main.pressure} hPa`;
+
+            predictAlerts(weather, forecast);
+        }
+
+        function predictAlerts(weather, forecast) {
+            const alertsList = document.getElementById('alerts-list');
+            const mapAlertsList = document.getElementById('map-alerts-list');
+            alertsList.innerHTML = '';
+            mapAlertsList.innerHTML = '';
+            alertsData = {};
+            
+            let predicted = [];
+
+            // LÓGICA DE PREDICCIÓN PROPIA
+            // 1. Vientos Fuertes
+            if (weather.wind.speed > (sensitivity === 'alta' ? 10 : 15)) {
+                predicted.push({
+                    id: 'wind',
+                    event: 'Alerta: Vientos Fuertes',
+                    desc: `El motor detecta ráfagas de ${weather.wind.speed} m/s. Riesgo de caída de objetos.`,
+                    type: 'predictiva',
+                    lat: weather.coord.lat,
+                    lon: weather.coord.lon,
+                    radio: 8000
+                });
+            }
+
+            // 2. Tormenta Inminente (Basado en nubes y humedad)
+            if (weather.clouds.all > 80 && weather.main.humidity > 75) {
+                predicted.push({
+                    id: 'storm',
+                    event: 'Predicción: Tormenta Eléctrica',
+                    desc: 'Alta saturación de humedad y nubosidad detectada. Probabilidad elevada de descargas eléctricas.',
+                    type: 'predictiva',
+                    lat: weather.coord.lat,
+                    lon: weather.coord.lon,
+                    radio: 12000
+                });
+            }
+
+            // 3. Inestabilidad por Presión
+            if (weather.main.pressure < 1008) {
+                predicted.push({
+                    id: 'pressure',
+                    event: 'Aviso: Baja Presión',
+                    desc: 'La presión atmosférica está cayendo, lo que indica un cambio brusco de tiempo y posible formación de tormentas.',
+                    type: 'predictiva',
+                    lat: weather.coord.lat,
+                    lon: weather.coord.lon,
+                    radio: 15000
+                });
+            }
+
+            // 4. Lluvia en el pronóstico próximo
+            const nextRain = forecast.list.slice(0, 3).find(f => f.weather[0].main === 'Rain');
+            if (nextRain) {
+                predicted.push({
+                    id: 'rain',
+                    event: 'Predicción: Lluvia Inminente',
+                    desc: `Se detecta formación de lluvia en las próximas 3 horas. Tome precauciones.`,
+                    type: 'predictiva',
+                    lat: weather.coord.lat,
+                    lon: weather.coord.lon,
+                    radio: 10000
+                });
+            }
+
+            if (predicted.length === 0) {
+                alertsList.innerHTML = '<div class="weather-info" style="text-align:center;border:none">✅ El motor no detecta riesgos inmediatos.</div>';
+                return;
+            }
+
+            predicted.forEach(alert => {
+                alertsData[alert.id] = alert;
+                const card = document.createElement('div');
+                card.className = `alert-card ${alert.type}`;
+                card.innerHTML = `
+                    <div class="alert-title">⚡ ${alert.event}</div>
+                    <div class="alert-desc">${alert.desc}</div>
+                    <div class="alert-time">Área estimada: ${alert.radio/1000} km alrededor</div>
+                    <button class="alert-action" onclick="showMap('${alert.id}')">Ver Área Afectada</button>
+                `;
+                alertsList.appendChild(card);
+
+                const mapCard = card.cloneNode(true);
+                mapCard.onclick = () => showMap(alert.id);
+                mapAlertsList.appendChild(mapCard);
+            });
+            
+            if (map) updateMap();
+        }
+
+        function initMap() {
+            if (map) return;
+            map = L.map('map').setView([-34.60, -58.38], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            circlesLayer = L.layerGroup().addTo(map);
+            updateMap();
+        }
+
+        function updateMap() {
+            if (!circlesLayer) return;
+            circlesLayer.clearLayers();
+            Object.values(alertsData).forEach(a => {
+                L.circle([a.lat, a.lon], {
+                    radius: a.radio,
+                    color: '#EF4444',
+                    fillColor: '#EF4444',
+                    fillOpacity: 0.3,
+                    weight: 3
+                }).addTo(circlesLayer).bindPopup(`<b>${a.event}</b><br>${a.desc}`);
+            });
+        }
+
+        function showMap(id) {
+            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
+            const a = alertsData[id];
+            if (a && map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                    map.setView([a.lat, a.lon], 11);
+                    circlesLayer.eachLayer(l => {
+                        if (l.getLatLng().lat === a.lat) l.openPopup();
+                    });
+                }, 100);
+            }
+        }
+
+        function switchTab(tabId, button) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            if (tabId === 'mapa') {
+                initMap();
+                setTimeout(() => map.invalidateSize(), 100);
+            }
+        }
+
+        function setFilter(btn, level) {
+            sensitivity = level;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            init(); // Recargar predicciones
+        }
+
+        function toggleConfig(btn) { btn.classList.toggle('on'); }
+
+        init();
+    </script>
+</body>
+</html>

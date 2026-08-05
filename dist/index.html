@@ -1,344 +1,1310 @@
-<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style id="react-native-stylesheet">[stylesheet-group="0"]{}
-body{margin:0;}
-button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0;}
-html{-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:rgba(0,0,0,0);}
-input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-webkit-search-results-button,input::-webkit-search-results-decoration{display:none;}
-[stylesheet-group="1"]{}
-.css-11aywtz{-moz-appearance:textfield;-webkit-appearance:none;background-color:rgba(0,0,0,0.00);border-bottom-left-radius:0px;border-bottom-right-radius:0px;border-top-left-radius:0px;border-top-right-radius:0px;border:0 solid black;box-sizing:border-box;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0px;padding:0px;resize:none;}
-.css-146c3p1{background-color:rgba(0,0,0,0.00);border:0 solid black;box-sizing:border-box;color:rgba(0,0,0,1.00);display:inline;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;list-style:none;margin:0px;padding:0px;position:relative;text-align:start;text-decoration:none;white-space:pre-wrap;word-wrap:break-word;}
-.css-1jxf684{background-color:rgba(0,0,0,0.00);border:0 solid black;box-sizing:border-box;color:inherit;display:inline;font:inherit;list-style:none;margin:0px;padding:0px;position:relative;text-align:inherit;text-decoration:none;white-space:inherit;word-wrap:break-word;}
-.css-9pa8cd{bottom:0px;height:100%;left:0px;opacity:0;position:absolute;right:0px;top:0px;width:100%;z-index:-1;}
-.css-g5y9jx{align-content:flex-start;align-items:stretch;background-color:rgba(0,0,0,0.00);border:0 solid black;box-sizing:border-box;display:flex;flex-basis:auto;flex-direction:column;flex-shrink:0;list-style:none;margin:0px;min-height:0px;min-width:0px;padding:0px;position:relative;text-decoration:none;z-index:0;}
-[stylesheet-group="2"]{}
-.r-11mg6pl{border-bottom-color:rgba(255,255,255,1.00);border-left-color:rgba(255,255,255,1.00);border-right-color:rgba(255,255,255,1.00);border-top-color:rgba(255,255,255,1.00);}
-.r-13awgt0{flex:1;}
-.r-1867qdf{border-bottom-left-radius:16px;border-bottom-right-radius:16px;border-top-left-radius:16px;border-top-right-radius:16px;}
-.r-1awa8pu{border-bottom-color:rgba(101,119,134,1.00);border-left-color:rgba(101,119,134,1.00);border-right-color:rgba(101,119,134,1.00);border-top-color:rgba(101,119,134,1.00);}
-.r-1bq2mok{margin:3px;}
-.r-1d4xg89{border-bottom-color:rgba(170,184,194,1.00);border-left-color:rgba(170,184,194,1.00);border-right-color:rgba(170,184,194,1.00);border-top-color:rgba(170,184,194,1.00);}
-.r-1dzdj1l{border-bottom-left-radius:10px;border-bottom-right-radius:10px;border-top-left-radius:10px;border-top-right-radius:10px;}
-.r-1f0042m{border-bottom-left-radius:5px;border-bottom-right-radius:5px;border-top-left-radius:5px;border-top-right-radius:5px;}
-.r-1j16mh1{border-bottom-left-radius:100%;border-bottom-right-radius:100%;border-top-left-radius:100%;border-top-right-radius:100%;}
-.r-1jkafct{border-bottom-left-radius:2px;border-bottom-right-radius:2px;border-top-left-radius:2px;border-top-right-radius:2px;}
-.r-1jyn79y{border-bottom-color:rgba(0,150,136,1.00);border-left-color:rgba(0,150,136,1.00);border-right-color:rgba(0,150,136,1.00);border-top-color:rgba(0,150,136,1.00);}
-.r-1pcd2l5{padding:20px;}
-.r-1phboty{border-bottom-style:solid;border-left-style:solid;border-right-style:solid;border-top-style:solid;}
-.r-1q9bdsx{border-bottom-left-radius:12px;border-bottom-right-radius:12px;border-top-left-radius:12px;border-top-right-radius:12px;}
-.r-1qsk4np{overflow-x:clip;overflow-y:clip;}
-.r-1rvyss1{border-bottom-color:rgba(255,255,255,0.20);border-left-color:rgba(255,255,255,0.20);border-right-color:rgba(255,255,255,0.20);border-top-color:rgba(255,255,255,0.20);}
-.r-1sp51qo{padding:10px;}
-.r-1udh08x{overflow-x:hidden;overflow-y:hidden;}
-.r-1uu6nss{padding:5px;}
-.r-1xfd6ze{border-bottom-left-radius:8px;border-bottom-right-radius:8px;border-top-left-radius:8px;border-top-right-radius:8px;}
-.r-4a18lf{border-bottom-color:rgba(255,0,0,1.00);border-left-color:rgba(255,0,0,1.00);border-right-color:rgba(255,0,0,1.00);border-top-color:rgba(255,0,0,1.00);}
-.r-60ke3l{border-bottom-color:rgba(0,128,0,1.00);border-left-color:rgba(0,128,0,1.00);border-right-color:rgba(0,128,0,1.00);border-top-color:rgba(0,128,0,1.00);}
-.r-6t2glc{border-bottom-left-radius:40px;border-bottom-right-radius:40px;border-top-left-radius:40px;border-top-right-radius:40px;}
-.r-9x6qib{border-bottom-color:rgba(204,214,221,1.00);border-left-color:rgba(204,214,221,1.00);border-right-color:rgba(204,214,221,1.00);border-top-color:rgba(204,214,221,1.00);}
-.r-crgep1{margin:0px;}
-.r-d045u9{border-bottom-width:2px;border-left-width:2px;border-right-width:2px;border-top-width:2px;}
-.r-d23pfw{padding:24px;}
-.r-edyy15{padding:8px;}
-.r-fx7oqy{border-bottom-color:rgba(0,0,255,1.00);border-left-color:rgba(0,0,255,1.00);border-right-color:rgba(0,0,255,1.00);border-top-color:rgba(0,0,255,1.00);}
-.r-krxsd3{display:-webkit-box;}
-.r-nsbfu8{padding:16px;}
-.r-rs99b7{border-bottom-width:1px;border-left-width:1px;border-right-width:1px;border-top-width:1px;}
-.r-t60dpp{padding:0px;}
-.r-wg31gx{border-bottom-color:rgba(49,53,56,1.00);border-left-color:rgba(49,53,56,1.00);border-right-color:rgba(49,53,56,1.00);border-top-color:rgba(49,53,56,1.00);}
-.r-xoduu5{display:inline-flex;}
-.r-ywje51{margin:auto;}
-.r-z2wwpe{border-bottom-left-radius:4px;border-bottom-right-radius:4px;border-top-left-radius:4px;border-top-right-radius:4px;}
-[stylesheet-group="2.1"]{}
-.r-11f147o{padding-bottom:8px;padding-top:8px;}
-.r-11gswi8{padding-left:3px;padding-right:3px;}
-.r-17q4wm6{margin-left:5px;margin-right:5px;}
-.r-184id4b{margin-bottom:12px;margin-top:12px;}
-.r-1d7mnkm{padding-bottom:15px;padding-top:15px;}
-.r-1e084wi{padding-left:0px;padding-right:0px;}
-.r-1mmae3n{padding-bottom:12px;padding-top:12px;}
-.r-1ntr0p{padding-left:5px;padding-right:5px;}
-.r-1rsorjc{padding-left:36px;padding-right:36px;}
-.r-1xpp3t0{margin-left:16px;margin-right:16px;}
-.r-1yd117h{padding-bottom:7px;padding-top:7px;}
-.r-3o4zer{padding-left:12px;padding-right:12px;}
-.r-3pj75a{padding-left:16px;padding-right:16px;}
-.r-cxgwc0{padding-left:24px;padding-right:24px;}
-.r-f8sm7e{margin-left:auto;margin-right:auto;}
-.r-gu64tb{padding-left:14px;padding-right:14px;}
-.r-is05cd{padding-left:8px;padding-right:8px;}
-.r-jdiy1a{margin-left:11px;margin-right:11px;}
-.r-jusfrs{margin-left:12px;margin-right:12px;}
-.r-n5f61p{margin-bottom:3px;margin-top:3px;}
-.r-n7gxbd{padding-left:4px;padding-right:4px;}
-.r-u9wvl5{padding-left:20px;padding-right:20px;}
-.r-ugi1tw{padding-left:5%;padding-right:5%;}
-.r-w7s2jr{padding-bottom:16px;padding-top:16px;}
-.r-ytbthy{padding-bottom:10px;padding-top:10px;}
-[stylesheet-group="2.2"]{}
-.r-10s2tm5{left:0%;}
-.r-16o8guy{right:100%;}
-.r-1a11zyx{margin-right:12px;}
-.r-1cwvpvk{margin-left:12px;}
-.r-1e97lx8{margin-right:3px;}
-.r-1euzeng{padding-left:24px;}
-.r-1g4tz6n{margin-right:-14.5px;}
-.r-1h31txp{padding-right:16px;}
-.r-1lhn9r{margin-left:-14.5px;}
-.r-1sqnqi2{margin-left:3px;}
-.r-1vl2501{padding-right:24px;}
-.r-9mo606{margin-right:10px;}
-.r-c59us2{left:-3px;}
-.r-dqe1q{right:0%;}
-.r-qb41rp{margin-right:5px;}
-.r-rci37q{left:100%;}
-.r-uhung1{margin-left:10px;}
-.r-vpmibe{right:-3px;}
-.r-w67my2{padding-left:16px;}
-.r-wizibn{margin-left:5px;}
-[stylesheet-group="3"]{}
-.r-105ug2t{pointer-events:auto!important;}
-.r-10ptun7{height:16px;}
-.r-10v3vxq{transform:scaleX(-1);}
-.r-10x49cs{font-size:10px;}
-.r-10xqauy{padding-top:env(safe-area-inset-top);}
-.r-11j9u27{visibility:hidden;}
-.r-11mpjr4{background-color:rgba(223,223,223,1.00);}
-.r-11udlyb{background-color:rgba(0,150,136,1.00);}
-.r-11v9fek{min-width:180px;}
-.r-11yh6sk{overflow-x:hidden;}
-.r-12f6czt{top:17px;}
-.r-12vffkv>* {pointer-events:auto;}
-.r-12vffkv{pointer-events:none!important;}
-.r-135wba7{line-height:24px;}
-.r-13aq9py{animation-name:r-1iq689l;}
-.r-13qz1uu{width:100%;}
-.r-13tjlyg{transition-duration:0.1s;}
-.r-1472mwg{height:24px;}
-.r-14gqq1x{margin-top:4px;}
-.r-14lw9ot{background-color:rgba(255,255,255,1.00);}
-.r-14sbq61{background-color:rgba(33,150,243,1.00);}
-.r-150rngu{-webkit-overflow-scrolling:touch;}
-.r-15zivkp{margin-bottom:4px;}
-.r-16f090s{border-bottom-right-radius:28px;}
-.r-16y2uox{flex-grow:1;}
-.r-173mn98{align-self:flex-end;}
-.r-173mzie{transform:scaleY(-1);}
-.r-1777fci{justify-content:center;}
-.r-17bb2tj{animation-duration:0.75s;}
-.r-17leim2{background-repeat:repeat;}
-.r-17s6mgv{justify-content:flex-end;}
-.r-17tb59b{opacity:0.7;}
-.r-17tloay{opacity:0.6;}
-.r-17u3ijr{background-color:rgba(155,161,166,0.27);}
-.r-184en5c{z-index:1;}
-.r-18nhz7w{top:-3px;}
-.r-18u1ve8{color:rgba(255,255,255,0.40);}
-.r-18u37iz{flex-direction:row;}
-.r-19oahor{font-size:64px;}
-.r-19wmn03{width:20px;}
-.r-19z077z{touch-action:none;}
-.r-1a2p6p6{-webkit-text-decoration-style:solid;text-decoration-style:solid;}
-.r-1abnn5w{animation-play-state:paused;}
-.r-1acpoxo{width:36px;}
-.r-1aiqnjv{font-family:monospace,monospace;}
-.r-1aockid{width:40px;}
-.r-1awozwy{align-items:center;}
-.r-1ay1djp{animation-duration:1s;}
-.r-1b43r93{font-size:14px;}
-.r-1c6unfx{forced-color-adjust:none;}
-.r-1c85bru{width:270px;}
-.r-1cmwbt1{gap:8px;}
-.r-1d2f490{left:0px;}
-.r-1d5kdc7{flex-direction:column-reverse;}
-.r-1ddef8g{-webkit-text-decoration-line:underline;text-decoration-line:underline;}
-.r-1dernwh{height:70%;}
-.r-1ei5mc7{cursor:inherit;}
-.r-1enofrn{font-size:12px;}
-.r-1euycsn{flex-direction:row-reverse;}
-.r-1ewcgjf{box-shadow:0px 1px 3px rgba(0,0,0,0.5);}
-.r-1ff274t{text-align:right;}
-.r-1ffj0ar{background-color:rgba(0,0,0,0.40);}
-.r-1g80hic{opacity:0.8;}
-.r-1ge9hsw{max-width:960px;}
-.r-1ghxqbu{font-variant:tabular-nums;}
-.r-1gkfh8e{font-size:11px;}
-.r-1h0z5md{justify-content:flex-start;}
-.r-1habvwh{align-items:flex-start;}
-.r-1i10wst{font-size:18px;}
-.r-1i6wzkk{-moz-transition-property:opacity;-webkit-transition-property:opacity;transition-property:opacity;}
-.r-1i71y14{gap:14px;}
-.r-1ikidpy{letter-spacing:0.5px;}
-.r-1iln25a{word-wrap:normal;}
-.r-1inkyih{font-size:17px;}
-.r-1iusvr4{flex-basis:0px;}
-.r-1janqcz{width:16px;}
-.r-1jkjb{margin-left:8px;}
-.r-1kb76zh{margin-right:8px;}
-.r-1kfrs79{font-weight:600;}
-.r-1kihuf0{align-self:center;}
-.r-1knelpx{padding-top:20px;}
-.r-1l7z4oj{padding-bottom:16px;}
-.r-1ld3bg{top:-4px;}
-.r-1ldzwu0{animation-timing-function:linear;}
-.r-1loqt21{cursor:pointer;}
-.r-1mlwlqe{flex-basis:auto;}
-.r-1mrlafo{background-position:0;}
-.r-1muvv40{animation-iteration-count:infinite;}
-.r-1niwhzg{background-color:rgba(0,0,0,0.00);}
-.r-1nlw0im{bottom:8px;}
-.r-1no09lo{margin-top:28px;}
-.r-1nxhmzv{margin-bottom:28px;}
-.r-1ny4l3l{outline-style:none;}
-.r-1ocf4r9{scroll-snap-type:y mandatory;}
-.r-1onu96p{border-curve:continuous;}
-.r-1oszu61{align-items:stretch;}
-.r-1otgn73{touch-action:manipulation;}
-.r-1p0dtai{bottom:0px;}
-.r-1pi2tsx{height:100%;}
-.r-1pm8pkb{font-family:Courier;}
-.r-1qd0xha{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-.r-1qulhi1{animation-name:r-1pzkwqh;}
-.r-1r4fvd0{color:rgba(82,169,255,1.00);}
-.r-1r74h94{left:8px;}
-.r-1r8g8re{height:36px;}
-.r-1rnoaur{overflow-y:auto;}
-.r-1s2bzr4{margin-top:12px;}
-.r-1sg8ghl{z-index:1000;}
-.r-1ssbvtb{gap:12px;}
-.r-1sxrcry{background-size:auto;}
-.r-1udbk01{text-overflow:ellipsis;}
-.r-1ugchlj{height:44px;}
-.r-1ui5ee8{font-size:32px;}
-.r-1vr29t4{font-weight:800;}
-.r-1w6e6rj{flex-wrap:wrap;}
-.r-1wbh5a2{flex-shrink:1;}
-.r-1wtj0ep{justify-content:space-between;}
-.r-1wyyakw{z-index:-1;}
-.r-1xcajam{position:fixed;}
-.r-1xnzce8{-moz-user-select:text;-webkit-user-select:text;user-select:text;}
-.r-1xpsq9i{box-shadow:0px 3px 3px rgba(0, 0, 0, 0.33);}
-.r-1xzupcd{width:13px;}
-.r-1yef0xd{animation-name:r-11cv4x;}
-.r-2eszeu::-webkit-scrollbar{display:none}
-.r-2eszeu{scrollbar-width:none;}
-.r-30o5oe{-moz-appearance:none;-ms-appearance:none;-webkit-appearance:none;appearance:none;}
-.r-356f0p{letter-spacing:0.35px;}
-.r-3mc0re{right:8px;}
-.r-3s2u2q{white-space:nowrap;}
-.r-417010{z-index:0;}
-.r-4gszlv{background-size:cover;}
-.r-4v7adb{height:5px;}
-.r-5oul0u{margin-bottom:8px;}
-.r-60vfwk{min-width:1px;}
-.r-633pao>* {pointer-events:none;}
-.r-633pao{pointer-events:none!important;}
-.r-6dt33c{opacity:1;}
-.r-6gpygo{margin-bottom:12px;}
-.r-6taxm2:-ms-input-placeholder{color:var(--placeholderTextColor);opacity:1;}
-.r-6taxm2::-moz-placeholder{color:var(--placeholderTextColor);opacity:1;}
-.r-6taxm2::-webkit-input-placeholder{color:var(--placeholderTextColor);opacity:1;}
-.r-6taxm2::placeholder{color:var(--placeholderTextColor);opacity:1;}
-.r-726pan{width:31px;}
-.r-76blku{height:21px;}
-.r-7cikom{font-size:inherit;}
-.r-7q8q6z{cursor:default;}
-.r-8akbws{-webkit-box-orient:vertical;}
-.r-8ay8q1{letter-spacing:0.1px;}
-.r-97e31f{padding-bottom:env(safe-area-inset-bottom);}
-.r-9daxd3{animation-duration:250ms;}
-.r-adyw6z{font-size:20px;}
-.r-agouwx{transform:translateZ(0);}
-.r-ah5dr5>* {pointer-events:none;}
-.r-ah5dr5{pointer-events:auto!important;}
-.r-aruset{font-weight:200;}
-.r-b88u0q{font-weight:700;}
-.r-bi4vy9{transform:translateY(100%);}
-.r-bt1l66{min-height:20px;}
-.r-buy8e9{overflow-y:hidden;}
-.r-bv2aro{padding-left:env(safe-area-inset-left);}
-.r-c68hjy{color:rgba(161,161,161,1.00);}
-.r-cpa5s6{scroll-snap-align:start;}
-.r-cqee49{color:rgba(0,0,0,1.00);}
-.r-dkge59{background-color:rgba(170,184,194,1.00);}
-.r-dnmrzs{max-width:100%;}
-.r-eaezby{line-height:26px;}
-.r-eafdt9{transition-duration:0.15s;}
-.r-ebwn4k{animation-name:r-q67da2;}
-.r-ehq7j7{background-size:contain;}
-.r-ejscvd{width:47%;}
-.r-eqz5dr{flex-direction:column;}
-.r-eu3ka{height:40px;}
-.r-f1odvy{margin-bottom:6px;}
-.r-fdjqy7{text-align:left;}
-.r-g3mlsw{animation-name:r-t2lo5v;}
-.r-ghxds0{transform:translateY(0%);}
-.r-gtdqiz{position:-webkit-sticky;position:sticky;}
-.r-h0d30l{height:28px;}
-.r-hxflta{padding-right:env(safe-area-inset-right);}
-.r-icoktb{opacity:0.5;}
-.r-ipm5af{top:0px;}
-.r-jwli3a{color:rgba(255,255,255,1.00);}
-.r-k200y{align-self:flex-start;}
-.r-k8qxaj{padding-bottom:20px;}
-.r-kemksi{background-color:rgba(0,0,0,1.00);}
-.r-kizejy{color:rgba(155,161,166,1.00);}
-.r-knv0ih{margin-top:8px;}
-.r-kubx7a{border-bottom-left-radius:28px;}
-.r-leqjx2{animation-timing-function:cubic-bezier(0.215, 0.61, 0.355, 1);}
-.r-lltvgl{overflow-x:auto;}
-.r-lpb231{height:168px;}
-.r-lrsllp{width:24px;}
-.r-lrvibr{-moz-user-select:none;-webkit-user-select:none;user-select:none;}
-.r-mabqd8{height:32px;}
-.r-majxgm{font-weight:500;}
-.r-mfh4gg{scroll-snap-type:x mandatory;}
-.r-mhe3cw{z-index:10;}
-.r-mro3nb{background-color:rgba(21,23,24,1.00);}
-.r-n6v787{font-size:13px;}
-.r-o4n3w5{width:23px;}
-.r-ojf8lh{gap:6px;}
-.r-orgf3d{opacity:0;}
-.r-q4m81j{text-align:center;}
-.r-qfi6ny{top:30000px;}
-.r-qklmqi{border-bottom-width:1px;}
-.r-qn3fzs{padding-bottom:24px;}
-.r-r5vmyo{z-index:1002;}
-.r-rjixqe{line-height:20px;}
-.r-rs94m5{background-image:url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIgogICB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIgogICB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgdmVyc2lvbj0iMS4xIgogICB2aWV3Qm94PSIwIDAgMSAxIgogICBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWluWU1pbiBtZWV0Ij4KICA8cGF0aAogICAgIGQ9Ik0gMC4wNDAzODA1OSwwLjYyNjc3NjcgMC4xNDY0NDY2MSwwLjUyMDcxMDY4IDAuNDI5Mjg5MzIsMC44MDM1NTMzOSAwLjMyMzIyMzMsMC45MDk2MTk0MSB6IE0gMC4yMTcxNTcyOSwwLjgwMzU1MzM5IDAuODUzNTUzMzksMC4xNjcxNTcyOSAwLjk1OTYxOTQxLDAuMjczMjIzMyAwLjMyMzIyMzMsMC45MDk2MTk0MSB6IgogICAgIGlkPSJyZWN0Mzc4MCIKICAgICBzdHlsZT0iZmlsbDojZmZmZmZmO2ZpbGwtb3BhY2l0eToxO3N0cm9rZTpub25lIiAvPgo8L3N2Zz4K");}
-.r-s62m2j{animation-timing-function:cubic-bezier(0.47, 0, 0.745, 0.715);}
-.r-sfbmgh{z-index:9999;}
-.r-so7y2g{line-height:64px;}
-.r-tsynxw{text-transform:uppercase;}
-.r-u6sd8q{background-repeat:no-repeat;}
-.r-u8s1d{position:absolute;}
-.r-u92y06{background-color:rgba(255,165,0,1.00);}
-.r-ubezar{font-size:16px;}
-.r-uho16t{font-size:34px;}
-.r-usgzl9{width:44px;}
-.r-vacyoi{padding-bottom:64px;}
-.r-van48c{caret-color:transparent;}
-.r-vboj7i{top:-7px;}
-.r-vvn4in{background-position:center;}
-.r-vw2c0b{font-weight:bold;}
-.r-wfqgy4{transition-duration:100ms;}
-.r-ws9h79{left:4px;}
-.r-x11e5r{font-family:SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-.r-x3cy2q{background-size:100% 100%;}
-.r-xx3c9p{animation-name:r-imtty0;}
-.r-y7v2we{background-color:rgba(32,36,37,1.00);}
-.r-yie26v{z-index:1001;}
-.r-z80fyv{height:20px;}
-.r-zchlnj{right:0px;}
-.r-zz5t5d{font-size:28px;}
-@-webkit-keyframes r-11cv4x{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-@-webkit-keyframes r-1iq689l{0%{transform:translateY(0%);}100%{transform:translateY(100%);}}
-@-webkit-keyframes r-1pzkwqh{0%{transform:translateY(100%);}100%{transform:translateY(0%);}}
-@-webkit-keyframes r-imtty0{0%{opacity:0;}100%{opacity:1;}}
-@-webkit-keyframes r-q67da2{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}
-@-webkit-keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}
-@keyframes r-11cv4x{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-@keyframes r-1iq689l{0%{transform:translateY(0%);}100%{transform:translateY(100%);}}
-@keyframes r-1pzkwqh{0%{transform:translateY(100%);}100%{transform:translateY(0%);}}
-@keyframes r-imtty0{0%{opacity:0;}100%{opacity:1;}}
-@keyframes r-q67da2{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}
-@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="preload" href="/_expo/static/css/web-75d5b65cebe6b914958a9c43343a14bb.css" as="style"><link rel="stylesheet" href="/_expo/static/css/web-75d5b65cebe6b914958a9c43343a14bb.css"><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"><!--$--><div class="css-g5y9jx" style="flex:1;--color-primary:#21005D;--color-on-primary:#FFFFFF;--color-primary-container:#EADDFF;--color-on-primary-container:#21005D;--color-secondary:#625B71;--color-on-secondary:#FFFFFF;--color-secondary-container:#E8DEF8;--color-on-secondary-container:#1D192B;--color-tertiary:#7D5260;--color-on-tertiary:#FFFFFF;--color-tertiary-container:#FFD8E4;--color-on-tertiary-container:#31111D;--color-error:#B3261E;--color-on-error:#FFFFFF;--color-error-container:#F9DEDC;--color-on-error-container:#410E0B;--color-background:#FEF7FF;--color-on-background:#1D1B20;--color-surface:#FEF7FF;--color-on-surface:#1D1B20;--color-surface-variant:#E7E0EC;--color-on-surface-variant:#49454F;--color-surface-container:#F3EDF7;--color-surface-container-low:#F7F2FA;--color-surface-container-high:#ECE6F0;--color-outline:#CAC4D0;--color-outline-variant:#49454F;--color-foreground:#1D1B20;--color-muted:#49454F;--color-border:#CAC4D0;--color-success:#388E3C;--color-warning:#F57C00"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx" style="flex:1"><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0"><!--$!--><template></template><!--/$--></div></div></div></div></div></div></div><!--/$--></div></div><script src="/_expo/static/js/web/entry-74750829cf71bc3b827a9c7ac2fc5004.js" defer></script>
-</body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tormentar - Alertas de Tormentas en Tiempo Real</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e7ff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .container { max-width: 100%; padding: 20px; padding-bottom: 100px; }
+        
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(180deg, rgba(255,165,0,0.1) 0%, rgba(255,165,0,0) 100%);
+            border-bottom: 2px solid rgba(255,165,0,0.3);
+            margin-bottom: 30px;
+            border-radius: 12px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #FFA500, #FF6B35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+        
+        .header p { color: #a0aec0; font-size: 14px; }
+        
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s ease-in; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 12px 24px;
+            background: rgba(255, 165, 0, 0.1);
+            border: 2px solid rgba(255, 165, 0, 0.3);
+            color: #e0e7ff;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn:hover {
+            background: rgba(255, 165, 0, 0.2);
+            border-color: #FFA500;
+        }
+        
+        .filter-btn.active {
+            background: linear-gradient(135deg, #FFA500, #FF6B35);
+            border-color: #FFA500;
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.4);
+        }
+        
+        .weather-card {
+            background: linear-gradient(135deg, rgba(255,165,0,0.1) 0%, rgba(255,107,53,0.05) 100%);
+            border: 1px solid rgba(255, 165, 0, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .weather-card h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #FFA500;
+        }
+        
+        .weather-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-size: 14px;
+        }
+        
+        .weather-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #FFA500;
+        }
+        
+        .alert-card {
+            background: linear-gradient(135deg, rgba(26, 31, 58, 0.8) 0%, rgba(42, 58, 90, 0.5) 100%);
+            border-left: 4px solid #FFA500;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 165, 0, 0.2);
+        }
+        
+        .alert-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.15);
+        }
+        
+        .alert-card.moderada { border-left-color: #FF6B35; }
+        .alert-card.severa { border-left-color: #EF4444; }
+        
+        .alert-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .alert-desc {
+            font-size: 14px;
+            color: #a0aec0;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .alert-meta {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 12px;
+        }
+        
+        .alert-action {
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #FFA500, #FF6B35);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .alert-action:hover {
+            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
+            transform: scale(1.02);
+        }
+        
+        #map {
+            width: 100%;
+            height: calc(100vh - 70px);
+            border-radius: 0;
+            margin: 0;
+            border: none;
+            box-shadow: none;
+        }
+        
+        .tabs-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(10, 14, 39, 0.95) 0%, rgba(10, 14, 39, 1) 100%);
+            border-top: 1px solid rgba(255, 165, 0, 0.2);
+            display: flex;
+            gap: 0;
+            z-index: 1000;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            color: #718096;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            border-top: 3px solid transparent;
+        }
+        
+        .tab-btn:hover { color: #FFA500; }
+        .tab-btn.active {
+            color: #FFA500;
+            border-top-color: #FFA500;
+            background: rgba(255, 165, 0, 0.05);
+        }
+        
+        .config-item {
+            background: linear-gradient(135deg, rgba(26, 31, 58, 0.8) 0%, rgba(42, 58, 90, 0.5) 100%);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 165, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .config-toggle {
+            width: 50px;
+            height: 28px;
+            background: rgba(255, 165, 0, 0.1);
+            border: 2px solid rgba(255, 165, 0, 0.3);
+            border-radius: 14px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .config-toggle.on {
+            background: linear-gradient(135deg, #FFA500, #FF6B35);
+            border-color: #FFA500;
+        }
+        
+        .config-toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .config-toggle.on::after { left: 26px; }
+        
+        h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #e0e7ff;
+            font-weight: 700;
+        }
+        
+        .alert-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.5);
+            z-index: 2000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+            border: 2px solid #FCA5A5;
+        }
+        
+        .alert-popup.show { display: block; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .alert-popup h2 { font-size: 18px; margin-bottom: 8px; font-weight: 700; }
+        .alert-popup p { font-size: 14px; margin-bottom: 12px; line-height: 1.4; }
+        
+        .alert-popup .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #a0aec0;
+            padding: 20px;
+        }
+        
+        .location-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(255, 165, 0, 0.08);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 165, 0, 0.2);
+        }
+        
+        .location-info .loc-icon { color: #FFA500; font-size: 20px; }
+        .location-info .loc-text { font-size: 13px; color: #a0aec0; }
+        .location-info .loc-city { font-size: 16px; font-weight: 700; color: #e0e7ff; }
+        
+        .leaflet-container { background: #1a1f3a !important; }
+        .leaflet-control-attribution { background: rgba(0,0,0,0.7) !important; color: #a0aec0 !important; }
+        
+        /* Botón de ubicación */
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #FFA500, #FF6B35);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+        .action-btn:hover {
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+            transform: translateY(-1px);
+        }
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .action-btn.secondary {
+            background: rgba(255, 165, 0, 0.15);
+            color: #FFA500;
+            border: 2px solid rgba(255, 165, 0, 0.3);
+        }
+        .action-btn.secondary:hover {
+            background: rgba(255, 165, 0, 0.25);
+            border-color: #FFA500;
+        }
+        
+        /* Buscador de ciudades */
+        .search-container {
+            position: relative;
+            margin: 15px 0;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 14px 20px 14px 44px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 165, 0, 0.3);
+            border-radius: 10px;
+            color: #e0e7ff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #FFA500;
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
+        }
+        
+        .search-input::placeholder { color: #718096; }
+        
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #FFA500;
+            font-size: 18px;
+            pointer-events: none;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(26, 31, 58, 0.98);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 10px;
+            margin-top: 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .search-results.visible { display: block; }
+        
+        .search-result-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 165, 0, 0.1);
+            transition: background 0.2s ease;
+        }
+        
+        .search-result-item:last-child { border-bottom: none; }
+        
+        .search-result-item:hover {
+            background: rgba(255, 165, 0, 0.1);
+        }
+        
+        .search-result-item .result-city {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e7ff;
+        }
+        
+        .search-result-item .result-country {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 2px;
+        }
+        
+        .location-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            color: #718096;
+            font-size: 13px;
+        }
+        
+        .or-divider::before, .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 165, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="alertas" class="section active">
+        <div class="container">
+            <div class="header">
+                <h1>⚡ Tormentar</h1>
+                <p>Alertas de Tormentas en Tiempo Real</p>
+            </div>
+            
+            <div class="filter-container">
+                <button class="filter-btn active" onclick="setFilter(this, 'leve')">🟡 Leve</button>
+                <button class="filter-btn" onclick="setFilter(this, 'moderada')">🟠 Moderada</button>
+                <button class="filter-btn" onclick="setFilter(this, 'severa')">🔴 Severa</button>
+            </div>
+            
+            <div class="weather-card" id="weatherCard">
+                <div class="loading">Elegí tu ubicación para ver alertas reales</div>
+                <div style="text-align:center;">
+                    <button class="action-btn" id="geoBtn" onclick="requestGeolocation()">📍 Usar mi ubicación</button>
+                </div>
+                <div class="or-divider"><span>o buscá una ciudad</span></div>
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="citySearch" placeholder="Escribí el nombre de una ciudad..." autocomplete="off" />
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+            </div>
+            
+            <h3>Alertas Activas (<span id="alertCount">0</span>)</h3>
+            <div id="alertsList" class="loading">Elegí una ubicación para ver alertas.</div>
+        </div>
+    </div>
+
+    <div id="mapa" class="section">
+        <div id="map"></div>
+    </div>
+
+    <div id="config" class="section">
+        <div class="container">
+            <div class="header">
+                <h1>⚙️ Configuración</h1>
+                <p>Personaliza tu experiencia</p>
+            </div>
+            
+            <h3>Ubicación Actual</h3>
+            <div class="location-info" id="configLocation" style="display:none;">
+                <span class="loc-icon">📍</span>
+                <div>
+                    <div class="loc-city" id="configCity">—</div>
+                    <div class="loc-text" id="configCoords"></div>
+                </div>
+            </div>
+            <button class="action-btn" onclick="requestGeolocation()" style="display:inline-flex;">📍 Usar mi ubicación GPS</button>
+            <div class="or-divider"><span>o buscá otra ciudad</span></div>
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="configCitySearch" placeholder="Escribí el nombre de una ciudad..." autocomplete="off" />
+                <div class="search-results" id="configSearchResults"></div>
+            </div>
+            
+            <h3 style="margin-top: 30px;">Notificaciones</h3>
+            <div class="config-item">
+                <span>Notificaciones Activas</span>
+                <button class="config-toggle on" onclick="toggleConfig(this)"></button>
+            </div>
+            <div class="config-item">
+                <span>Sonido de Alerta</span>
+                <button class="config-toggle on" onclick="toggleConfig(this)"></button>
+            </div>
+            <div class="config-item">
+                <span>Vibración</span>
+                <button class="config-toggle on" onclick="toggleConfig(this)"></button>
+            </div>
+            
+            <h3 style="margin-top: 30px;">Actualización</h3>
+            <div class="config-item">
+                <span>Intervalo de Actualización</span>
+                <span style="color: #FFA500; font-weight: 600;">5 minutos</span>
+            </div>
+            
+            <h3 style="margin-top: 30px;">Información</h3>
+            <div class="config-item">
+                <span>Versión</span>
+                <span style="color: #a0aec0;">1.2.0</span>
+            </div>
+            <div class="config-item">
+                <span>Fuente de Datos</span>
+                <span style="color: #a0aec0;">OpenWeatherMap API (Plan Free)</span>
+            </div>
+            <div class="config-item">
+                <span>Ubicación</span>
+                <span style="color: #a0aec0;" id="configSource">Buscar ciudad</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert-popup" id="alertPopup">
+        <h2 id="popupTitle">⚠️ Alerta de Tormenta</h2>
+        <p id="popupDesc">Se ha detectado una tormenta en tu área.</p>
+        <button class="close-btn" onclick="closeAlertPopup()">Cerrar</button>
+    </div>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('alertas', this)">🏠 Alertas</button>
+        <button class="tab-btn" onclick="switchTab('mapa', this)">🗺️ Mapa</button>
+        <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Config</button>
+    </div>
+
+    <script>
+        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
+        const GEO_URL = 'https://api.openweathermap.org/geo/1.0/direct';
+        
+        // Estado de la ubicación del usuario
+        let userLocation = { lat: null, lng: null, city: 'Obteniendo...' };
+        let map = null;
+        let minSeverity = 'leve';
+        let alerts = [];
+        let audioContext = null;
+        let weatherData = null;
+        let forecastData = null;
+        let searchTimeout = null;
+        let configSearchTimeout = null;
+        
+        // ========== CLASIFICACIÓN DE CONDICIONES ==========
+        
+        function classifyCondition(weatherId, windSpeed) {
+            if (windSpeed >= 17) return 'severa';
+            if (windSpeed >= 10.8) return 'moderada';
+            if ([202, 212, 232].includes(weatherId)) return 'severa';
+            if (weatherId >= 200 && weatherId <= 232) return 'moderada';
+            if (weatherId === 781 || weatherId === 771) return 'severa';
+            if ([503, 504].includes(weatherId)) return 'severa';
+            if ([502, 511, 522, 531].includes(weatherId)) return 'moderada';
+            if ([501, 521].includes(weatherId)) return 'leve';
+            if ([602, 622].includes(weatherId)) return 'moderada';
+            if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) return 'leve';
+            return null;
+        }
+        
+        // ========== GEOLOCALIZACIÓN ==========
+        
+        function requestGeolocation() {
+            if (!navigator.geolocation) {
+                showLocationError('Tu navegador no soporta geolocalización.');
+                return;
+            }
+            
+            const btn = document.getElementById('geoBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Obteniendo...';
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    userLocation.lat = position.coords.latitude;
+                    userLocation.lng = position.coords.longitude;
+                    userLocation.source = 'gps';
+                    
+                    // Guardar en localStorage
+                    localStorage.setItem('tormentar_location', JSON.stringify(userLocation));
+                    
+                    // Obtener nombre de la ciudad
+                    userLocation.city = await reverseGeocode(userLocation.lat, userLocation.lng);
+                    
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📍 Actualizar ubicación';
+                    }
+                    
+                    updateLocationUI();
+                    await fetchWeatherData();
+                },
+                function(error) {
+                    const btn = document.getElementById('geoBtn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📍 Usar mi ubicación';
+                    }
+                    
+                    let msg = 'No se pudo obtener la ubicación.';
+                    if (error.code === 1) msg = 'Permiso denegado. Activá la ubicación en tu navegador para que funcione.';
+                    else if (error.code === 2) msg = 'Ubicación no disponible. Verificá tu conexión GPS/WiFi.';
+                    else if (error.code === 3) msg = 'Timeout. Intentá de nuevo.';
+                    
+                    showLocationError(msg);
+                    console.error('Geolocation error:', error);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+            );
+        }
+        
+        function showLocationError(msg) {
+            // No reemplazar todo el weatherCard, solo mostrar error manteniendo el buscador
+            const alertsList = document.getElementById('alertsList');
+            if (alertsList) {
+                alertsList.innerHTML = '<div class="loading" style="color:#EF4444;">' + msg + '</div>';
+            }
+        }
+        
+        // ========== BÚSQUEDA DE CIUDADES ==========
+        
+        function initSearch(inputId, resultsId, source) {
+            const input = document.getElementById(inputId);
+            const results = document.getElementById(resultsId);
+            
+            if (!input) return;
+            
+            input.addEventListener('input', function() {
+                clearTimeout(source === 'main' ? searchTimeout : configSearchTimeout);
+                
+                if (this.value.length < 2) {
+                    results.classList.remove('visible');
+                    return;
+                }
+                
+                source === 'main'
+                    ? (searchTimeout = setTimeout(() => searchCities(this.value, results), 300))
+                    : (configSearchTimeout = setTimeout(() => searchCities(this.value, results), 300));
+            });
+            
+            input.addEventListener('focus', function() {
+                if (this.value.length >= 2) {
+                    searchCities(this.value, results);
+                }
+            });
+            
+            // Cerrar resultados al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !results.contains(e.target)) {
+                    results.classList.remove('visible');
+                }
+            });
+        }
+        
+        async function searchCities(query, resultsElement) {
+            try {
+                const res = await fetch(`${GEO_URL}?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`);
+                const cities = await res.json();
+                
+                if (!Array.isArray(cities) || cities.length === 0) {
+                    resultsElement.innerHTML = '<div class="search-result-item"><span class="result-city">Sin resultados</span></div>';
+                    resultsElement.classList.add('visible');
+                    return;
+                }
+                
+                resultsElement.innerHTML = cities.map(city => `
+                    <div class="search-result-item" onclick="selectCity(${city.lat}, ${city.lon}, '${escapeHtml(city.name)}', '${escapeHtml(city.country || '')}', '${escapeHtml(city.state || '')}', this)">
+                        <div class="result-city">${city.name}${city.state ? ', ' + city.state : ''}</div>
+                        <div class="result-country">${getCountryName(city.country)}${city.country ? ' · ' + city.country : ''}</div>
+                    </div>
+                `).join('');
+                
+                resultsElement.classList.add('visible');
+            } catch (e) {
+                console.error('Search error:', e);
+                resultsElement.innerHTML = '<div class="search-result-item"><span class="result-city">Error al buscar. Intentá de nuevo.</span></div>';
+                resultsElement.classList.add('visible');
+            }
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        function getCountryName(code) {
+            const names = {
+                'AR': 'Argentina', 'MX': 'México', 'ES': 'España', 'US': 'Estados Unidos',
+                'CL': 'Chile', 'PE': 'Perú', 'CO': 'Colombia', 'UY': 'Uruguay',
+                'EC': 'Ecuador', 'BR': 'Brasil', 'PY': 'Paraguay', 'BO': 'Bolivia',
+                'VE': 'Venezuela', 'CR': 'Costa Rica', 'GT': 'Guatemala', 'HN': 'Honduras',
+                'SV': 'El Salvador', 'NI': 'Nicaragua', 'PA': 'Panamá', 'CU': 'Cuba',
+                'DO': 'Rep. Dominicana', 'PR': 'Puerto Rico', 'FR': 'Francia',
+                'GB': 'Reino Unido', 'DE': 'Alemania', 'IT': 'Italia', 'PT': 'Portugal',
+                'JP': 'Japón', 'CN': 'China', 'IN': 'India', 'AU': 'Australia',
+                'CA': 'Canadá', 'RU': 'Rusia'
+            };
+            return names[code] || code || '';
+        }
+        
+        async function selectCity(lat, lng, name, country, state, element) {
+            userLocation.lat = lat;
+            userLocation.lng = lng;
+            userLocation.city = name + (state && state !== name ? ', ' + state : '');
+            userLocation.country = country;
+            userLocation.source = 'search';
+            
+            // Guardar
+            localStorage.setItem('tormentar_location', JSON.stringify(userLocation));
+            
+            // Cerrar resultados
+            document.querySelectorAll('.search-results').forEach(el => el.classList.remove('visible'));
+            
+            // Limpiar inputs
+            const searchInput = document.getElementById('citySearch');
+            const configSearchInput = document.getElementById('configCitySearch');
+            if (searchInput) searchInput.value = '';
+            if (configSearchInput) configSearchInput.value = '';
+            
+            updateLocationUI();
+            await fetchWeatherData();
+        }
+        
+        // ========== REVERSE GEOCODING ==========
+        
+        async function reverseGeocode(lat, lng) {
+            try {
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&lang=es`);
+                const data = await res.json();
+                return data.name || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+            } catch (e) {
+                return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+            }
+        }
+        
+        // ========== ACTUALIZAR UI ==========
+        
+        function updateLocationUI() {
+            // Map location
+            const mapLoc = document.getElementById('mapLocation');
+            if (mapLoc) {
+                mapLoc.style.display = 'flex';
+                document.getElementById('mapCity').textContent = userLocation.city;
+                document.getElementById('mapCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
+            }
+            
+            // Config location
+            const configLoc = document.getElementById('configLocation');
+            if (configLoc) {
+                configLoc.style.display = 'flex';
+                document.getElementById('configCity').textContent = userLocation.city;
+                document.getElementById('configCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
+            }
+            
+            // Config source
+            const sourceEl = document.getElementById('configSource');
+            if (sourceEl) {
+                sourceEl.textContent = userLocation.source === 'gps' ? 'Geolocalización GPS' : 'Búsqueda manual';
+            }
+        }
+        
+        // ========== OBTENER DATOS DEL CLIMA ==========
+        
+        async function fetchWeatherData() {
+            if (!userLocation.lat || !userLocation.lng) return;
+            
+            const weatherCard = document.getElementById('weatherCard');
+            weatherCard.innerHTML = `
+                <h2>📍 ${userLocation.city}</h2>
+                <div style="font-size:12px;color:#718096;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
+                <div class="loading">Cargando datos de clima...</div>
+            `;
+            
+            try {
+                const [currentRes, forecastRes] = await Promise.all([
+                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lng}&appid=${API_KEY}&units=metric&lang=es`),
+                    fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${userLocation.lat}&lon=${userLocation.lng}&appid=${API_KEY}&units=metric&lang=es`)
+                ]);
+                
+                weatherData = await currentRes.json();
+                forecastData = await forecastRes.json();
+                
+                if (weatherData.cod !== 200) {
+                    throw new Error('API error: ' + weatherData.message);
+                }
+                
+                displayWeather(weatherData);
+                generateAlerts();
+                displayAlerts();
+                
+                if (map) updateMap();
+            } catch (e) {
+                console.error('Error fetching weather:', e);
+                weatherCard.innerHTML = `
+                    <h2>📍 ${userLocation.city}</h2>
+                    <div style="font-size:12px;color:#718096;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
+                    <div class="loading" style="color:#EF4444;">Error al obtener datos. Verificá tu conexión.</div>
+                `;
+            }
+        }
+        
+        function displayWeather(data) {
+            const weatherCard = document.getElementById('weatherCard');
+            weatherCard.innerHTML = `
+                <h2>📍 ${userLocation.city}</h2>
+                <div style="font-size:12px;color:#718096;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
+                <div class="weather-info">
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Temperatura</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${Math.round(data.main.temp)}°C</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Sensación</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${Math.round(data.main.feels_like)}°C</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Humedad</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${data.main.humidity}%</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Viento</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${Math.round(data.wind.speed * 3.6)} km/h</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Clima</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #e0e7ff;">${data.weather[0].description}</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Nubosidad</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${data.clouds.all}%</div>
+                    </div>
+                </div>
+                <div style="font-size:11px;color:#718096;margin-top:12px;text-align:center;">
+                    Fuente: OpenWeatherMap · Actualizado: ${new Date().toLocaleTimeString('es-ES')}
+                </div>
+            `;
+        }
+        
+        // ========== GENERAR ALERTAS ==========
+        
+        function generateAlerts() {
+            alerts = [];
+            if (!weatherData || !forecastData) return;
+            
+            const severityOrder = { severa: 0, moderada: 1, leve: 2 };
+            const forecastPoints = (forecastData.list || []).map(item => ({
+                dt: item.dt,
+                weatherId: item.weather?.[0]?.id ?? 800,
+                description: item.weather?.[0]?.description ?? '',
+                windSpeed: item.wind?.speed ?? 0
+            }));
+            
+            let open = null;
+            
+            for (const point of forecastPoints) {
+                const severity = classifyCondition(point.weatherId, point.windSpeed);
+                
+                if (!severity) {
+                    if (open) {
+                        alerts.push(createAlert(open));
+                        open = null;
+                    }
+                    continue;
+                }
+                
+                if (open && severityOrder[severity] <= severityOrder[open.severity]) {
+                    open.end = point.dt + 3 * 3600;
+                    if (severityOrder[severity] < severityOrder[open.severity]) {
+                        open.severity = severity;
+                        open.description = point.description;
+                    }
+                } else if (open) {
+                    alerts.push(createAlert(open));
+                    open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+                } else {
+                    open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+                }
+            }
+            
+            if (open) alerts.push(createAlert(open));
+            
+            const now = Math.floor(Date.now() / 1000);
+            alerts = alerts.filter(a => a.end > now);
+        }
+        
+        function createAlert(open) {
+            const title = {
+                severa: '⚠️ Riesgo de tormenta fuerte',
+                moderada: '⛈️ Riesgo de tormenta moderada',
+                leve: '🌧️ Condición climática leve'
+            }[open.severity];
+            
+            const radius = { severa: 35, moderada: 25, leve: 15 }[open.severity];
+            const start = new Date(open.start * 1000);
+            const end = new Date(open.end * 1000);
+            
+            return {
+                title,
+                severity: open.severity,
+                description: `Pronóstico: ${open.description}. Viento y condiciones climáticas estimadas a partir de datos de OpenWeatherMap.`,
+                lat: userLocation.lat,
+                lng: userLocation.lng,
+                radius,
+                startTime: start.toLocaleString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                endTime: end.toLocaleString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            };
+        }
+        
+        // ========== MOSTRAR ALERTAS ==========
+        
+        function displayAlerts() {
+            const severityOrder = { leve: 1, moderada: 2, severa: 3 };
+            const filtered = alerts.filter(a => severityOrder[a.severity] >= severityOrder[minSeverity]);
+            document.getElementById('alertCount').textContent = filtered.length;
+            
+            const alertsList = document.getElementById('alertsList');
+            alertsList.innerHTML = '';
+            
+            if (!userLocation.lat) {
+                alertsList.innerHTML = '<div class="loading">Elegí una ubicación para ver alertas reales.</div>';
+                return;
+            }
+            
+            if (filtered.length === 0) {
+                alertsList.innerHTML = '<div class="loading" style="color:#48BB78;">✅ Sin alertas activas para este nivel de severidad en ' + userLocation.city + '.</div>';
+                return;
+            }
+            
+            filtered.forEach(alert => {
+                const card = document.createElement('div');
+                card.className = 'alert-card ' + alert.severity;
+                const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[alert.severity];
+                const shortTitle = alert.title.replace(/^[^\s]+ /, '');
+                card.innerHTML = `
+                    <div class="alert-title">${icon} ${shortTitle}</div>
+                    <div class="alert-desc">${alert.description}</div>
+                    <div class="alert-meta">📍 ${userLocation.city} | 📏 Radio: ${alert.radius} km | 🕐 ${alert.startTime} - ${alert.endTime}</div>
+                    <button class="alert-action" onclick="triggerAlert('${escapeHtml(userLocation.city)}', '${alert.severity}')">Ver en Mapa</button>
+                `;
+                alertsList.appendChild(card);
+            });
+        }
+        
+        // ========== SONIDO Y POPUP ==========
+        
+        function playEmergencySound(severity) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const ctx = audioContext;
+            const now = ctx.currentTime;
+            const duration = (severity === 'leve') ? 10 : 30;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.setValueAtTime(600, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            var beepCount = (severity === 'leve') ? 10 : 30;
+            for (let i = 0; i < beepCount; i++) {
+                gain.gain.setValueAtTime(0.3, now + i);
+                gain.gain.setValueAtTime(0, now + i + 0.5);
+            }
+            gain.gain.setValueAtTime(0, now + duration);
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+        
+        function triggerAlert(zone, severity) {
+            playEmergencySound(severity);
+            const popup = document.getElementById('alertPopup');
+            const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[severity];
+            const title = { leve: 'Tormenta Leve', moderada: '⚠️ ALERTA MODERADA', severa: '⚠️ ALERTA SEVERA' }[severity];
+            document.getElementById('popupTitle').textContent = icon + ' ' + title;
+            document.getElementById('popupDesc').textContent = 'Se ha detectado una tormenta en ' + zone + '. Toma precauciones.';
+            popup.classList.add('show');
+            var popupDuration = (severity === 'leve') ? 10000 : 30000;
+            setTimeout(function() { closeAlertPopup(); }, popupDuration);
+            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
+        }
+        
+        function closeAlertPopup() {
+            document.getElementById('alertPopup').classList.remove('show');
+        }
+        
+        // ========== NAVEGACIÓN ==========
+        
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            if (tabId === 'mapa') {
+                setTimeout(function() { initMap(); }, 100);
+            }
+        }
+        
+        // ========== MAPA ==========
+        
+        // ========== MAPA REGIONAL BUENOS AIRES ==========
+        
+        var zonasAmaba = [
+            { name: 'Buenos Aires (CABA)', lat: -34.60, lng: -58.38 },
+            { name: 'La Plata', lat: -34.92, lng: -57.95 },
+            { name: 'Quilmes', lat: -34.73, lng: -58.25 },
+            { name: 'San Isidro', lat: -34.47, lng: -58.53 },
+            { name: 'Tigre', lat: -34.42, lng: -58.58 },
+            { name: 'Morón', lat: -34.65, lng: -58.62 },
+            { name: 'Avellaneda', lat: -34.66, lng: -58.37 },
+            { name: 'Lanús', lat: -34.70, lng: -58.39 },
+            { name: 'San Martín', lat: -34.57, lng: -58.54 },
+            { name: 'Vicente López', lat: -34.53, lng: -58.49 },
+            { name: 'Lomas de Zamora', lat: -34.76, lng: -58.40 },
+            { name: 'San Fernando', lat: -34.44, lng: -58.56 },
+            { name: 'Berazategui', lat: -34.76, lng: -58.21 },
+            { name: 'Almirante Brown', lat: -34.81, lng: -58.39 },
+            { name: 'Esteban Echeverría', lat: -34.82, lng: -58.46 },
+            { name: 'Florencio Varela', lat: -34.79, lng: -58.28 },
+            { name: 'Escobar', lat: -34.35, lng: -58.79 },
+            { name: 'Pilar', lat: -34.46, lng: -58.91 },
+            { name: 'Malvinas Argentinas', lat: -34.46, lng: -58.69 },
+            { name: 'José C. Paz', lat: -34.53, lng: -58.76 },
+            { name: 'Hurlingham', lat: -34.59, lng: -58.63 },
+            { name: 'Ituzaingó', lat: -34.65, lng: -58.67 },
+            { name: 'Merlo', lat: -34.66, lng: -58.73 },
+            { name: 'Moreno', lat: -34.65, lng: -58.79 },
+            { name: 'Tres de Febrero', lat: -34.60, lng: -58.57 },
+            { name: 'San Miguel', lat: -34.54, lng: -58.71 }
+        ];
+        
+        // Alertas regionales (una por zona)
+        var regionalAlerts = [];
+        
+        // Clima de cada zona
+        var zonasClima = {};
+        
+        function initMap() {
+            if (!map) {
+                map = L.map('map', {
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([-34.60, -58.45], 10);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(map);
+                
+                // Leyenda
+                var legend = L.control({ position: 'bottomright' });
+                legend.onAdd = function() {
+                    var div = L.DomUtil.create('div', 'map-legend');
+                    div.innerHTML = '<div style="background:rgba(0,0,0,0.8);padding:10px 14px;border-radius:8px;color:#fff;font-size:12px;line-height:1.8;">' +
+                        '<b style="color:#FFA500;">Leyenda</b><br>' +
+                        '<span style="color:#48BB78;">●</span> Leve (10s sonido)<br>' +
+                        '<span style="color:#FF6B35;">●</span> Moderada (30s sonido)<br>' +
+                        '<span style="color:#EF4444;">●</span> Severa (30s sonido)<br>' +
+                        '<span style="color:#FFD700;">●</span> Tu ubicación</span>' +
+                        '</div>';
+                    return div;
+                };
+                legend.addTo(map);
+            }
+            
+            // Limpiar todo menos el tile layer y la leyenda
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Dibujar todas las zonas con sus alertas
+            drawRegionalMarkers();
+            
+            // Marcador de ubicación del usuario si existe
+            if (userLocation.lat) {
+                L.circleMarker([userLocation.lat, userLocation.lng], {
+                    radius: 10,
+                    fillColor: '#FFD700',
+                    color: '#FFD700',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(map).bindPopup('<b>📍 Tu ubicación</b><br>' + userLocation.city);
+            }
+        }
+        
+        function drawRegionalMarkers() {
+            var colors = {
+                severa: '#EF4444',
+                moderada: '#FF6B35',
+                leve: '#48BB78'
+            };
+            
+            // Solo dibujar zonas que tienen alerta activa (leve y para arriba)
+            regionalAlerts.forEach(function(alert) {
+                var severity = alert.severity;
+                var color = colors[severity];
+                var radius = 12;
+                
+                if (severity === 'severa') {
+                    radius = 16;
+                } else if (severity === 'moderada') {
+                    radius = 14;
+                }
+                
+                var marker = L.circleMarker([alert.lat, alert.lng], {
+                    radius: radius,
+                    fillColor: color,
+                    color: color,
+                    weight: 2,
+                    opacity: 0.9,
+                    fillOpacity: 0.6
+                });
+                
+                var popupContent = '<b>' + alert.zoneName + '</b><br>';
+                popupContent += '⚠️ ' + alert.title + '<br>';
+                popupContent += 'Severidad: ' + alert.severity + '<br>';
+                popupContent += '🕐 ' + alert.startTime + ' - ' + alert.endTime + '<br>';
+                
+                marker.addTo(map).bindPopup(popupContent);
+            });
+        }
+        
+        async function fetchAllZonesWeather() {
+            if (map) {
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
+            
+            regionalAlerts = [];
+            zonasClima = {};
+            
+            // Hacer fetch de todas las zonas en lotes de 5 (para no saturar la API)
+            var batchSize = 5;
+            var results = [];
+            
+            for (var i = 0; i < zonasAmaba.length; i += batchSize) {
+                var batch = zonasAmaba.slice(i, i + batchSize);
+                var batchResults = await Promise.all(batch.map(function(zona) {
+                    return fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + zona.lat + '&lon=' + zona.lng + '&appid=' + API_KEY + '&units=metric&lang=es')
+                        .then(function(res) { return res.json(); })
+                        .then(function(data) {
+                            if (data.cod === 200) {
+                                return {
+                                    zone: zona,
+                                    temp: data.main.temp,
+                                    wind: data.wind.speed,
+                                    clouds: data.clouds.all,
+                                    weatherId: data.weather[0].id,
+                                    description: data.weather[0].description,
+                                    humidity: data.main.humidity
+                                };
+                            }
+                            return null;
+                        })
+                        .catch(function() { return null; });
+                }));
+                
+                results = results.concat(batchResults);
+            }
+            
+            // Procesar resultados y generar alertas regionales
+            var severityOrder = { severa: 0, moderada: 1, leve: 2 };
+            
+            results.forEach(function(result) {
+                if (!result) return;
+                
+                var zona = result.zone;
+                zonasClima[zona.name] = {
+                    temp: result.temp,
+                    wind: result.wind,
+                    clouds: result.clouds,
+                    humidity: result.humidity
+                };
+                
+                var severity = classifyCondition(result.weatherId, result.wind);
+                
+                if (severity) {
+                    var radius = { severa: 40, moderada: 25, leve: 15 }[severity];
+                    var titles = {
+                        severa: '⚠️ Tormenta fuerte',
+                        moderada: '⛈️ Tormenta moderada',
+                        leve: '🌧️ Condición leve'
+                    };
+                    
+                    var now = new Date();
+                    var endTime = new Date(now.getTime() + 3 * 3600000);
+                    
+                    regionalAlerts.push({
+                        zoneName: zona.name,
+                        title: titles[severity],
+                        severity: severity,
+                        description: result.description,
+                        lat: zona.lat,
+                        lng: zona.lng,
+                        radius: radius,
+                        startTime: now.toLocaleString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        endTime: endTime.toLocaleString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    });
+                }
+            });
+            
+            // Redibujar marcadores
+            drawRegionalMarkers();
+        }
+        
+        function updateMap() {
+            if (!map) {
+                initMap();
+                return;
+            }
+            // El mapa se actualiza vía fetchAllZonesWeather
+            // No necesitamos reconstruir todo
+        }
+        
+        // ========== FILTROS Y CONFIG ==========
+        
+        function setFilter(btn, severity) {
+            minSeverity = severity;
+            document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            displayAlerts();
+        }
+        
+        function toggleConfig(btn) {
+            btn.classList.toggle('on');
+        }
+        
+        // ========== INICIALIZACIÓN ==========
+        
+        (async function init() {
+            // Inicializar buscadores
+            initSearch('citySearch', 'searchResults', 'main');
+            initSearch('configCitySearch', 'configSearchResults', 'config');
+            
+            // Intentar restaurar ubicación guardada
+            const saved = localStorage.getItem('tormentar_location');
+            if (saved) {
+                try {
+                    const loc = JSON.parse(saved);
+                    if (loc.lat && loc.lng) {
+                        userLocation = loc;
+                        updateLocationUI();
+                        await fetchWeatherData();
+                    }
+                } catch (e) {}
+            }
+            
+            // Sin ubicación guardada: mostrar opciones
+            const geoBtn = document.getElementById('geoBtn');
+            if (geoBtn) {
+                geoBtn.disabled = false;
+                geoBtn.textContent = '📍 Usar mi ubicación';
+            }
+            
+            // Cargar datos del mapa regional de Buenos Aires
+            await fetchAllZonesWeather();
+        })();
+        
+        // Actualizar cada 5 minutos
+        setInterval(function() {
+            if (userLocation.lat) fetchWeatherData();
+            fetchAllZonesWeather();
+        }, 300000);
+    </script>
+</body>
+</html>
