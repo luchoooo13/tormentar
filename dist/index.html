@@ -364,6 +364,28 @@
 
         .alert-popup.show { display: block; }
 
+        /* Popup severidad SEVERA / FUERTE: rojo (mismo estilo base de arriba) */
+        .alert-popup.severa {
+            background: linear-gradient(150deg, #3a0d14 0%, #1c0709 100%);
+            box-shadow: 0 16px 50px rgba(255, 61, 84, 0.4);
+            border: 1px solid rgba(255, 61, 84, 0.6);
+        }
+
+        /* Popup severidad MODERADA: amarillo/ámbar */
+        .alert-popup.moderada {
+            background: linear-gradient(150deg, #4a3a05 0%, #241d02 100%);
+            color: #1a1400;
+            box-shadow: 0 16px 50px rgba(255, 200, 0, 0.4);
+            border: 1px solid rgba(255, 200, 0, 0.6);
+        }
+        .alert-popup.moderada p { color: rgba(20, 16, 0, 0.8); }
+        .alert-popup.moderada .close-btn {
+            background: rgba(20, 16, 0, 0.15);
+            border: 1px solid rgba(20, 16, 0, 0.25);
+            color: #1a1400;
+        }
+        .alert-popup.moderada .close-btn:hover { background: rgba(20, 16, 0, 0.25); }
+
         @keyframes slideIn {
             from { transform: translateX(120%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -680,6 +702,10 @@
         let forecastData = null;
         let searchTimeout = null;
         let configSearchTimeout = null;
+        let knownAlertIds = new Set();
+        let isFirstAlertsCheck = true;
+        let activeAlertAudio = null;
+        const ALERT_SOUND_URL = 'alert-sound.mp3';
         
         // ========== CLASIFICACIÓN DE CONDICIONES ==========
         
@@ -928,6 +954,7 @@
                 displayWeather(weatherData);
                 generateAlerts();
                 displayAlerts();
+                checkForNewAlerts();
                 
                 if (map) updateMap();
             } catch (e) {
@@ -1036,6 +1063,7 @@
             const end = new Date(open.end * 1000);
             
             return {
+                id: `${userLocation.city}_${open.severity}_${open.start}`,
                 title,
                 severity: open.severity,
                 description: `Pronóstico: ${open.description}. Viento y condiciones climáticas estimadas a partir de datos de OpenWeatherMap.`,
@@ -1084,45 +1112,107 @@
         
         // ========== SONIDO Y POPUP ==========
         
-        function playEmergencySound(severity) {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            const ctx = audioContext;
-            const now = ctx.currentTime;
-            const duration = (severity === 'leve') ? 10 : 30;
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.setValueAtTime(600, now + 0.1);
-            gain.gain.setValueAtTime(0.3, now);
-            var beepCount = (severity === 'leve') ? 10 : 30;
-            for (let i = 0; i < beepCount; i++) {
-                gain.gain.setValueAtTime(0.3, now + i);
-                gain.gain.setValueAtTime(0, now + i + 0.5);
-            }
-            gain.gain.setValueAtTime(0, now + duration);
-            osc.start(now);
-            osc.stop(now + duration);
+        // Duración del popup/sonido según severidad (ms)
+        function getAlertDuration(severity) {
+            if (severity === 'severa') return 20000;
+            if (severity === 'moderada') return 10000;
+            return 10000; // leve (solo se usa si se dispara manualmente)
         }
         
-        function triggerAlert(zone, severity) {
-            playEmergencySound(severity);
+        function playAlertAudio(severity) {
+            try {
+                if (activeAlertAudio) {
+                    activeAlertAudio.pause();
+                    activeAlertAudio.currentTime = 0;
+                }
+                const audio = new Audio(ALERT_SOUND_URL);
+                audio.loop = true;
+                audio.volume = 0.85;
+                activeAlertAudio = audio;
+                audio.play().catch(function(err) {
+                    console.warn('No se pudo reproducir el sonido de alerta (el navegador puede requerir interacción del usuario primero):', err);
+                });
+                
+                const duration = getAlertDuration(severity);
+                setTimeout(function() {
+                    if (activeAlertAudio === audio) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        activeAlertAudio = null;
+                    }
+                }, duration);
+            } catch (e) {
+                console.error('Error reproduciendo sonido de alerta:', e);
+            }
+        }
+        
+        function showAlertPopup(zone, severity) {
             const popup = document.getElementById('alertPopup');
             const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[severity];
             const title = { leve: 'Tormenta Leve', moderada: '⚠️ ALERTA MODERADA', severa: '⚠️ ALERTA SEVERA' }[severity];
+            
             document.getElementById('popupTitle').textContent = icon + ' ' + title;
             document.getElementById('popupDesc').textContent = 'Se ha detectado una tormenta en ' + zone + '. Toma precauciones.';
+            
+            popup.classList.remove('moderada', 'severa');
+            if (severity === 'moderada' || severity === 'severa') {
+                popup.classList.add(severity);
+            }
             popup.classList.add('show');
-            var popupDuration = (severity === 'leve') ? 10000 : 30000;
-            setTimeout(function() { closeAlertPopup(); }, popupDuration);
+            
+            playAlertAudio(severity);
+            
+            const duration = getAlertDuration(severity);
+            setTimeout(function() { closeAlertPopup(); }, duration);
+        }
+        
+        // Disparo MANUAL: lo usa el botón "Ver en Mapa" de cada tarjeta.
+        function triggerAlert(zone, severity) {
+            showAlertPopup(zone, severity);
             switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
+        }
+        
+        // Disparo AUTOMÁTICO: se llama solo cuando aparece una alerta nueva
+        // (moderada o severa) que todavía no se le había mostrado al usuario.
+        // No cambia de pestaña, para no interrumpir lo que esté haciendo.
+        function autoTriggerAlert(zone, severity) {
+            showAlertPopup(zone, severity);
         }
         
         function closeAlertPopup() {
             document.getElementById('alertPopup').classList.remove('show');
+            if (activeAlertAudio) {
+                activeAlertAudio.pause();
+                activeAlertAudio.currentTime = 0;
+                activeAlertAudio = null;
+            }
+        }
+        
+        // ========== DETECCIÓN DE ALERTAS NUEVAS ==========
+        
+        // Compara las alertas actuales contra las que ya se vieron antes.
+        // La primera vez que carga la app solo "memoriza" las alertas que
+        // ya están activas (no las anuncia, para no disparar el popup con
+        // algo que ya estaba ahí). De ahí en adelante, si aparece una
+        // alerta moderada o severa que no estaba, dispara el popup solo.
+        function checkForNewAlerts() {
+            if (isFirstAlertsCheck) {
+                alerts.forEach(function(a) { knownAlertIds.add(a.id); });
+                isFirstAlertsCheck = false;
+                return;
+            }
+            
+            const severityOrder = { severa: 0, moderada: 1, leve: 2 };
+            const newAlerts = alerts.filter(function(a) {
+                return !knownAlertIds.has(a.id) && (a.severity === 'moderada' || a.severity === 'severa');
+            });
+            
+            alerts.forEach(function(a) { knownAlertIds.add(a.id); });
+            
+            if (newAlerts.length === 0) return;
+            
+            newAlerts.sort(function(a, b) { return severityOrder[a.severity] - severityOrder[b.severity]; });
+            autoTriggerAlert(userLocation.city, newAlerts[0].severity);
         }
         
         // ========== NAVEGACIÓN ==========
