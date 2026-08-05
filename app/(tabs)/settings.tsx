@@ -1,23 +1,21 @@
 /**
- * Settings Screen
- * Pantalla de configuracion. Ahora usa useAlertPreferences: la MISMA
- * fuente de datos que Inicio y Mapa, en vez de un estado local propio
- * guardado bajo una clave distinta ("tormentar_settings") que quedaba
- * desincronizada del resto de la app.
+ * Settings Screen - Material Design 3 Expressive
+ * Pantalla de configuracion con estilo Material 3.
  */
 import { useState } from "react";
-import { ScrollView, Text, View, Pressable, Switch, TextInput } from "react-native";
+import { StyleSheet, ScrollView, Text, View, Pressable, Switch, TextInput } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { useLocation } from "@/hooks/useLocation";
+import { ShapeRadius, Elevation } from "@/lib/_core/theme";
 import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
-  { id: "leve", label: "Leve", color: "#FFA500" },
-  { id: "moderada", label: "Moderada", color: "#FF6B35" },
-  { id: "severa", label: "Fuerte", color: "#EF4444" },
+const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string; containerColor: string }[] = [
+  { id: "leve", label: "Leve", color: "#F57C00", containerColor: "#FFF3E0" },
+  { id: "moderada", label: "Moderada", color: "#E64A19", containerColor: "#FBE9E7" },
+  { id: "severa", label: "Fuerte", color: "#D32F2F", containerColor: "#FFEBEE" },
 ];
 
 export default function SettingsScreen() {
@@ -43,181 +41,175 @@ export default function SettingsScreen() {
   }) => (
     <Pressable
       onPress={onToggle}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.7 : 1,
-      })}
+      style={({ pressed }) => [
+        styles.settingRow,
+        {
+          backgroundColor: colors.surfaceContainer,
+          opacity: pressed ? 0.8 : 1,
+        },
+      ]}
     >
-      <View className="flex-row items-center justify-between p-3 rounded-lg mb-2" style={{ backgroundColor: colors.surface }}>
-        <View className="flex-row items-center gap-3 flex-1">
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: colors.primary + "20",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <MaterialIcons name={icon as any} size={20} color={colors.primary} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-foreground font-semibold text-sm">{title}</Text>
-            <Text className="text-muted text-xs">{subtitle}</Text>
-          </View>
+      <View style={styles.settingLeft}>
+        <View style={[styles.settingIconContainer, { backgroundColor: colors.primaryContainer }]}>
+          <MaterialIcons name={icon as any} size={22} color={colors.primary} />
         </View>
-        <Switch
-          value={value}
-          onValueChange={onToggle}
-          trackColor={{ false: colors.border, true: colors.primary }}
-        />
+        <View style={styles.settingTextContainer}>
+          <Text style={[styles.settingTitle, { color: colors.onSurface }]}>{title}</Text>
+          <Text style={[styles.settingSubtitle, { color: colors.onSurfaceVariant }]}>{subtitle}</Text>
+        </View>
       </View>
+      <Switch
+        value={value}
+        onValueChange={onToggle}
+        trackColor={{ false: colors.outlineVariant, true: colors.primary + "60" }}
+        thumbColor={colors.primary}
+        ios_backgroundColor={colors.outlineVariant}
+      />
     </Pressable>
   );
 
   return (
-    <ScreenContainer className="flex-1 gap-0">
+    <ScreenContainer className="flex-1 gap-0" style={{ backgroundColor: colors.background }}>
       <ScrollView className="flex-1">
-        {/* Encabezado */}
-        <View className="px-4 pt-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
-          <View className="flex-row items-center gap-2">
-            <MaterialIcons name="settings" size={24} color={colors.primary} />
-            <Text className="text-2xl font-bold text-foreground">Configuracion</Text>
+        {/* Material 3 Large Top App Bar */}
+        <View style={[styles.topAppBar, { backgroundColor: colors.primaryContainer }]}>
+          <View style={styles.topAppBarRow}>
+            <View style={[styles.topAppBarIcon, { backgroundColor: colors.primary + "20" }]}>
+              <MaterialIcons name="settings" size={26} color={colors.primary} />
+            </View>
+            <Text style={[styles.topAppBarTitle, { color: colors.onPrimaryContainer }]}>
+              Configuración
+            </Text>
           </View>
         </View>
 
-        {/* Sección de Ubicación */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="location-on" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Ubicacion</Text>
+        {/* Location Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="location-on" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Ubicación</Text>
           </View>
 
           <Pressable
             onPress={() => setShowCitySearch(!showCitySearch)}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.7 : 1,
-            })}
+            style={({ pressed }) => [
+              styles.listItem,
+              {
+                backgroundColor: colors.surfaceContainer,
+                opacity: pressed ? 0.85 : 1,
+                ...Elevation[1],
+              },
+            ]}
           >
-            <View
-              className="p-3 rounded-lg border flex-row items-center justify-between"
-              style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              }}
-            >
-              <View className="flex-row items-center gap-2 flex-1">
+            <View style={styles.listItemLeft}>
+              <View style={[styles.listItemIcon, { backgroundColor: colors.primaryContainer }]}>
                 <MaterialIcons name="edit-location" size={20} color={colors.primary} />
-                <View className="flex-1">
-                  <Text className="text-foreground font-semibold text-sm">
-                    Cambiar Ubicacion
-                  </Text>
-                  <Text className="text-xs text-muted">
-                    {location?.city ?? "Sin ubicacion configurada"}
-                  </Text>
-                </View>
               </View>
-              <MaterialIcons
-                name={showCitySearch ? "expand-less" : "expand-more"}
-                size={20}
-                color={colors.muted}
-              />
+              <View style={styles.listItemText}>
+                <Text style={[styles.listItemTitle, { color: colors.onSurface }]}>
+                  Cambiar Ubicación
+                </Text>
+                <Text style={[styles.listItemSubtitle, { color: colors.onSurfaceVariant }]}>
+                  {location?.city ?? "Sin ubicación configurada"}
+                </Text>
+              </View>
             </View>
+            <MaterialIcons name={showCitySearch ? "expand-less" : "expand-more"} size={22} color={colors.onSurfaceVariant} />
           </Pressable>
 
           {showCitySearch && (
-            <View className="mt-3 gap-2">
-              <TextInput
-                placeholder="Buscar ciudad..."
-                placeholderTextColor={colors.muted}
-                value={searchCity}
-                onChangeText={setSearchCity}
-                style={{
-                  backgroundColor: colors.surface,
-                  color: colors.foreground,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                }}
-              />
-              <Text className="text-xs text-muted">
-                La busqueda por nombre de ciudad requiere geocodificacion (pendiente de
-                implementar); por ahora se puede fijar una ubicacion manual por coordenadas.
+            <View style={styles.searchContainer}>
+              <View style={[styles.searchInput, {
+                backgroundColor: colors.surfaceContainerLow,
+                borderColor: colors.outline,
+              }]}>
+                <MaterialIcons name="search" size={18} color={colors.onSurfaceVariant} style={styles.searchIcon} />
+                <TextInput
+                  placeholder="Buscar ciudad..."
+                  placeholderTextColor={colors.onSurfaceVariant}
+                  value={searchCity}
+                  onChangeText={setSearchCity}
+                  style={[styles.searchTextInput, { color: colors.onSurface }]}
+                />
+              </View>
+              <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
+                La búsqueda por nombre de ciudad requiere geocodificación (pendiente de implementar).
               </Text>
             </View>
           )}
         </View>
 
-        {/* Sección de Notificaciones */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="notifications" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Notificaciones</Text>
+        {/* Notifications Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="notifications" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Notificaciones</Text>
           </View>
 
-          <SettingRow
-            icon="notifications-active"
-            title="Notificaciones"
-            subtitle="Recibir alertas de clima"
-            value={preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ notificationsEnabled: !preferences.notificationsEnabled })}
-          />
-
-          <SettingRow
-            icon="volume-up"
-            title="Sonido"
-            subtitle="Reproducir sonido de alerta"
-            value={preferences.soundEnabled && preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ soundEnabled: !preferences.soundEnabled })}
-          />
-
-          <SettingRow
-            icon="vibration"
-            title="Vibracion"
-            subtitle="Vibracion en alertas"
-            value={preferences.vibrationEnabled && preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ vibrationEnabled: !preferences.vibrationEnabled })}
-          />
+          <View style={[styles.settingsGroup, { backgroundColor: colors.surfaceContainer }]}>
+            <SettingRow
+              icon="notifications-active"
+              title="Notificaciones"
+              subtitle="Recibir alertas de clima"
+              value={preferences.notificationsEnabled}
+              onToggle={() => updatePreferences({ notificationsEnabled: !preferences.notificationsEnabled })}
+            />
+            <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
+            <SettingRow
+              icon="volume-up"
+              title="Sonido"
+              subtitle="Reproducir sonido de alerta"
+              value={preferences.soundEnabled && preferences.notificationsEnabled}
+              onToggle={() => updatePreferences({ soundEnabled: !preferences.soundEnabled })}
+            />
+            <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
+            <SettingRow
+              icon="vibration"
+              title="Vibración"
+              subtitle="Vibración en alertas"
+              value={preferences.vibrationEnabled && preferences.notificationsEnabled}
+              onToggle={() => updatePreferences({ vibrationEnabled: !preferences.vibrationEnabled })}
+            />
+          </View>
         </View>
 
-        {/* Sección de Sensibilidad (unica en toda la app) */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="tune" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">
-              Sensibilidad de alertas
-            </Text>
+        {/* Sensitivity Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="tune" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Sensibilidad de alertas</Text>
           </View>
 
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
-            <Text className="text-xs text-muted mb-3">
-              Elegi la severidad minima que queres recibir: vas a recibir esa y todo lo que sea
-              igual o mas grave. Este ajuste es unico para toda la app: se aplica en Inicio,
-              Mapa y en las notificaciones push.
+          <View style={[styles.infoCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outline }]}>
+            <Text style={[styles.infoDescription, { color: colors.onSurfaceVariant }]}>
+              Elegí la severidad mínima que querés recibir: vas a recibir esa y todo lo que sea
+              igual o más grave. Este ajuste es único para toda la app.
             </Text>
-            <View className="flex-row gap-2">
+            <View style={styles.chipRow}>
               {SEVERITY_LEVELS.map((level) => {
                 const isActive = preferences.minSeverity === level.id;
                 return (
                   <Pressable
                     key={level.id}
                     onPress={() => setMinSeverity(level.id)}
-                    style={({ pressed }) => ({
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 8,
-                      borderWidth: 2,
-                      borderColor: isActive ? level.color : colors.border,
-                      backgroundColor: isActive ? level.color + "20" : colors.background,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      {
+                        borderColor: isActive ? level.color : colors.outline,
+                        backgroundColor: isActive ? level.containerColor : colors.surfaceContainerLow,
+                        opacity: pressed ? 0.85 : 1,
+                        ...Elevation[isActive ? 1 : 0],
+                      },
+                    ]}
                   >
+                    {isActive && (
+                      <MaterialIcons name="check" size={14} color={level.color} style={styles.chipCheck} />
+                    )}
                     <Text
-                      className="text-xs font-semibold text-center"
-                      style={{ color: isActive ? level.color : colors.foreground }}
+                      style={[
+                        styles.chipLabel,
+                        { color: isActive ? level.color : colors.onSurfaceVariant },
+                      ]}
                     >
                       {level.label}
                     </Text>
@@ -228,103 +220,353 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Sección de Actualización */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="schedule" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Actualizacion</Text>
+        {/* Update Interval Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="schedule" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Actualización</Text>
           </View>
 
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-foreground font-semibold">Intervalo de Actualizacion</Text>
-              <View
-                style={{
-                  backgroundColor: colors.primary,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 20,
-                }}
-              >
-                <Text className="text-white text-sm font-bold">
+          <View style={[styles.infoCard, { backgroundColor: colors.surfaceContainer, borderColor: colors.outline }]}>
+            <View style={styles.intervalHeader}>
+              <Text style={[styles.intervalLabel, { color: colors.onSurface }]}>Intervalo de Actualización</Text>
+              <View style={[styles.intervalBadge, { backgroundColor: colors.primaryContainer }]}>
+                <Text style={[styles.intervalBadgeText, { color: colors.onPrimaryContainer }]}>
                   {preferences.updateIntervalMinutes} min
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row gap-2">
-              {[5, 10, 15, 30].map((interval) => (
-                <Pressable
-                  key={interval}
-                  onPress={() => updatePreferences({ updateIntervalMinutes: interval })}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    backgroundColor:
-                      preferences.updateIntervalMinutes === interval ? colors.primary : colors.border,
-                    paddingVertical: 8,
-                    borderRadius: 6,
-                    opacity: pressed ? 0.8 : 1,
-                  })}
-                >
-                  <Text
-                    className="text-center font-semibold text-xs"
-                    style={{
-                      color: preferences.updateIntervalMinutes === interval ? "white" : colors.foreground,
-                    }}
+            <View style={styles.intervalRow}>
+              {[5, 10, 15, 30].map((interval) => {
+                const isActive = preferences.updateIntervalMinutes === interval;
+                return (
+                  <Pressable
+                    key={interval}
+                    onPress={() => updatePreferences({ updateIntervalMinutes: interval })}
+                    style={({ pressed }) => [
+                      styles.intervalChip,
+                      {
+                        backgroundColor: isActive ? colors.primary : colors.surfaceContainerLow,
+                        borderColor: isActive ? colors.primary : colors.outline,
+                        opacity: pressed ? 0.85 : 1,
+                        ...Elevation[isActive ? 1 : 0],
+                      },
+                    ]}
                   >
-                    {interval}m
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text
+                      style={[
+                        styles.intervalChipText,
+                        { color: isActive ? colors.onPrimary : colors.onSurface },
+                      ]}
+                    >
+                      {interval}m
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
-            <Text className="text-xs text-muted mt-3">
-              La app actualizara las alertas cada {preferences.updateIntervalMinutes} minutos
+            <Text style={[styles.intervalHint, { color: colors.onSurfaceVariant }]}>
+              La app actualizará las alertas cada {preferences.updateIntervalMinutes} minutos
             </Text>
           </View>
         </View>
 
-        {/* Sección de Información */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="info" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Informacion</Text>
+        {/* Information Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="info" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Información</Text>
           </View>
 
-          <View className="bg-surface p-4 rounded-lg border gap-3" style={{ borderColor: colors.border }}>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <MaterialIcons name="info" size={16} color={colors.muted} />
-                <Text className="text-muted text-sm">Version</Text>
+          <View style={[styles.settingsGroup, { backgroundColor: colors.surfaceContainer }]}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoRowLeft}>
+                <MaterialIcons name="info" size={18} color={colors.onSurfaceVariant} />
+                <Text style={[styles.infoRowLabel, { color: colors.onSurfaceVariant }]}>Versión</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">1.0.0</Text>
+              <Text style={[styles.infoRowValue, { color: colors.onSurface }]}>1.0.0</Text>
             </View>
-
-            <View className="h-px" style={{ backgroundColor: colors.border }} />
-
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <MaterialIcons name="cloud" size={16} color={colors.muted} />
-                <Text className="text-muted text-sm">Fuente de Datos</Text>
+            <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
+            <View style={styles.infoRow}>
+              <View style={styles.infoRowLeft}>
+                <MaterialIcons name="cloud" size={18} color={colors.onSurfaceVariant} />
+                <Text style={[styles.infoRowLabel, { color: colors.onSurfaceVariant }]}>Fuente de Datos</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">OpenWeatherMap</Text>
+              <Text style={[styles.infoRowValue, { color: colors.onSurface }]}>OpenWeatherMap</Text>
             </View>
-
-            <View className="h-px" style={{ backgroundColor: colors.border }} />
-
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <MaterialIcons name="developer-mode" size={16} color={colors.muted} />
-                <Text className="text-muted text-sm">Desarrollador</Text>
+            <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
+            <View style={styles.infoRow}>
+              <View style={styles.infoRowLeft}>
+                <MaterialIcons name="developer-mode" size={18} color={colors.onSurfaceVariant} />
+                <Text style={[styles.infoRowLabel, { color: colors.onSurfaceVariant }]}>Desarrollador</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">Tormentar</Text>
+              <Text style={[styles.infoRowValue, { color: colors.onSurface }]}>Tormentar</Text>
             </View>
           </View>
         </View>
 
-        {/* Espaciador */}
-        <View className="h-8" />
+        {/* Spacer */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  // Top App Bar
+  topAppBar: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 28,
+    borderBottomLeftRadius: ShapeRadius.extraLarge,
+    borderBottomRightRadius: ShapeRadius.extraLarge,
+  },
+  topAppBarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  topAppBarIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: ShapeRadius.large,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  topAppBarTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    lineHeight: 32,
+  },
+
+  // Sections
+  section: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+
+  // Setting Row
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: ShapeRadius.medium,
+  },
+  settingLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: ShapeRadius.large,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  settingSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+
+  // List Item
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: ShapeRadius.medium,
+  },
+  listItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  listItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: ShapeRadius.large,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listItemText: {
+    flex: 1,
+  },
+  listItemTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  listItemSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+
+  // Search
+  searchContainer: {
+    marginTop: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: ShapeRadius.medium,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchTextInput: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  hint: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+
+  // Settings Group
+  settingsGroup: {
+    borderRadius: ShapeRadius.large,
+    overflow: "hidden",
+    ...Elevation[1],
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    marginLeft: 56,
+  },
+
+  // Info Card
+  infoCard: {
+    borderRadius: ShapeRadius.large,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  infoDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  // Chips
+  chipRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  chip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: ShapeRadius.medium,
+    borderWidth: 1,
+  },
+  chipCheck: {
+    marginRight: 4,
+  },
+  chipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  // Interval
+  intervalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  intervalLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  intervalBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: ShapeRadius.full,
+  },
+  intervalBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  intervalRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  intervalChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: ShapeRadius.medium,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  intervalChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  intervalHint: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+
+  // Info Row
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  infoRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  infoRowLabel: {
+    fontSize: 14,
+  },
+  infoRowValue: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  bottomSpacer: {
+    height: 32,
+  },
+});
