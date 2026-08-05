@@ -1,17 +1,27 @@
 /**
  * Weather Service
  * Servicio para obtener datos de clima y alertas de OpenWeatherMap
+ *
+ * Usa el plan FREE (sin tarjeta de crédito) que incluye:
+ *   - Current Weather 2.5 (/data/2.5/weather)
+ *   - 5 day / 3 hour forecast 2.5 (/data/2.5/forecast)
+ *
+ * One Call 3.0/4.0 NO se usa porque exige suscripción con tarjeta.
+ * Las "alertas" se estiman a partir de los códigos de condición
+ * climática y el viento del pronóstico de 5 días.
  */
 
 import axios from "axios";
 import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
 
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || "";
-// Endpoints del plan FREE real (sin tarjeta de crédito). One Call 3.0/4.0
-// no se usa porque exige dar de alta una suscripción con tarjeta.
+// Endpoints del plan FREE real (sin tarjeta de crédito).
 const CURRENT_URL = "https://api.openweathermap.org/data/2.5/weather";
 const FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast";
 
+// Indica si hay una API key configurada. Sin esto, la app no puede
+// consultar alertas reales y las pantallas deben mostrarlo claramente
+// en vez de caer en datos de demostración silenciosos.
 export function hasApiKey(): boolean {
   return API_KEY.length > 0;
 }

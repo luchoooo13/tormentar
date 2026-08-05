@@ -9,16 +9,24 @@ import { Audio } from "expo-av";
 import { Platform } from "react-native";
 import type { WeatherAlert, AlertSeverity } from "@/shared/types/weather";
 
-// Configurar comportamiento de notificaciones
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configurar comportamiento de notificaciones. Esto NO puede ejecutarse
+// al importar el módulo: la app usa `output: "static"` (Expo Router
+// pre-renderiza cada página en Node.js durante el build), y expo-notifications
+// depende de APIs de navegador que no existen ahí. Si corre en ese momento,
+// rompe el pre-renderizado de la página sin ningún error visible (la
+// página termina en blanco). Por eso se protege con un chequeo de entorno
+// y se hace en cuanto el módulo carga en un navegador real, no antes.
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export function useWeatherNotifications() {
   const soundRef = useRef<Audio.Sound | null>(null);

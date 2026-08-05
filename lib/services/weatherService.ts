@@ -1,13 +1,23 @@
 /**
  * Weather Service
  * Servicio para obtener datos de clima y alertas de OpenWeatherMap
+ *
+ * Usa el plan FREE (sin tarjeta de crédito) que incluye:
+ *   - Current Weather 2.5 (/data/2.5/weather)
+ *   - 5 day / 3 hour forecast 2.5 (/data/2.5/forecast)
+ *
+ * One Call 3.0/4.0 NO se usa porque exige suscripción con tarjeta.
+ * Las "alertas" se estiman a partir de los códigos de condición
+ * climática y el viento del pronóstico de 5 días.
  */
 
 import axios from "axios";
 import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
 
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || "";
-const BASE_URL = "https://api.openweathermap.org/data/3.0/onecall";
+// Endpoints del plan FREE real (sin tarjeta de crédito).
+const CURRENT_URL = "https://api.openweathermap.org/data/2.5/weather";
+const FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast";
 
 // Indica si hay una API key configurada. Sin esto, la app no puede
 // consultar alertas reales y las pantallas deben mostrarlo claramente
@@ -16,88 +26,144 @@ export function hasApiKey(): boolean {
   return API_KEY.length > 0;
 }
 
-// Categorizar alertas por severidad basado en el tipo de evento
-function categorizeAlertSeverity(event: string): AlertSeverity {
-  const eventLower = event.toLowerCase();
+const SEVERITY_ORDER: Record<AlertSeverity, number> = { severa: 0, moderada: 1, leve: 2 };
 
-  // Eventos severos
-  if (
-    eventLower.includes("tornado") ||
-    eventLower.includes("severe") ||
-    eventLower.includes("hurricane") ||
-    eventLower.includes("typhoon") ||
-    eventLower.includes("extreme") ||
-    eventLower.includes("warning")
-  ) {
-    return "severa";
-  }
+// El plan free no incluye alertas oficiales (eso vive solo en One Call
+// 3.0/4.0, que exige tarjeta). Estimamos el riesgo de tormenta a partir
+// de los códigos de condición climática y el viento del pronóstico de
+// 5 días / 3 horas. No son alertas oficiales del servicio meteorológico.
+function classifyCondition(weatherId: number, windSpeed: number): AlertSeverity | null {
+  if (windSpeed >= 17) return "severa"; // ~61 km/h
+  if (windSpeed >= 10.8) return "moderada"; // ~39 km/h
 
-  // Eventos moderados
-  if (
-    eventLower.includes("thunderstorm") ||
-    eventLower.includes("storm") ||
-    eventLower.includes("heavy") ||
-    eventLower.includes("watch")
-  ) {
-    return "moderada";
-  }
+  if ([202, 212, 232].includes(weatherId)) return "severa";
+  if (weatherId >= 200 && weatherId <= 232) return "moderada";
 
-  // Eventos leves
-  return "leve";
+  if (weatherId === 781 || weatherId === 771) return "severa"; // tornado / squalls
+
+  if ([503, 504].includes(weatherId)) return "severa";
+  if ([502, 511, 522, 531].includes(weatherId)) return "moderada";
+  if ([501, 521].includes(weatherId)) return "leve";
+
+  if ([602, 622].includes(weatherId)) return "moderada";
+  if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) return "leve";
+
+  return null;
 }
 
-// Obtener datos de clima y alertas
+interface ForecastPoint {
+  dt: number;
+  weatherId: number;
+  description: string;
+  windSpeed: number;
+}
+
+function buildAlertsFromPoints(
+  points: ForecastPoint[],
+  latitude: number,
+  longitude: number
+): WeatherAlert[] {
+  const alerts: WeatherAlert[] = [];
+  let open: { start: number; end: number; severity: AlertSeverity; description: string } | null = null;
+
+  const closeOpen = () => {
+    if (!open) return;
+    alerts.push({
+      id: `${open.start}-${open.end}`,
+      event:
+        open.severity === "severa"
+          ? "Riesgo de tormenta fuerte"
+          : open.severity === "moderada"
+          ? "Riesgo de tormenta moderada"
+          : "Condición climática leve",
+      description: `Estimado a partir del pronóstico: ${open.description}.`,
+      start: open.start,
+      end: open.end,
+      sender_name: "Estimación propia (OpenWeatherMap, plan free)",
+      severity: open.severity,
+      latitude,
+      longitude,
+      radius: 10,
+    });
+    open = null;
+  };
+
+  for (const point of points) {
+    const severity = classifyCondition(point.weatherId, point.windSpeed);
+    if (!severity) {
+      closeOpen();
+      continue;
+    }
+    if (open && SEVERITY_ORDER[severity] <= SEVERITY_ORDER[open.severity]) {
+      open.end = point.dt + 3 * 3600;
+      if (SEVERITY_ORDER[severity] < SEVERITY_ORDER[open.severity]) {
+        open.severity = severity;
+        open.description = point.description;
+      }
+    } else if (open) {
+      closeOpen();
+      open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+    } else {
+      open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+    }
+  }
+  closeOpen();
+  return alerts;
+}
+
+// Obtener datos de clima y alertas (estimadas del pronóstico gratuito)
 export async function getWeatherAlerts(
   latitude: number,
   longitude: number
 ): Promise<WeatherData | null> {
   if (!hasApiKey()) {
-    console.error(
-      "Falta configurar EXPO_PUBLIC_OPENWEATHER_API_KEY: no se pueden obtener alertas reales."
-    );
+    console.error("Falta configurar EXPO_PUBLIC_OPENWEATHER_API_KEY.");
     return null;
   }
 
   try {
-    const response = await axios.get(BASE_URL, {
-      params: {
-        lat: latitude,
-        lon: longitude,
-        appid: API_KEY,
-        units: "metric",
-        lang: "es",
+    const [currentRes, forecastRes] = await Promise.all([
+      axios.get(CURRENT_URL, {
+        params: { lat: latitude, lon: longitude, appid: API_KEY, units: "metric", lang: "es" },
+      }),
+      axios.get(FORECAST_URL, {
+        params: { lat: latitude, lon: longitude, appid: API_KEY, units: "metric", lang: "es" },
+      }),
+    ]);
+
+    const current = currentRes.data;
+    const forecastList = forecastRes.data?.list || [];
+
+    const points: ForecastPoint[] = [
+      {
+        dt: Math.floor(Date.now() / 1000),
+        weatherId: current.weather?.[0]?.id ?? 800,
+        description: current.weather?.[0]?.description ?? "",
+        windSpeed: current.wind?.speed ?? 0,
       },
-    });
+      ...forecastList.map((item: any) => ({
+        dt: item.dt,
+        weatherId: item.weather?.[0]?.id ?? 800,
+        description: item.weather?.[0]?.description ?? "",
+        windSpeed: item.wind?.speed ?? 0,
+      })),
+    ];
 
-    const data = response.data;
-
-    // Procesar alertas y categorizar por severidad
-    const alerts: WeatherAlert[] = (data.alerts || []).map((alert: any) => ({
-      id: `${alert.start}-${alert.end}`,
-      event: alert.event,
-      description: alert.description,
-      start: alert.start,
-      end: alert.end,
-      sender_name: alert.sender_name,
-      severity: categorizeAlertSeverity(alert.event),
-      latitude,
-      longitude,
-      radius: 10, // Radio por defecto en km
-    }));
+    const alerts = buildAlertsFromPoints(points, latitude, longitude);
 
     return {
-      lat: data.lat,
-      lon: data.lon,
-      timezone: data.timezone,
+      lat: current.coord?.lat ?? latitude,
+      lon: current.coord?.lon ?? longitude,
+      timezone: current.timezone,
       current: {
-        temp: data.current.temp,
-        feels_like: data.current.feels_like,
-        humidity: data.current.humidity,
-        pressure: data.current.pressure,
-        wind_speed: data.current.wind_speed,
-        wind_deg: data.current.wind_deg,
-        clouds: data.current.clouds,
-        weather: data.current.weather,
+        temp: current.main.temp,
+        feels_like: current.main.feels_like,
+        humidity: current.main.humidity,
+        pressure: current.main.pressure,
+        wind_speed: current.wind?.speed ?? 0,
+        wind_deg: current.wind?.deg ?? 0,
+        clouds: current.clouds?.all ?? 0,
+        weather: current.weather,
       },
       alerts,
     };
@@ -106,7 +172,7 @@ export async function getWeatherAlerts(
       const status = error.response?.status;
       if (status === 401) {
         throw new Error(
-          "OpenWeatherMap rechazó la API key. Verificá que sea correcta y que tenga habilitado el plan 'One Call 3.0'."
+          "OpenWeatherMap rechazó la API key (401). Puede tardar hasta 2 horas en activarse una key recién creada."
         );
       }
       if (status === 429) {

@@ -9,6 +9,8 @@
  *   (leve / moderada / fuerte).
  * - Dispara notificaciones locales solo para alertas nuevas que el
  *   usuario eligió recibir.
+ * - Pide permisos de notificación al iniciar para que las alertas
+ *   realmente se muestren en Android 13+ e iOS.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
@@ -25,7 +27,7 @@ export function useAlerts() {
     getCurrentLocation,
   } = useLocation();
   const { preferences } = useAlertPreferences();
-  const { sendNotification, setupNotificationChannels } = useWeatherNotifications();
+  const { sendNotification, setupNotificationChannels, requestPermissions } = useWeatherNotifications();
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,8 +91,10 @@ export function useAlerts() {
     }
   }, [location, sendNotification]);
 
-  // Canales de notificación (Android), una sola vez.
+  // Canales de notificación (Android) y permiso de notificaciones, una
+  // sola vez. Sin pedir el permiso, sendNotification no muestra nada.
   useEffect(() => {
+    requestPermissions();
     setupNotificationChannels();
   }, [setupNotificationChannels]);
 

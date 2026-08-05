@@ -9,6 +9,8 @@
  *   (leve / moderada / fuerte).
  * - Dispara notificaciones locales solo para alertas nuevas que el
  *   usuario eligió recibir.
+ * - Pide permisos de notificación al iniciar para que las alertas
+ *   realmente se muestren en Android 13+ e iOS.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
