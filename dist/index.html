@@ -166,10 +166,6 @@
             transform: scale(1.02);
         }
         
-        .alert-action:active {
-            transform: scale(0.98);
-        }
-        
         #map {
             width: 100%;
             height: 450px;
@@ -271,6 +267,61 @@
             font-weight: 700;
         }
         
+        /* ALERT POPUP */
+        .alert-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.5);
+            z-index: 2000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+            border: 2px solid #FCA5A5;
+        }
+        
+        .alert-popup.show {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .alert-popup h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .alert-popup p {
+            font-size: 14px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .alert-popup .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+        }
+        
         .leaflet-container { background: #1a1f3a !important; }
         .leaflet-control-attribution { background: rgba(0,0,0,0.7) !important; color: #a0aec0 !important; }
     </style>
@@ -284,9 +335,9 @@
             </div>
             
             <div class="filter-container">
-                <button class="filter-btn active" onclick="setFilter(this)">🟡 Leve</button>
-                <button class="filter-btn" onclick="setFilter(this)">🟠 Moderada</button>
-                <button class="filter-btn" onclick="setFilter(this)">🔴 Severa</button>
+                <button class="filter-btn active" onclick="setFilter(this, 'leve')">🟡 Leve</button>
+                <button class="filter-btn" onclick="setFilter(this, 'moderada')">🟠 Moderada</button>
+                <button class="filter-btn" onclick="setFilter(this, 'severa')">🔴 Severa</button>
             </div>
             
             <div class="weather-card">
@@ -294,38 +345,25 @@
                 <div class="weather-info">
                     <div class="weather-item">
                         <div style="color: #a0aec0; font-size: 12px;">Temperatura</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">24°C</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="temp">24°C</div>
                     </div>
                     <div class="weather-item">
                         <div style="color: #a0aec0; font-size: 12px;">Sensación</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">23°C</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="feels">23°C</div>
                     </div>
                     <div class="weather-item">
                         <div style="color: #a0aec0; font-size: 12px;">Humedad</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">65%</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="humidity">65%</div>
                     </div>
                     <div class="weather-item">
                         <div style="color: #a0aec0; font-size: 12px;">Viento</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">12 m/s</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="wind">12 m/s</div>
                     </div>
                 </div>
             </div>
             
-            <h3>Alertas Activas (2)</h3>
-            
-            <div class="alert-card">
-                <div class="alert-title">🌧️ Tormenta Leve</div>
-                <div class="alert-desc">Se esperan lluvias ligeras en el área. Condiciones generalmente normales con posibilidad de chaparrones aislados.</div>
-                <div class="alert-meta">📅 Hoy 14:00 - 15:00 | 📍 Radio: 15 km</div>
-                <button class="alert-action" onclick="goToMap()">Ver en Mapa Interactivo</button>
-            </div>
-            
-            <div class="alert-card moderada">
-                <div class="alert-title">⛈️ Tormenta Moderada</div>
-                <div class="alert-desc">Se esperan tormentas moderadas con vientos de 40-60 km/h. Posible granizo y descargas eléctricas.</div>
-                <div class="alert-meta">📅 Hoy 16:00 - 18:00 | 📍 Radio: 25 km</div>
-                <button class="alert-action" onclick="goToMap()">Ver en Mapa Interactivo</button>
-            </div>
+            <h3>Alertas Activas (<span id="alertCount">0</span>)</h3>
+            <div id="alertsList"></div>
         </div>
     </div>
 
@@ -336,17 +374,6 @@
                 <p>Visualiza las áreas afectadas por tormentas</p>
             </div>
             <div id="map"></div>
-            <h3 style="margin-top: 30px;">Alertas en el Área</h3>
-            <div class="alert-card">
-                <div class="alert-title">🌧️ Tormenta Leve</div>
-                <div class="alert-desc">Lluvia ligera - Radio de cobertura: 15 km</div>
-                <div class="alert-meta">Coordenadas: -34.60°, -58.38°</div>
-            </div>
-            <div class="alert-card moderada">
-                <div class="alert-title">⛈️ Tormenta Moderada</div>
-                <div class="alert-desc">Tormentas con vientos moderados - Radio de cobertura: 25 km</div>
-                <div class="alert-meta">Coordenadas: -34.50°, -58.50°</div>
-            </div>
         </div>
     </div>
 
@@ -384,13 +411,16 @@
             </div>
             <div class="config-item">
                 <span>Fuente de Datos</span>
-                <span style="color: #a0aec0;">OpenWeatherMap</span>
-            </div>
-            <div class="config-item">
-                <span>Ubicación</span>
-                <span style="color: #a0aec0;">Buenos Aires, AR</span>
+                <span style="color: #a0aec0;">Predicción Dinámica</span>
             </div>
         </div>
+    </div>
+
+    <!-- ALERT POPUP -->
+    <div class="alert-popup" id="alertPopup">
+        <h2 id="popupTitle">⚠️ Alerta de Tormenta</h2>
+        <p id="popupDesc">Se ha detectado una tormenta en tu área.</p>
+        <button class="close-btn" onclick="closeAlertPopup()">Cerrar</button>
     </div>
 
     <div class="tabs-container">
@@ -401,6 +431,126 @@
 
     <script>
         let map = null;
+        let minSeverity = 'leve';
+        let alerts = [];
+        let audioContext = null;
+        
+        // Generar alertas dinámicas
+        function generateAlerts() {
+            const zones = [
+                { name: 'Buenos Aires Centro', lat: -34.60, lng: -58.38, severity: 'leve', radius: 15 },
+                { name: 'La Plata', lat: -34.92, lng: -57.95, severity: 'moderada', radius: 25 },
+                { name: 'Quilmes', lat: -34.73, lng: -58.25, severity: 'severa', radius: 20 },
+                { name: 'San Isidro', lat: -34.47, lng: -58.53, severity: 'leve', radius: 12 },
+                { name: 'Tigre', lat: -34.42, lng: -58.58, severity: 'moderada', radius: 18 }
+            ];
+            
+            alerts = zones.map(z => ({
+                ...z,
+                time: new Date(Date.now() + Math.random() * 3600000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                description: {
+                    leve: 'Se esperan lluvias ligeras en el área.',
+                    moderada: 'Se esperan tormentas moderadas con vientos de 40-60 km/h.',
+                    severa: '⚠️ ALERTA SEVERA: Tormentas fuertes con granizo y descargas eléctricas.'
+                }[z.severity]
+            }));
+            
+            return alerts;
+        }
+        
+        // Actualizar datos dinámicamente
+        function updateWeatherData() {
+            document.getElementById('temp').textContent = (15 + Math.random() * 15).toFixed(0) + '°C';
+            document.getElementById('feels').textContent = (14 + Math.random() * 15).toFixed(0) + '°C';
+            document.getElementById('humidity').textContent = (50 + Math.random() * 40).toFixed(0) + '%';
+            document.getElementById('wind').textContent = (5 + Math.random() * 20).toFixed(1) + ' m/s';
+        }
+        
+        // Mostrar alertas filtradas
+        function displayAlerts() {
+            const severityOrder = { leve: 1, moderada: 2, severa: 3 };
+            const filtered = alerts.filter(a => severityOrder[a.severity] >= severityOrder[minSeverity]);
+            
+            document.getElementById('alertCount').textContent = filtered.length;
+            
+            const alertsList = document.getElementById('alertsList');
+            alertsList.innerHTML = '';
+            
+            filtered.forEach(alert => {
+                const card = document.createElement('div');
+                card.className = `alert-card ${alert.severity}`;
+                const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[alert.severity];
+                const title = { leve: 'Tormenta Leve', moderada: 'Tormenta Moderada', severa: 'TORMENTA SEVERA' }[alert.severity];
+                
+                card.innerHTML = `
+                    <div class="alert-title">${icon} ${title}</div>
+                    <div class="alert-desc">${alert.description}</div>
+                    <div class="alert-meta">📍 ${alert.name} | ⏰ ${alert.time} | 📏 Radio: ${alert.radius} km</div>
+                    <button class="alert-action" onclick="triggerAlert('${alert.name}', '${alert.severity}')">Ver en Mapa</button>
+                `;
+                alertsList.appendChild(card);
+            });
+        }
+        
+        // Generar sonido de emergencia
+        function playEmergencySound() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const ctx = audioContext;
+            const now = ctx.currentTime;
+            const duration = 10;
+            
+            // Crear oscilador para sonido de emergencia
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.setValueAtTime(600, now + 0.1);
+            
+            gain.gain.setValueAtTime(0.3, now);
+            
+            // Patrón de sonido (on/off)
+            for (let i = 0; i < 10; i++) {
+                gain.gain.setValueAtTime(0.3, now + i);
+                gain.gain.setValueAtTime(0, now + i + 0.5);
+            }
+            
+            gain.gain.setValueAtTime(0, now + duration);
+            
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+        
+        // Mostrar pop-up de alerta
+        function triggerAlert(zone, severity) {
+            playEmergencySound();
+            
+            const popup = document.getElementById('alertPopup');
+            const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[severity];
+            const title = { leve: 'Tormenta Leve', moderada: 'Tormenta Moderada', severa: '⚠️ ALERTA SEVERA' }[severity];
+            
+            document.getElementById('popupTitle').textContent = `${icon} ${title}`;
+            document.getElementById('popupDesc').textContent = `Se ha detectado una tormenta en ${zone}. Toma precauciones.`;
+            
+            popup.classList.add('show');
+            
+            // Auto-cerrar después de 10 segundos
+            setTimeout(() => {
+                closeAlertPopup();
+            }, 10000);
+            
+            // Ir al mapa
+            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
+        }
+        
+        function closeAlertPopup() {
+            document.getElementById('alertPopup').classList.remove('show');
+        }
         
         function switchTab(tabId, btn) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -421,41 +571,44 @@
                 maxZoom: 19
             }).addTo(map);
             
-            L.circleMarker([-34.60, -58.38], {
-                radius: 15,
-                fillColor: '#FFA500',
-                color: '#FFA500',
-                weight: 2,
-                opacity: 0.5,
-                fillOpacity: 0.2
-            }).addTo(map).bindPopup('<b>Tormenta Leve</b><br>Radio: 15 km');
-            
-            L.marker([-34.60, -58.38]).addTo(map).bindPopup('🌧️ Tormenta Leve');
-            
-            L.circleMarker([-34.50, -58.50], {
-                radius: 25,
-                fillColor: '#FF6B35',
-                color: '#FF6B35',
-                weight: 2,
-                opacity: 0.5,
-                fillOpacity: 0.2
-            }).addTo(map).bindPopup('<b>Tormenta Moderada</b><br>Radio: 25 km');
-            
-            L.marker([-34.50, -58.50]).addTo(map).bindPopup('⛈️ Tormenta Moderada');
+            alerts.forEach(alert => {
+                const colors = { leve: '#FFA500', moderada: '#FF6B35', severa: '#EF4444' };
+                
+                L.circleMarker([alert.lat, alert.lng], {
+                    radius: alert.radius / 2,
+                    fillColor: colors[alert.severity],
+                    color: colors[alert.severity],
+                    weight: 2,
+                    opacity: 0.5,
+                    fillOpacity: 0.2
+                }).addTo(map).bindPopup(`<b>${alert.name}</b><br>Severidad: ${alert.severity}<br>Radio: ${alert.radius} km`);
+                
+                L.marker([alert.lat, alert.lng]).addTo(map).bindPopup(`${['leve', 'moderada', 'severa'].includes(alert.severity) ? ['🌧️', '⛈️', '🌪️'][['leve', 'moderada', 'severa'].indexOf(alert.severity)] : ''} ${alert.name}`);
+            });
         }
         
-        function goToMap() {
-            switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
-        }
-        
-        function setFilter(btn) {
+        function setFilter(btn, severity) {
+            minSeverity = severity;
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            displayAlerts();
         }
         
         function toggleConfig(btn) {
             btn.classList.toggle('on');
         }
+        
+        // Inicializar
+        generateAlerts();
+        updateWeatherData();
+        displayAlerts();
+        
+        // Actualizar cada 30 segundos
+        setInterval(() => {
+            updateWeatherData();
+            generateAlerts();
+            displayAlerts();
+        }, 30000);
     </script>
 </body>
 </html>
