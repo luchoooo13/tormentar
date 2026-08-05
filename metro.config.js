@@ -1,6 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
-const exclusionList = require("metro-config/src/defaults/exclusionList");
 
 const config = getDefaultConfig(__dirname);
 
@@ -11,10 +10,8 @@ const config = getDefaultConfig(__dirname);
 // intentar calcular su SHA-1, lo que tira:
 // "Failed to get the SHA-1 for: .../react-native-css-interop/.cache/web.css"
 // Lo excluimos del resolver porque es solo un cache interno, no algo
-// que necesitemos bundlear.
-config.resolver.blockList = exclusionList([
-  /node_modules\/react-native-css-interop\/\.cache\/.*/,
-]);
+// que necesitemos bundlear. blockList acepta un RegExp directo.
+config.resolver.blockList = /node_modules\/react-native-css-interop\/\.cache\/.*/;
 
 module.exports = withNativeWind(config, {
   input: "./global.css",
