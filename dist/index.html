@@ -224,10 +224,6 @@
             transition: all 0.3s ease;
         }
         
-        .config-item:hover {
-            border-color: rgba(255, 165, 0, 0.3);
-        }
-        
         .config-toggle {
             width: 50px;
             height: 28px;
@@ -267,7 +263,6 @@
             font-weight: 700;
         }
         
-        /* ALERT POPUP */
         .alert-popup {
             position: fixed;
             top: 20px;
@@ -322,6 +317,12 @@
             width: 100%;
         }
         
+        .loading {
+            text-align: center;
+            color: #a0aec0;
+            padding: 20px;
+        }
+        
         .leaflet-container { background: #1a1f3a !important; }
         .leaflet-control-attribution { background: rgba(0,0,0,0.7) !important; color: #a0aec0 !important; }
     </style>
@@ -340,30 +341,12 @@
                 <button class="filter-btn" onclick="setFilter(this, 'severa')">🔴 Severa</button>
             </div>
             
-            <div class="weather-card">
-                <h2>📍 Buenos Aires, Argentina</h2>
-                <div class="weather-info">
-                    <div class="weather-item">
-                        <div style="color: #a0aec0; font-size: 12px;">Temperatura</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="temp">24°C</div>
-                    </div>
-                    <div class="weather-item">
-                        <div style="color: #a0aec0; font-size: 12px;">Sensación</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="feels">23°C</div>
-                    </div>
-                    <div class="weather-item">
-                        <div style="color: #a0aec0; font-size: 12px;">Humedad</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="humidity">65%</div>
-                    </div>
-                    <div class="weather-item">
-                        <div style="color: #a0aec0; font-size: 12px;">Viento</div>
-                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;" id="wind">12 m/s</div>
-                    </div>
-                </div>
+            <div class="weather-card" id="weatherCard">
+                <div class="loading">Cargando datos de clima...</div>
             </div>
             
             <h3>Alertas Activas (<span id="alertCount">0</span>)</h3>
-            <div id="alertsList"></div>
+            <div id="alertsList" class="loading">Cargando alertas...</div>
         </div>
     </div>
 
@@ -401,7 +384,7 @@
             <h3 style="margin-top: 30px;">Actualización</h3>
             <div class="config-item">
                 <span>Intervalo de Actualización</span>
-                <span style="color: #FFA500; font-weight: 600;">15 minutos</span>
+                <span style="color: #FFA500; font-weight: 600;">5 minutos</span>
             </div>
             
             <h3 style="margin-top: 30px;">Información</h3>
@@ -411,12 +394,11 @@
             </div>
             <div class="config-item">
                 <span>Fuente de Datos</span>
-                <span style="color: #a0aec0;">Predicción Dinámica</span>
+                <span style="color: #a0aec0;">OpenWeatherMap API</span>
             </div>
         </div>
     </div>
 
-    <!-- ALERT POPUP -->
     <div class="alert-popup" id="alertPopup">
         <h2 id="popupTitle">⚠️ Alerta de Tormenta</h2>
         <p id="popupDesc">Se ha detectado una tormenta en tu área.</p>
@@ -430,43 +412,88 @@
     </div>
 
     <script>
+        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
+        const zones = [
+            { name: 'Buenos Aires', lat: -34.60, lng: -58.38 },
+            { name: 'La Plata', lat: -34.92, lng: -57.95 },
+            { name: 'Quilmes', lat: -34.73, lng: -58.25 },
+            { name: 'San Isidro', lat: -34.47, lng: -58.53 },
+            { name: 'Tigre', lat: -34.42, lng: -58.58 }
+        ];
+        
         let map = null;
         let minSeverity = 'leve';
         let alerts = [];
         let audioContext = null;
         
-        // Generar alertas dinámicas
-        function generateAlerts() {
-            const zones = [
-                { name: 'Buenos Aires Centro', lat: -34.60, lng: -58.38, severity: 'leve', radius: 15 },
-                { name: 'La Plata', lat: -34.92, lng: -57.95, severity: 'moderada', radius: 25 },
-                { name: 'Quilmes', lat: -34.73, lng: -58.25, severity: 'severa', radius: 20 },
-                { name: 'San Isidro', lat: -34.47, lng: -58.53, severity: 'leve', radius: 12 },
-                { name: 'Tigre', lat: -34.42, lng: -58.58, severity: 'moderada', radius: 18 }
-            ];
-            
-            alerts = zones.map(z => ({
-                ...z,
-                time: new Date(Date.now() + Math.random() * 3600000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-                description: {
-                    leve: 'Se esperan lluvias ligeras en el área.',
-                    moderada: 'Se esperan tormentas moderadas con vientos de 40-60 km/h.',
-                    severa: '⚠️ ALERTA SEVERA: Tormentas fuertes con granizo y descargas eléctricas.'
-                }[z.severity]
-            }));
-            
-            return alerts;
+        // Obtener datos reales de OpenWeatherMap
+        async function fetchWeatherData() {
+            try {
+                const promises = zones.map(zone =>
+                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${zone.lat}&lon=${zone.lng}&appid=${API_KEY}&units=metric&lang=es`)
+                        .then(r => r.json())
+                        .then(data => ({
+                            ...zone,
+                            temp: Math.round(data.main.temp),
+                            feels: Math.round(data.main.feels_like),
+                            humidity: data.main.humidity,
+                            wind: Math.round(data.wind.speed * 10) / 10,
+                            description: data.weather[0].description,
+                            clouds: data.clouds.all
+                        }))
+                );
+                
+                const results = await Promise.all(promises);
+                
+                // Generar alertas basadas en condiciones reales
+                alerts = results.map(zone => {
+                    let severity = 'leve';
+                    if (zone.clouds > 70 && zone.wind > 15) severity = 'severa';
+                    else if (zone.clouds > 50 && zone.wind > 10) severity = 'moderada';
+                    
+                    return {
+                        ...zone,
+                        severity,
+                        radius: { leve: 15, moderada: 25, severa: 35 }[severity],
+                        description: {
+                            leve: `Posibles lluvias ligeras. Nubosidad: ${zone.clouds}%`,
+                            moderada: `Tormentas moderadas esperadas. Viento: ${zone.wind} m/s`,
+                            severa: `⚠️ ALERTA SEVERA: Tormentas fuertes. Viento: ${zone.wind} m/s`
+                        }[severity]
+                    };
+                });
+                
+                displayWeather(results[0]);
+                displayAlerts();
+            } catch (e) {
+                console.error('Error fetching weather:', e);
+            }
         }
         
-        // Actualizar datos dinámicamente
-        function updateWeatherData() {
-            document.getElementById('temp').textContent = (15 + Math.random() * 15).toFixed(0) + '°C';
-            document.getElementById('feels').textContent = (14 + Math.random() * 15).toFixed(0) + '°C';
-            document.getElementById('humidity').textContent = (50 + Math.random() * 40).toFixed(0) + '%';
-            document.getElementById('wind').textContent = (5 + Math.random() * 20).toFixed(1) + ' m/s';
+        function displayWeather(data) {
+            document.getElementById('weatherCard').innerHTML = `
+                <h2>📍 ${data.name}, Argentina</h2>
+                <div class="weather-info">
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Temperatura</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${data.temp}°C</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Sensación</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${data.feels}°C</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Humedad</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${data.humidity}%</div>
+                    </div>
+                    <div class="weather-item">
+                        <div style="color: #a0aec0; font-size: 12px;">Viento</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FFA500;">${data.wind} m/s</div>
+                    </div>
+                </div>
+            `;
         }
         
-        // Mostrar alertas filtradas
         function displayAlerts() {
             const severityOrder = { leve: 1, moderada: 2, severa: 3 };
             const filtered = alerts.filter(a => severityOrder[a.severity] >= severityOrder[minSeverity]);
@@ -475,6 +502,11 @@
             
             const alertsList = document.getElementById('alertsList');
             alertsList.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                alertsList.innerHTML = '<div class="loading">✅ No hay alertas para este nivel de severidad</div>';
+                return;
+            }
             
             filtered.forEach(alert => {
                 const card = document.createElement('div');
@@ -485,14 +517,13 @@
                 card.innerHTML = `
                     <div class="alert-title">${icon} ${title}</div>
                     <div class="alert-desc">${alert.description}</div>
-                    <div class="alert-meta">📍 ${alert.name} | ⏰ ${alert.time} | 📏 Radio: ${alert.radius} km</div>
+                    <div class="alert-meta">📍 ${alert.name} | 📏 Radio: ${alert.radius} km</div>
                     <button class="alert-action" onclick="triggerAlert('${alert.name}', '${alert.severity}')">Ver en Mapa</button>
                 `;
                 alertsList.appendChild(card);
             });
         }
         
-        // Generar sonido de emergencia
         function playEmergencySound() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -502,7 +533,6 @@
             const now = ctx.currentTime;
             const duration = 10;
             
-            // Crear oscilador para sonido de emergencia
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             
@@ -514,7 +544,6 @@
             
             gain.gain.setValueAtTime(0.3, now);
             
-            // Patrón de sonido (on/off)
             for (let i = 0; i < 10; i++) {
                 gain.gain.setValueAtTime(0.3, now + i);
                 gain.gain.setValueAtTime(0, now + i + 0.5);
@@ -526,7 +555,6 @@
             osc.stop(now + duration);
         }
         
-        // Mostrar pop-up de alerta
         function triggerAlert(zone, severity) {
             playEmergencySound();
             
@@ -539,12 +567,10 @@
             
             popup.classList.add('show');
             
-            // Auto-cerrar después de 10 segundos
             setTimeout(() => {
                 closeAlertPopup();
             }, 10000);
             
-            // Ir al mapa
             switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
         }
         
@@ -581,7 +607,7 @@
                     weight: 2,
                     opacity: 0.5,
                     fillOpacity: 0.2
-                }).addTo(map).bindPopup(`<b>${alert.name}</b><br>Severidad: ${alert.severity}<br>Radio: ${alert.radius} km`);
+                }).addTo(map).bindPopup(`<b>${alert.name}</b><br>Severidad: ${alert.severity}<br>Temp: ${alert.temp}°C`);
                 
                 L.marker([alert.lat, alert.lng]).addTo(map).bindPopup(`${['leve', 'moderada', 'severa'].includes(alert.severity) ? ['🌧️', '⛈️', '🌪️'][['leve', 'moderada', 'severa'].indexOf(alert.severity)] : ''} ${alert.name}`);
             });
@@ -599,16 +625,12 @@
         }
         
         // Inicializar
-        generateAlerts();
-        updateWeatherData();
-        displayAlerts();
+        fetchWeatherData();
         
-        // Actualizar cada 30 segundos
+        // Actualizar cada 5 minutos
         setInterval(() => {
-            updateWeatherData();
-            generateAlerts();
-            displayAlerts();
-        }, 30000);
+            fetchWeatherData();
+        }, 300000);
     </script>
 </body>
 </html>
