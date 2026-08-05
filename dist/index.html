@@ -85,7 +85,6 @@
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 25px;
-            backdrop-filter: blur(10px);
         }
         
         .weather-card h2 {
@@ -116,7 +115,6 @@
             border-radius: 10px;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 165, 0, 0.2);
-            backdrop-filter: blur(10px);
         }
         
         .alert-card:hover {
@@ -185,7 +183,6 @@
             display: flex;
             gap: 0;
             z-index: 1000;
-            backdrop-filter: blur(10px);
         }
         
         .tab-btn {
@@ -202,10 +199,7 @@
             border-top: 3px solid transparent;
         }
         
-        .tab-btn:hover {
-            color: #FFA500;
-        }
-        
+        .tab-btn:hover { color: #FFA500; }
         .tab-btn.active {
             color: #FFA500;
             border-top-color: #FFA500;
@@ -252,9 +246,7 @@
             transition: all 0.3s ease;
         }
         
-        .config-toggle.on::after {
-            left: 26px;
-        }
+        .config-toggle.on::after { left: 26px; }
         
         h3 {
             margin-bottom: 15px;
@@ -279,32 +271,15 @@
             border: 2px solid #FCA5A5;
         }
         
-        .alert-popup.show {
-            display: block;
-        }
+        .alert-popup.show { display: block; }
         
         @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
-        .alert-popup h2 {
-            font-size: 18px;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-        
-        .alert-popup p {
-            font-size: 14px;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
+        .alert-popup h2 { font-size: 18px; margin-bottom: 8px; font-weight: 700; }
+        .alert-popup p { font-size: 14px; margin-bottom: 12px; line-height: 1.4; }
         
         .alert-popup .close-btn {
             background: rgba(255, 255, 255, 0.2);
@@ -341,21 +316,12 @@
         .leaflet-container { background: #1a1f3a !important; }
         .leaflet-control-attribution { background: rgba(0,0,0,0.7) !important; color: #a0aec0 !important; }
         
-        .no-api-key {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 16px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .no-api-key p { color: #FCA5A5; font-size: 14px; }
-        
-        .geo-btn {
+        /* Botón de ubicación */
+        .action-btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 10px 20px;
+            padding: 12px 24px;
             background: linear-gradient(135deg, #FFA500, #FF6B35);
             color: #000;
             border: none;
@@ -365,15 +331,129 @@
             font-size: 14px;
             margin: 10px 0;
             transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
         }
-        .geo-btn:hover {
+        .action-btn:hover {
             box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
             transform: translateY(-1px);
         }
-        .geo-btn:disabled {
+        .action-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
+        }
+        
+        .action-btn.secondary {
+            background: rgba(255, 165, 0, 0.15);
+            color: #FFA500;
+            border: 2px solid rgba(255, 165, 0, 0.3);
+        }
+        .action-btn.secondary:hover {
+            background: rgba(255, 165, 0, 0.25);
+            border-color: #FFA500;
+        }
+        
+        /* Buscador de ciudades */
+        .search-container {
+            position: relative;
+            margin: 15px 0;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 14px 20px 14px 44px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 165, 0, 0.3);
+            border-radius: 10px;
+            color: #e0e7ff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #FFA500;
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
+        }
+        
+        .search-input::placeholder { color: #718096; }
+        
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #FFA500;
+            font-size: 18px;
+            pointer-events: none;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(26, 31, 58, 0.98);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 10px;
+            margin-top: 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .search-results.visible { display: block; }
+        
+        .search-result-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 165, 0, 0.1);
+            transition: background 0.2s ease;
+        }
+        
+        .search-result-item:last-child { border-bottom: none; }
+        
+        .search-result-item:hover {
+            background: rgba(255, 165, 0, 0.1);
+        }
+        
+        .search-result-item .result-city {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e7ff;
+        }
+        
+        .search-result-item .result-country {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 2px;
+        }
+        
+        .location-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            color: #718096;
+            font-size: 13px;
+        }
+        
+        .or-divider::before, .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 165, 0, 0.2);
         }
     </style>
 </head>
@@ -392,12 +472,20 @@
             </div>
             
             <div class="weather-card" id="weatherCard">
-                <div class="loading">Obteniendo tu ubicación...</div>
-                <button class="geo-btn" id="geoBtn" onclick="requestGeolocation()">📍 Activar ubicación</button>
+                <div class="loading">Elegí tu ubicación para ver alertas reales</div>
+                <div style="text-align:center;">
+                    <button class="action-btn" id="geoBtn" onclick="requestGeolocation()">📍 Usar mi ubicación</button>
+                </div>
+                <div class="or-divider"><span>o buscá una ciudad</span></div>
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="citySearch" placeholder="Escribí el nombre de una ciudad..." autocomplete="off" />
+                    <div class="search-results" id="searchResults"></div>
+                </div>
             </div>
             
             <h3>Alertas Activas (<span id="alertCount">0</span>)</h3>
-            <div id="alertsList" class="loading">Necesitas activar tu ubicación para ver alertas reales.</div>
+            <div id="alertsList" class="loading">Elegí una ubicación para ver alertas.</div>
         </div>
     </div>
 
@@ -411,7 +499,7 @@
             <div class="location-info" id="mapLocation" style="display:none;">
                 <span class="loc-icon">📍</span>
                 <div>
-                    <div class="loc-city" id="mapCity">Obteniendo ubicación...</div>
+                    <div class="loc-city" id="mapCity">—</div>
                     <div class="loc-text" id="mapCoords"></div>
                 </div>
             </div>
@@ -425,7 +513,7 @@
                 <p>Personaliza tu experiencia</p>
             </div>
             
-            <h3>Ubicación</h3>
+            <h3>Ubicación Actual</h3>
             <div class="location-info" id="configLocation" style="display:none;">
                 <span class="loc-icon">📍</span>
                 <div>
@@ -433,7 +521,13 @@
                     <div class="loc-text" id="configCoords"></div>
                 </div>
             </div>
-            <button class="geo-btn" id="configGeoBtn" onclick="requestGeolocation()" style="display:inline-flex;">📍 Usar mi ubicación actual</button>
+            <button class="action-btn" onclick="requestGeolocation()" style="display:inline-flex;">📍 Usar mi ubicación GPS</button>
+            <div class="or-divider"><span>o buscá otra ciudad</span></div>
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="configCitySearch" placeholder="Escribí el nombre de una ciudad..." autocomplete="off" />
+                <div class="search-results" id="configSearchResults"></div>
+            </div>
             
             <h3 style="margin-top: 30px;">Notificaciones</h3>
             <div class="config-item">
@@ -458,7 +552,7 @@
             <h3 style="margin-top: 30px;">Información</h3>
             <div class="config-item">
                 <span>Versión</span>
-                <span style="color: #a0aec0;">1.1.0</span>
+                <span style="color: #a0aec0;">1.2.0</span>
             </div>
             <div class="config-item">
                 <span>Fuente de Datos</span>
@@ -466,7 +560,7 @@
             </div>
             <div class="config-item">
                 <span>Ubicación</span>
-                <span style="color: #a0aec0;" id="configSource">Geolocalización del navegador</span>
+                <span style="color: #a0aec0;" id="configSource">Buscar ciudad</span>
             </div>
         </div>
     </div>
@@ -485,6 +579,7 @@
 
     <script>
         const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
+        const GEO_URL = 'https://api.openweathermap.org/geo/1.0/direct';
         
         // Estado de la ubicación del usuario
         let userLocation = { lat: null, lng: null, city: 'Obteniendo...' };
@@ -494,33 +589,192 @@
         let audioContext = null;
         let weatherData = null;
         let forecastData = null;
+        let searchTimeout = null;
+        let configSearchTimeout = null;
         
-        // Clasificar condiciones climáticas según código de condición y viento
+        // ========== CLASIFICACIÓN DE CONDICIONES ==========
+        
         function classifyCondition(weatherId, windSpeed) {
-            // Viento fuerte
-            if (windSpeed >= 17) return 'severa';  // ~61 km/h
-            if (windSpeed >= 10.8) return 'moderada'; // ~39 km/h
-            
-            // Tormentas eléctricas
+            if (windSpeed >= 17) return 'severa';
+            if (windSpeed >= 10.8) return 'moderada';
             if ([202, 212, 232].includes(weatherId)) return 'severa';
             if (weatherId >= 200 && weatherId <= 232) return 'moderada';
-            
-            // Tornados / remolinos
             if (weatherId === 781 || weatherId === 771) return 'severa';
-            
-            // Lluvia
             if ([503, 504].includes(weatherId)) return 'severa';
             if ([502, 511, 522, 531].includes(weatherId)) return 'moderada';
             if ([501, 521].includes(weatherId)) return 'leve';
-            
-            // Nieve
             if ([602, 622].includes(weatherId)) return 'moderada';
             if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) return 'leve';
-            
             return null;
         }
         
-        // Obtener nombre de la ciudad por coordenadas (reverse geocoding)
+        // ========== GEOLOCALIZACIÓN ==========
+        
+        function requestGeolocation() {
+            if (!navigator.geolocation) {
+                showLocationError('Tu navegador no soporta geolocalización.');
+                return;
+            }
+            
+            const btn = document.getElementById('geoBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Obteniendo...';
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                async function(position) {
+                    userLocation.lat = position.coords.latitude;
+                    userLocation.lng = position.coords.longitude;
+                    userLocation.source = 'gps';
+                    
+                    // Guardar en localStorage
+                    localStorage.setItem('tormentar_location', JSON.stringify(userLocation));
+                    
+                    // Obtener nombre de la ciudad
+                    userLocation.city = await reverseGeocode(userLocation.lat, userLocation.lng);
+                    
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📍 Actualizar ubicación';
+                    }
+                    
+                    updateLocationUI();
+                    await fetchWeatherData();
+                },
+                function(error) {
+                    const btn = document.getElementById('geoBtn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📍 Usar mi ubicación';
+                    }
+                    
+                    let msg = 'No se pudo obtener la ubicación.';
+                    if (error.code === 1) msg = 'Permiso denegado. Activá la ubicación en tu navegador para que funcione.';
+                    else if (error.code === 2) msg = 'Ubicación no disponible. Verificá tu conexión GPS/WiFi.';
+                    else if (error.code === 3) msg = 'Timeout. Intentá de nuevo.';
+                    
+                    showLocationError(msg);
+                    console.error('Geolocation error:', error);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+            );
+        }
+        
+        function showLocationError(msg) {
+            // No reemplazar todo el weatherCard, solo mostrar error manteniendo el buscador
+            const alertsList = document.getElementById('alertsList');
+            if (alertsList) {
+                alertsList.innerHTML = '<div class="loading" style="color:#EF4444;">' + msg + '</div>';
+            }
+        }
+        
+        // ========== BÚSQUEDA DE CIUDADES ==========
+        
+        function initSearch(inputId, resultsId, source) {
+            const input = document.getElementById(inputId);
+            const results = document.getElementById(resultsId);
+            
+            if (!input) return;
+            
+            input.addEventListener('input', function() {
+                clearTimeout(source === 'main' ? searchTimeout : configSearchTimeout);
+                
+                if (this.value.length < 2) {
+                    results.classList.remove('visible');
+                    return;
+                }
+                
+                source === 'main'
+                    ? (searchTimeout = setTimeout(() => searchCities(this.value, results), 300))
+                    : (configSearchTimeout = setTimeout(() => searchCities(this.value, results), 300));
+            });
+            
+            input.addEventListener('focus', function() {
+                if (this.value.length >= 2) {
+                    searchCities(this.value, results);
+                }
+            });
+            
+            // Cerrar resultados al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !results.contains(e.target)) {
+                    results.classList.remove('visible');
+                }
+            });
+        }
+        
+        async function searchCities(query, resultsElement) {
+            try {
+                const res = await fetch(`${GEO_URL}?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`);
+                const cities = await res.json();
+                
+                if (!Array.isArray(cities) || cities.length === 0) {
+                    resultsElement.innerHTML = '<div class="search-result-item"><span class="result-city">Sin resultados</span></div>';
+                    resultsElement.classList.add('visible');
+                    return;
+                }
+                
+                resultsElement.innerHTML = cities.map(city => `
+                    <div class="search-result-item" onclick="selectCity(${city.lat}, ${city.lon}, '${escapeHtml(city.name)}', '${escapeHtml(city.country || '')}', '${escapeHtml(city.state || '')}', this)">
+                        <div class="result-city">${city.name}${city.state ? ', ' + city.state : ''}</div>
+                        <div class="result-country">${getCountryName(city.country)}${city.country ? ' · ' + city.country : ''}</div>
+                    </div>
+                `).join('');
+                
+                resultsElement.classList.add('visible');
+            } catch (e) {
+                console.error('Search error:', e);
+                resultsElement.innerHTML = '<div class="search-result-item"><span class="result-city">Error al buscar. Intentá de nuevo.</span></div>';
+                resultsElement.classList.add('visible');
+            }
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        function getCountryName(code) {
+            const names = {
+                'AR': 'Argentina', 'MX': 'México', 'ES': 'España', 'US': 'Estados Unidos',
+                'CL': 'Chile', 'PE': 'Perú', 'CO': 'Colombia', 'UY': 'Uruguay',
+                'EC': 'Ecuador', 'BR': 'Brasil', 'PY': 'Paraguay', 'BO': 'Bolivia',
+                'VE': 'Venezuela', 'CR': 'Costa Rica', 'GT': 'Guatemala', 'HN': 'Honduras',
+                'SV': 'El Salvador', 'NI': 'Nicaragua', 'PA': 'Panamá', 'CU': 'Cuba',
+                'DO': 'Rep. Dominicana', 'PR': 'Puerto Rico', 'FR': 'Francia',
+                'GB': 'Reino Unido', 'DE': 'Alemania', 'IT': 'Italia', 'PT': 'Portugal',
+                'JP': 'Japón', 'CN': 'China', 'IN': 'India', 'AU': 'Australia',
+                'CA': 'Canadá', 'RU': 'Rusia'
+            };
+            return names[code] || code || '';
+        }
+        
+        async function selectCity(lat, lng, name, country, state, element) {
+            userLocation.lat = lat;
+            userLocation.lng = lng;
+            userLocation.city = name + (state && state !== name ? ', ' + state : '');
+            userLocation.country = country;
+            userLocation.source = 'search';
+            
+            // Guardar
+            localStorage.setItem('tormentar_location', JSON.stringify(userLocation));
+            
+            // Cerrar resultados
+            document.querySelectorAll('.search-results').forEach(el => el.classList.remove('visible'));
+            
+            // Limpiar inputs
+            const searchInput = document.getElementById('citySearch');
+            const configSearchInput = document.getElementById('configCitySearch');
+            if (searchInput) searchInput.value = '';
+            if (configSearchInput) configSearchInput.value = '';
+            
+            updateLocationUI();
+            await fetchWeatherData();
+        }
+        
+        // ========== REVERSE GEOCODING ==========
+        
         async function reverseGeocode(lat, lng) {
             try {
                 const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&lang=es`);
@@ -531,87 +785,43 @@
             }
         }
         
-        // Pedir geolocalización al navegador
-        async function requestGeolocation() {
-            if (!navigator.geolocation) {
-                document.getElementById('weatherCard').innerHTML = `
-                    <div class="loading" style="color:#EF4444;">Tu navegador no soporta geolocalización.</div>
-                `;
-                return;
-            }
-            
-            const btn = document.getElementById('geoBtn');
-            btn.disabled = true;
-            btn.textContent = '⏳ Obteniendo ubicación...';
-            
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    userLocation.lat = position.coords.latitude;
-                    userLocation.lng = position.coords.longitude;
-                    
-                    // Guardar en localStorage
-                    localStorage.setItem('tormentar_location', JSON.stringify(userLocation));
-                    
-                    // Obtener nombre de la ciudad
-                    userLocation.city = await reverseGeocode(userLocation.lat, userLocation.lng);
-                    
-                    // Actualizar UI
-                    updateLocationUI();
-                    
-                    // Cargar datos del clima
-                    await fetchWeatherData();
-                },
-                (error) => {
-                    const btn = document.getElementById('geoBtn');
-                    btn.disabled = false;
-                    btn.textContent = '📍 Activar ubicación';
-                    
-                    let msg = 'No se pudo obtener la ubicación.';
-                    if (error.code === 1) msg = 'Permiso de ubicación denegado. Activá la ubicación en tu navegador.';
-                    if (error.code === 2) msg = 'Ubicación no disponible. Verificá tu conexión GPS/WiFi.';
-                    if (error.code === 3) msg = 'Timeout al obtener la ubicación. Intentá de nuevo.';
-                    
-                    document.getElementById('weatherCard').innerHTML = `
-                        <div class="loading" style="color:#EF4444;">${msg}</div>
-                        <button class="geo-btn" onclick="requestGeolocation()">📍 Intentar de nuevo</button>
-                    `;
-                    console.error('Geolocation error:', error);
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
-            );
-        }
+        // ========== ACTUALIZAR UI ==========
         
-        // Actualizar la UI con la ubicación
         function updateLocationUI() {
-            // Weather card
-            if (weatherData) {
-                displayWeather(weatherData);
-            } else {
-                document.getElementById('weatherCard').innerHTML = `
-                    <h2>📍 ${userLocation.city}</h2>
-                    <div class="location-info" style="margin-bottom:0;">
-                        <span class="loc-text">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</span>
-                    </div>
-                    <div class="loading">Cargando datos de clima...</div>
-                `;
-            }
-            
             // Map location
             const mapLoc = document.getElementById('mapLocation');
-            mapLoc.style.display = 'flex';
-            document.getElementById('mapCity').textContent = userLocation.city;
-            document.getElementById('mapCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
+            if (mapLoc) {
+                mapLoc.style.display = 'flex';
+                document.getElementById('mapCity').textContent = userLocation.city;
+                document.getElementById('mapCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
+            }
             
             // Config location
             const configLoc = document.getElementById('configLocation');
-            configLoc.style.display = 'flex';
-            document.getElementById('configCity').textContent = userLocation.city;
-            document.getElementById('configCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
+            if (configLoc) {
+                configLoc.style.display = 'flex';
+                document.getElementById('configCity').textContent = userLocation.city;
+                document.getElementById('configCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
+            }
+            
+            // Config source
+            const sourceEl = document.getElementById('configSource');
+            if (sourceEl) {
+                sourceEl.textContent = userLocation.source === 'gps' ? 'Geolocalización GPS' : 'Búsqueda manual';
+            }
         }
         
-        // Obtener datos reales de OpenWeatherMap (clima actual + pronóstico)
+        // ========== OBTENER DATOS DEL CLIMA ==========
+        
         async function fetchWeatherData() {
             if (!userLocation.lat || !userLocation.lng) return;
+            
+            const weatherCard = document.getElementById('weatherCard');
+            weatherCard.innerHTML = `
+                <h2>📍 ${userLocation.city}</h2>
+                <div style="font-size:12px;color:#718096;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
+                <div class="loading">Cargando datos de clima...</div>
+            `;
             
             try {
                 const [currentRes, forecastRes] = await Promise.all([
@@ -622,26 +832,28 @@
                 weatherData = await currentRes.json();
                 forecastData = await forecastRes.json();
                 
+                if (weatherData.cod !== 200) {
+                    throw new Error('API error: ' + weatherData.message);
+                }
+                
                 displayWeather(weatherData);
                 generateAlerts();
                 displayAlerts();
                 
-                // Actualizar mapa si está visible
                 if (map) updateMap();
             } catch (e) {
                 console.error('Error fetching weather:', e);
-                document.getElementById('weatherCard').innerHTML = `
+                weatherCard.innerHTML = `
                     <h2>📍 ${userLocation.city}</h2>
-                    <div class="loading" style="color:#EF4444;">Error al obtener datos de clima. Verificá tu conexión.</div>
+                    <div style="font-size:12px;color:#718096;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
+                    <div class="loading" style="color:#EF4444;">Error al obtener datos. Verificá tu conexión.</div>
                 `;
             }
         }
         
-        // Mostrar datos del clima actual
         function displayWeather(data) {
-            updateLocationUI();
-            
-            document.getElementById('weatherCard').innerHTML = `
+            const weatherCard = document.getElementById('weatherCard');
+            weatherCard.innerHTML = `
                 <h2>📍 ${userLocation.city}</h2>
                 <div style="font-size:12px;color:#718096;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
                 <div class="weather-info">
@@ -676,14 +888,13 @@
             `;
         }
         
-        // Generar alertas a partir del clima actual y el pronóstico
+        // ========== GENERAR ALERTAS ==========
+        
         function generateAlerts() {
             alerts = [];
             if (!weatherData || !forecastData) return;
             
             const severityOrder = { severa: 0, moderada: 1, leve: 2 };
-            
-            // Puntos del pronóstico (cada 3 horas por 5 días)
             const forecastPoints = (forecastData.list || []).map(item => ({
                 dt: item.dt,
                 weatherId: item.weather?.[0]?.id ?? 800,
@@ -691,14 +902,12 @@
                 windSpeed: item.wind?.speed ?? 0
             }));
             
-            // Buscar períodos de condiciones adversas
             let open = null;
             
             for (const point of forecastPoints) {
                 const severity = classifyCondition(point.weatherId, point.windSpeed);
                 
                 if (!severity) {
-                    // Cerrar período abierto si existe
                     if (open) {
                         alerts.push(createAlert(open));
                         open = null;
@@ -707,33 +916,25 @@
                 }
                 
                 if (open && severityOrder[severity] <= severityOrder[open.severity]) {
-                    // Extender período si es igual o más grave
                     open.end = point.dt + 3 * 3600;
                     if (severityOrder[severity] < severityOrder[open.severity]) {
                         open.severity = severity;
                         open.description = point.description;
                     }
                 } else if (open) {
-                    // Cerrar período anterior y abrir nuevo
                     alerts.push(createAlert(open));
                     open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
                 } else {
-                    // Abrir nuevo período
                     open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
                 }
             }
             
-            // Cerrar último período si existe
-            if (open) {
-                alerts.push(createAlert(open));
-            }
+            if (open) alerts.push(createAlert(open));
             
-            // Filtrar solo alertas futuras o actuales (no pasadas)
             const now = Math.floor(Date.now() / 1000);
             alerts = alerts.filter(a => a.end > now);
         }
         
-        // Crear objeto de alerta
         function createAlert(open) {
             const title = {
                 severa: '⚠️ Riesgo de tormenta fuerte',
@@ -757,7 +958,8 @@
             };
         }
         
-        // Mostrar alertas en la lista
+        // ========== MOSTRAR ALERTAS ==========
+        
         function displayAlerts() {
             const severityOrder = { leve: 1, moderada: 2, severa: 3 };
             const filtered = alerts.filter(a => severityOrder[a.severity] >= severityOrder[minSeverity]);
@@ -767,30 +969,32 @@
             alertsList.innerHTML = '';
             
             if (!userLocation.lat) {
-                alertsList.innerHTML = '<div class="loading">Activá tu ubicación para ver alertas reales de tu zona.</div>';
+                alertsList.innerHTML = '<div class="loading">Elegí una ubicación para ver alertas reales.</div>';
                 return;
             }
             
             if (filtered.length === 0) {
-                alertsList.innerHTML = '<div class="loading" style="color:#48BB78;">✅ Sin alertas activas para este nivel de severidad en tu zona.</div>';
+                alertsList.innerHTML = '<div class="loading" style="color:#48BB78;">✅ Sin alertas activas para este nivel de severidad en ' + userLocation.city + '.</div>';
                 return;
             }
             
             filtered.forEach(alert => {
                 const card = document.createElement('div');
-                card.className = `alert-card ${alert.severity}`;
+                card.className = 'alert-card ' + alert.severity;
                 const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[alert.severity];
+                const shortTitle = alert.title.replace(/^[^\s]+ /, '');
                 card.innerHTML = `
-                    <div class="alert-title">${icon} ${alert.title.replace(/^[^\s]+ /, '')}</div>
+                    <div class="alert-title">${icon} ${shortTitle}</div>
                     <div class="alert-desc">${alert.description}</div>
                     <div class="alert-meta">📍 ${userLocation.city} | 📏 Radio: ${alert.radius} km | 🕐 ${alert.startTime} - ${alert.endTime}</div>
-                    <button class="alert-action" onclick="triggerAlert('${userLocation.city}', '${alert.severity}')">Ver en Mapa</button>
+                    <button class="alert-action" onclick="triggerAlert('${escapeHtml(userLocation.city)}', '${alert.severity}')">Ver en Mapa</button>
                 `;
                 alertsList.appendChild(card);
             });
         }
         
-        // Sonido de emergencia
+        // ========== SONIDO Y POPUP ==========
+        
         function playEmergencySound() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -814,16 +1018,15 @@
             osc.stop(now + duration);
         }
         
-        // Disparar alerta
         function triggerAlert(zone, severity) {
             playEmergencySound();
             const popup = document.getElementById('alertPopup');
             const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[severity];
             const title = { leve: 'Tormenta Leve', moderada: 'Tormenta Moderada', severa: '⚠️ ALERTA SEVERA' }[severity];
-            document.getElementById('popupTitle').textContent = `${icon} ${title}`;
-            document.getElementById('popupDesc').textContent = `Se ha detectado una tormenta en ${zone}. Toma precauciones.`;
+            document.getElementById('popupTitle').textContent = icon + ' ' + title;
+            document.getElementById('popupDesc').textContent = 'Se ha detectado una tormenta en ' + zone + '. Toma precauciones.';
             popup.classList.add('show');
-            setTimeout(() => { closeAlertPopup(); }, 10000);
+            setTimeout(function() { closeAlertPopup(); }, 10000);
             switchTab('mapa', document.querySelectorAll('.tab-btn')[1]);
         }
         
@@ -831,20 +1034,24 @@
             document.getElementById('alertPopup').classList.remove('show');
         }
         
+        // ========== NAVEGACIÓN ==========
+        
         function switchTab(tabId, btn) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
             document.getElementById(tabId).classList.add('active');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
             if (tabId === 'mapa') {
-                setTimeout(() => initMap(), 100);
+                setTimeout(function() { initMap(); }, 100);
             }
         }
         
+        // ========== MAPA ==========
+        
         function initMap() {
             if (!map) {
-                const centerLat = userLocation.lat || -34.60;
-                const centerLng = userLocation.lng || -58.38;
+                var centerLat = userLocation.lat || -34.60;
+                var centerLng = userLocation.lng || -58.38;
                 map = L.map('map').setView([centerLat, centerLng], 12);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap',
@@ -852,24 +1059,24 @@
                 }).addTo(map);
             }
             
-            // Limpiar marcadores anteriores
-            map.eachLayer(layer => {
+            // Limpiar marcadores
+            map.eachLayer(function(layer) {
                 if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
                     map.removeLayer(layer);
                 }
             });
             
-            // Marcador de ubicación del usuario
+            // Marcador de ubicación
             if (userLocation.lat) {
                 L.marker([userLocation.lat, userLocation.lng])
                     .addTo(map)
-                    .bindPopup(`<b>📍 Tu ubicación</b><br>${userLocation.city}`)
+                    .bindPopup('<b>📍 ' + userLocation.city + '</b>')
                     .openPopup();
             }
             
             // Círculos de alerta
-            alerts.forEach(alert => {
-                const colors = { leve: '#FFA500', moderada: '#FF6B35', severa: '#EF4444' };
+            alerts.forEach(function(alert) {
+                var colors = { leve: '#FFA500', moderada: '#FF6B35', severa: '#EF4444' };
                 L.circleMarker([alert.lat, alert.lng], {
                     radius: alert.radius / 2,
                     fillColor: colors[alert.severity],
@@ -878,17 +1085,16 @@
                     opacity: 0.5,
                     fillOpacity: 0.2
                 }).addTo(map).bindPopup(
-                    `<b>${alert.title}</b><br>Severidad: ${alert.severity}<br>Horario: ${alert.startTime} - ${alert.endTime}`
+                    '<b>' + alert.title + '</b><br>Severidad: ' + alert.severity + '<br>Horario: ' + alert.startTime + ' - ' + alert.endTime
                 );
             });
         }
         
         function updateMap() {
             if (!map) return;
-            // Recrear mapa con nuevos datos
-            const centerLat = userLocation.lat || -34.60;
-            const centerLng = userLocation.lng || -58.38;
-            map.eachLayer(layer => map.removeLayer(layer));
+            var centerLat = userLocation.lat || -34.60;
+            var centerLng = userLocation.lng || -58.38;
+            map.eachLayer(function(layer) { map.removeLayer(layer); });
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap',
                 maxZoom: 19
@@ -897,11 +1103,11 @@
             if (userLocation.lat) {
                 L.marker([userLocation.lat, userLocation.lng])
                     .addTo(map)
-                    .bindPopup(`<b>📍 Tu ubicación</b><br>${userLocation.city}`);
+                    .bindPopup('<b>📍 ' + userLocation.city + '</b>');
             }
             
-            alerts.forEach(alert => {
-                const colors = { leve: '#FFA500', moderada: '#FF6B35', severa: '#EF4444' };
+            alerts.forEach(function(alert) {
+                var colors = { leve: '#FFA500', moderada: '#FF6B35', severa: '#EF4444' };
                 L.circleMarker([alert.lat, alert.lng], {
                     radius: alert.radius / 2,
                     fillColor: colors[alert.severity],
@@ -910,16 +1116,18 @@
                     opacity: 0.5,
                     fillOpacity: 0.2
                 }).addTo(map).bindPopup(
-                    `<b>${alert.title}</b><br>Severidad: ${alert.severity}<br>Horario: ${alert.startTime} - ${alert.endTime}`
+                    '<b>' + alert.title + '</b><br>Severidad: ' + alert.severity + '<br>Horario: ' + alert.startTime + ' - ' + alert.endTime
                 );
             });
             
             map.setView([centerLat, centerLng], 12);
         }
         
+        // ========== FILTROS Y CONFIG ==========
+        
         function setFilter(btn, severity) {
             minSeverity = severity;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
             displayAlerts();
         }
@@ -928,8 +1136,14 @@
             btn.classList.toggle('on');
         }
         
-        // Al cargar: intentar restaurar ubicación guardada
+        // ========== INICIALIZACIÓN ==========
+        
         (async function init() {
+            // Inicializar buscadores
+            initSearch('citySearch', 'searchResults', 'main');
+            initSearch('configCitySearch', 'configSearchResults', 'config');
+            
+            // Intentar restaurar ubicación guardada
             const saved = localStorage.getItem('tormentar_location');
             if (saved) {
                 try {
@@ -942,17 +1156,17 @@
                     }
                 } catch (e) {}
             }
-            // Si no hay ubicación guardada, pedir geolocalización
-            document.getElementById('weatherCard').innerHTML = `
-                <div class="loading">Necesitamos tu ubicación para mostrarte alertas reales.</div>
-                <div style="text-align:center;">
-                    <button class="geo-btn" onclick="requestGeolocation()">📍 Activar ubicación</button>
-                </div>
-            `;
+            
+            // Sin ubicación guardada: mostrar opciones
+            const geoBtn = document.getElementById('geoBtn');
+            if (geoBtn) {
+                geoBtn.disabled = false;
+                geoBtn.textContent = '📍 Usar mi ubicación';
+            }
         })();
         
         // Actualizar cada 5 minutos
-        setInterval(() => {
+        setInterval(function() {
             if (userLocation.lat) fetchWeatherData();
         }, 300000);
     </script>
