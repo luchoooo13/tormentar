@@ -1092,7 +1092,8 @@
                     div.innerHTML = '<div style="background:rgba(0,0,0,0.8);padding:10px 14px;border-radius:8px;color:#fff;font-size:12px;line-height:1.8;">' +
                         '<b style="color:#FFA500;">Leyenda</b><br>' +
                         '<span style="color:#48BB78;">●</span> Leve (10s sonido)<br>' +
-                        '<span style="color:#EF4444;">●</span> Moderada / Severa (30s sonido)<br>' +
+                        '<span style="color:#FF6B35;">●</span> Moderada (30s sonido)<br>' +
+                        '<span style="color:#EF4444;">●</span> Severa (30s sonido)<br>' +
                         '<span style="color:#FFD700;">●</span> Tu ubicación</span>' +
                         '</div>';
                     return div;
@@ -1126,19 +1127,20 @@
         function drawRegionalMarkers() {
             var colors = {
                 severa: '#EF4444',
-                moderada: '#EF4444',
+                moderada: '#FF6B35',
                 leve: '#48BB78'
             };
             
-            // Solo dibujar zonas que tienen alerta activa
+            // Solo dibujar zonas que tienen alerta activa (leve y para arriba)
             regionalAlerts.forEach(function(alert) {
                 var severity = alert.severity;
-                var displaySeverity = (severity === 'moderada') ? 'severa' : severity;
-                var color = colors[displaySeverity];
+                var color = colors[severity];
                 var radius = 12;
                 
-                if (displaySeverity === 'severa') {
+                if (severity === 'severa') {
                     radius = 16;
+                } else if (severity === 'moderada') {
+                    radius = 14;
                 }
                 
                 var marker = L.circleMarker([alert.lat, alert.lng], {
