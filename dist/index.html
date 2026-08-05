@@ -704,6 +704,18 @@
         let configSearchTimeout = null;
         let knownAlertIds = new Set();
         let isFirstAlertsCheck = true;
+        
+        // Restaurar alertas ya vistas de sesiones anteriores. Sin esto, cada
+        // vez que se recarga la página se "olvida" todo y una tormenta que
+        // ya estaba pronosticada antes de abrir la app nunca disparaba el
+        // popup, aunque fuera nueva de verdad.
+        try {
+            const savedKnown = localStorage.getItem('tormentar_known_alerts');
+            if (savedKnown) {
+                knownAlertIds = new Set(JSON.parse(savedKnown));
+                isFirstAlertsCheck = false;
+            }
+        } catch (e) {}
         let activeAlertAudio = null;
         const ALERT_SOUND_URL = 'alert-sound.mp3';
         
@@ -717,7 +729,7 @@
             if (weatherId === 781 || weatherId === 771) return 'severa';
             if ([503, 504].includes(weatherId)) return 'severa';
             if ([502, 511, 522, 531].includes(weatherId)) return 'moderada';
-            if ([501, 521].includes(weatherId)) return 'leve';
+            if ([500, 501, 520, 521].includes(weatherId)) return 'leve';
             if ([602, 622].includes(weatherId)) return 'moderada';
             if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) return 'leve';
             return null;
@@ -1190,15 +1202,19 @@
         
         // ========== DETECCIÓN DE ALERTAS NUEVAS ==========
         
-        // Compara las alertas actuales contra las que ya se vieron antes.
-        // La primera vez que carga la app solo "memoriza" las alertas que
-        // ya están activas (no las anuncia, para no disparar el popup con
-        // algo que ya estaba ahí). De ahí en adelante, si aparece una
-        // alerta moderada o severa que no estaba, dispara el popup solo.
+        // Compara las alertas actuales contra las que ya se vieron antes
+        // (persistidas en localStorage, así sobreviven a cerrar/reabrir la
+        // app). Solo la primerísima vez que se usa la app en este navegador
+        // (sin nada guardado todavía) se "memorizan" las alertas activas sin
+        // avisar, para no disparar el popup con algo que ya estaba ahí antes
+        // de instalar/abrir la app. De ahí en más, cualquier alerta moderada
+        // o severa realmente nueva dispara el popup solo, incluso si es la
+        // primera vez que abrís la app en el día.
         function checkForNewAlerts() {
             if (isFirstAlertsCheck) {
                 alerts.forEach(function(a) { knownAlertIds.add(a.id); });
                 isFirstAlertsCheck = false;
+                saveKnownAlertIds();
                 return;
             }
             
@@ -1208,11 +1224,24 @@
             });
             
             alerts.forEach(function(a) { knownAlertIds.add(a.id); });
+            saveKnownAlertIds();
             
             if (newAlerts.length === 0) return;
             
             newAlerts.sort(function(a, b) { return severityOrder[a.severity] - severityOrder[b.severity]; });
             autoTriggerAlert(userLocation.city, newAlerts[0].severity);
+        }
+        
+        function saveKnownAlertIds() {
+            try {
+                var idsArray = Array.from(knownAlertIds);
+                // Evitar que crezca sin límite con el tiempo
+                if (idsArray.length > 200) idsArray = idsArray.slice(idsArray.length - 200);
+                knownAlertIds = new Set(idsArray);
+                localStorage.setItem('tormentar_known_alerts', JSON.stringify(idsArray));
+            } catch (e) {
+                console.error('No se pudo guardar el historial de alertas:', e);
+            }
         }
         
         // ========== NAVEGACIÓN ==========
