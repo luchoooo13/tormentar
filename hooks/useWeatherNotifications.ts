@@ -9,19 +9,42 @@ import { Audio } from "expo-av";
 import { Platform } from "react-native";
 import type { WeatherAlert, AlertSeverity } from "@/shared/types/weather";
 
-// Configurar comportamiento de notificaciones
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configurar comportamiento de notificaciones. Esto NO puede ejecutarse
+// al importar el módulo: la app usa `output: "static"` (Expo Router
+// pre-renderiza cada página en Node.js durante el build), y expo-notifications
+// depende de APIs de navegador que no existen ahí. Si corre en ese momento,
+// rompe el pre-renderizado de la página sin ningún error visible (la
+// página termina en blanco). Por eso se protege con un chequeo de entorno
+// y se hace en cuanto el módulo carga en un navegador real, no antes.
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export function useWeatherNotifications() {
   const soundRef = useRef<Audio.Sound | null>(null);
+
+  // Pedir permiso de notificaciones. Sin esto, en Android 13+ e iOS las
+  // notificaciones programadas con scheduleNotificationAsync no se
+  // muestran nunca, aunque el código no tire ningún error.
+  const requestPermissions = async () => {
+    try {
+      const { status: existing } = await Notifications.getPermissionsAsync();
+      if (existing === "granted") return true;
+      const { status } = await Notifications.requestPermissionsAsync();
+      return status === "granted";
+    } catch (error) {
+      console.error("Error requesting notification permissions:", error);
+      return false;
+    }
+  };
 
   // Inicializar audio
   useEffect(() => {
@@ -69,7 +92,7 @@ export function useWeatherNotifications() {
     return configs[severity];
   };
 
-  // Reproducir sonido de alerta
+  // Reproducir sonido si corresponde y el usuario lo tiene activado
   const playAlertSound = async (severity: AlertSeverity) => {
     try {
       // Liberar sonido anterior
@@ -163,5 +186,6 @@ export function useWeatherNotifications() {
     sendNotification,
     setupNotificationChannels,
     playAlertSound,
+    requestPermissions,
   };
 }
