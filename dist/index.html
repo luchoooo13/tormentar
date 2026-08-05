@@ -1091,10 +1091,8 @@
                     var div = L.DomUtil.create('div', 'map-legend');
                     div.innerHTML = '<div style="background:rgba(0,0,0,0.8);padding:10px 14px;border-radius:8px;color:#fff;font-size:12px;line-height:1.8;">' +
                         '<b style="color:#FFA500;">Leyenda</b><br>' +
-                        '<span style="color:#FFA500;">●</span> Sin alerta<br>' +
                         '<span style="color:#48BB78;">●</span> Leve (10s sonido)<br>' +
-                        '<span style="color:#EF4444;">●</span> Moderada (30s sonido)<br>' +
-                        '<span style="color:#EF4444;">●</span> Severa (30s sonido)<br>' +
+                        '<span style="color:#EF4444;">●</span> Moderada / Severa (30s sonido)<br>' +
                         '<span style="color:#FFD700;">●</span> Tu ubicación</span>' +
                         '</div>';
                     return div;
@@ -1129,14 +1127,12 @@
             var colors = {
                 severa: '#EF4444',
                 moderada: '#EF4444',
-                leve: '#48BB78',
-                none: '#FFA500'
+                leve: '#48BB78'
             };
             
-            zonasAmaba.forEach(function(zona) {
-                var alert = regionalAlerts.find(function(a) { return a.zoneName === zona.name; });
-                var severity = alert ? alert.severity : 'none';
-                // En el mapa, moderadas se muestran como severas (rojo)
+            // Solo dibujar zonas que tienen alerta activa
+            regionalAlerts.forEach(function(alert) {
+                var severity = alert.severity;
                 var displaySeverity = (severity === 'moderada') ? 'severa' : severity;
                 var color = colors[displaySeverity];
                 var radius = 12;
@@ -1145,7 +1141,7 @@
                     radius = 16;
                 }
                 
-                var marker = L.circleMarker([zona.lat, zona.lng], {
+                var marker = L.circleMarker([alert.lat, alert.lng], {
                     radius: radius,
                     fillColor: color,
                     color: color,
@@ -1154,21 +1150,10 @@
                     fillOpacity: 0.6
                 });
                 
-                var popupContent = '<b>' + zona.name + '</b><br>';
-                
-                if (alert) {
-                    popupContent += '⚠️ ' + alert.title + '<br>';
-                    popupContent += 'Severidad: ' + alert.severity + '<br>';
-                    popupContent += '🕐 ' + alert.startTime + ' - ' + alert.endTime + '<br>';
-                } else if (zonasClima[zona.name]) {
-                    var cl = zonasClima[zona.name];
-                    popupContent += '🌡️ ' + Math.round(cl.temp) + '°C<br>';
-                    popupContent += '💨 ' + Math.round(cl.wind * 3.6) + ' km/h<br>';
-                    popupContent += '☁️ ' + cl.clouds + '% nubosidad<br>';
-                    popupContent += '<span style="color:#48BB78;">✅ Sin alertas</span>';
-                } else {
-                    popupContent += 'Cargando...';
-                }
+                var popupContent = '<b>' + alert.zoneName + '</b><br>';
+                popupContent += '⚠️ ' + alert.title + '<br>';
+                popupContent += 'Severidad: ' + alert.severity + '<br>';
+                popupContent += '🕐 ' + alert.startTime + ' - ' + alert.endTime + '<br>';
                 
                 marker.addTo(map).bindPopup(popupContent);
             });
