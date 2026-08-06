@@ -60,6 +60,11 @@ export function useAlerts() {
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
+    if (typeof location.latitude !== "number" || typeof location.longitude !== "number") {
+      setError("La ubicación no es válida todavía. Volvé a intentar en unos segundos.");
+      setLoading(false);
+      return;
+    }
 
     if (!hasApiKey()) {
       setError(
