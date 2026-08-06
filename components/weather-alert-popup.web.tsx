@@ -11,10 +11,12 @@
  *    sonido de alarma EAS (Canada).
  *  - Colores segun severidad (mismos que el resto de la app).
  *
- * NOTA (fix): el sonido antes dependia de archivos mp3 en /public/sounds/
+ * NOTA (fix sonido): antes dependia de archivos mp3 en /public/sounds/
  * que nunca existieron en el proyecto (por eso nunca sonaba, fallaba en
  * silencio). Ahora el sonido se genera por codigo con la Web Audio API,
- * asi no depende de ningun archivo externo.
+ * asi no depende de ningun archivo externo. Ademas se fuerza el resume()
+ * del AudioContext porque los navegadores lo crean "suspended" hasta que
+ * hubo alguna interaccion del usuario en la pagina.
  */
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -65,36 +67,53 @@ function playSeveritySound(severity: AlertSeverity): () => void {
   const ctx = new AudioCtx();
   const stopFns: Array<() => void> = [];
 
-  const beep = (startAt: number, freq: number, dur: number, gainValue = 0.18) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "square";
-    osc.frequency.value = freq;
-    gain.gain.value = 0;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const t0 = ctx.currentTime + startAt;
-    gain.gain.setValueAtTime(0, t0);
-    gain.gain.linearRampToValueAtTime(gainValue, t0 + 0.02);
-    gain.gain.linearRampToValueAtTime(0, t0 + dur - 0.02);
-    osc.start(t0);
-    osc.stop(t0 + dur);
-    stopFns.push(() => {
-      try {
-        osc.stop();
-      } catch {}
-    });
+  const scheduleBeeps = () => {
+    const beep = (startAt: number, freq: number, dur: number, gainValue = 0.18) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t0 = ctx.currentTime + startAt;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(gainValue, t0 + 0.02);
+      gain.gain.linearRampToValueAtTime(0, t0 + dur - 0.02);
+      osc.start(t0);
+      osc.stop(t0 + dur);
+      stopFns.push(() => {
+        try {
+          osc.stop();
+        } catch {}
+      });
+    };
+
+    if (severity === "leve") {
+      // Un par de tonos cortos y suaves.
+      beep(0, 660, 0.18);
+      beep(0.22, 660, 0.18);
+    } else {
+      // Patron tipo EAS: tonos mas agudos y repetidos, mas urgente.
+      for (let i = 0; i < 4; i++) {
+        beep(i * 0.32, 880, 0.22, 0.22);
+      }
+    }
   };
 
-  if (severity === "leve") {
-    // Un par de tonos cortos y suaves.
-    beep(0, 660, 0.18);
-    beep(0.22, 660, 0.18);
+  // Los navegadores crean el AudioContext "suspended" hasta que hubo
+  // alguna interaccion del usuario en la pagina (click, tap, tecla).
+  // Como el popup aparece solo, sin que nadie toque nada en ese
+  // instante, hay que forzar el resume() antes de programar los tonos.
+  if (ctx.state === "suspended") {
+    ctx
+      .resume()
+      .then(scheduleBeeps)
+      .catch((err: unknown) => {
+        console.warn(`${LOG_TAG} no se pudo reanudar el AudioContext:`, err);
+      });
   } else {
-    // Patron tipo EAS: tonos mas agudos y repetidos, mas urgente.
-    for (let i = 0; i < 4; i++) {
-      beep(i * 0.32, 880, 0.22, 0.22);
-    }
+    scheduleBeeps();
   }
 
   return () => {
@@ -247,6 +266,14 @@ export function WeatherAlertPopup() {
     setVisible(null);
   };
 
+  // Se monta con un Portal directo a document.body (en vez de quedar
+  // anidado dentro del arbol de <Stack>/GestureHandlerRootView) porque
+  // Reanimated suele aplicarle transforms a los contenedores de las
+  // pantallas, lo que crea un "stacking context" propio en el navegador.
+  // Con eso, el zIndex de este popup solo compite DENTRO de ese
+  // contexto: se ve arriba visualmente pero los clicks (como el boton
+  // de cerrar) a veces terminan capturados por el contenido de abajo.
+  // Portal saca al popup de ese arbol por completo y evita el problema.
   return createPortal(
     <div
       style={{
