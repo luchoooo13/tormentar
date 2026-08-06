@@ -178,7 +178,10 @@ export async function getWeatherAlerts(
       if (status === 429) {
         throw new Error("Se superó el límite de llamadas a OpenWeatherMap por hoy.");
       }
-      throw new Error(`Error consultando OpenWeatherMap (${status ?? "sin conexión"}).`);
+      const detail =
+        (error.response?.data as any)?.message ?? JSON.stringify(error.response?.data ?? {});
+      console.error("Error de OpenWeatherMap:", status, detail);
+      throw new Error(`Error consultando OpenWeatherMap (${status ?? "sin conexión"}): ${detail}`);
     }
     console.error("Error fetching weather data:", error);
     return null;
