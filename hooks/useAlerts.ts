@@ -20,9 +20,6 @@ import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
 const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
 
 interface UseAlertsOptions {
-  // Se dispara con cada alerta nueva y relevante (ya filtrada por las
-  // severidades habilitadas) apenas se detecta. Lo usa el pop-up web
-  // para mostrar el cartel de alerta en pantalla.
   onNewAlert?: (alert: WeatherAlert) => void;
 }
 
@@ -44,18 +41,12 @@ export function useAlerts(options?: UseAlertsOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  // IDs de alertas ya vistas, persistidas en AsyncStorage.
   const knownAlertIds = useRef<Set<string>>(new Set());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
   const onNewAlertRef = useRef(options?.onNewAlert);
   onNewAlertRef.current = options?.onNewAlert;
 
-  // Cargar alertas conocidas al montar. Se guarda la promesa en un ref
-  // para que fetchAlerts pueda esperarla: si el primer fetch corre antes
-  // de que esto termine, knownAlertIds estaria vacio y CADA alerta ya
-  // vista se interpretaria como "nueva", disparando notificaciones y
-  // pop-ups falsos cada vez que se abre la app.
   const knownAlertsLoadedRef = useRef<Promise<void> | null>(null);
   if (!knownAlertsLoadedRef.current) {
     knownAlertsLoadedRef.current = (async () => {
@@ -70,6 +61,18 @@ export function useAlerts(options?: UseAlertsOptions) {
       }
     })();
   }
+
+  // FIX: guard anti-carrera. Antes, si dos fetchAlerts() quedaban en
+  // vuelo al mismo tiempo (posible por el loop de renders que causaba
+  // el bug de useWeatherNotifications, o simplemente por un refresh
+  // manual mientras el intervalo automatico tambien disparaba uno),
+  // los dos leian knownAlertIds ANTES de que el otro terminara de
+  // marcar la alerta como conocida. Los dos la trataban como "nueva"
+  // y los dos llamaban a onNewAlert, asi que la alerta volvia a
+  // encolarse para el popup incluso despues de que el usuario ya la
+  // habia cerrado. requestIdRef descarta el resultado de cualquier
+  // fetch que ya no sea el mas reciente.
+  const requestIdRef = useRef(0);
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
@@ -87,12 +90,19 @@ export function useAlerts(options?: UseAlertsOptions) {
       return;
     }
 
+    const requestId = ++requestIdRef.current;
+    const isStale = () => requestId !== requestIdRef.current;
+
     setLoading(true);
     setError(undefined);
 
     try {
       await knownAlertsLoadedRef.current;
       const data = await getWeatherAlerts(location.latitude, location.longitude);
+
+      // Llegó, pero ya hay un fetch más nuevo en curso: se descarta en
+      // silencio para no notificar/mostrar el popup con datos viejos.
+      if (isStale()) return;
 
       if (!data) {
         setError("No se pudieron obtener las alertas en este momento.");
@@ -114,15 +124,18 @@ export function useAlerts(options?: UseAlertsOptions) {
         );
 
         for (const alert of newRelevantAlerts) {
+          // Marcar como conocida ANTES de notificar, no despues: asi
+          // si otro fetch se dispara mientras esto corre, ya la ve
+          // como conocida y no la vuelve a encolar.
+          knownAlertIds.current.add(alert.id);
           await sendNotification(alert, {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
           });
+          if (isStale()) return;
           onNewAlertRef.current?.(alert);
-          knownAlertIds.current.add(alert.id);
         }
 
-        // Persistir si hubo cambios
         if (newRelevantAlerts.length > 0) {
           await AsyncStorage.setItem(
             KNOWN_ALERTS_KEY,
@@ -131,7 +144,6 @@ export function useAlerts(options?: UseAlertsOptions) {
         }
       }
 
-      // Asegurar que todas las alertas actuales se marquen como conocidas
       let changed = false;
       currentAlerts.forEach((a) => {
         if (!knownAlertIds.current.has(a.id)) {
@@ -147,27 +159,25 @@ export function useAlerts(options?: UseAlertsOptions) {
         );
       }
     } catch (err) {
+      if (isStale()) return;
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   }, [location, sendNotification]);
 
-  // Canales de notificación (Android) y permiso de notificaciones
   useEffect(() => {
     requestPermissions();
     setupNotificationChannels();
   }, [requestPermissions, setupNotificationChannels]);
 
-  // Buscar alertas apenas se conoce la ubicación.
   useEffect(() => {
     if (location) {
       fetchAlerts();
     }
   }, [location?.latitude, location?.longitude, fetchAlerts]);
 
-  // Actualización periódica según el intervalo único configurado.
   useEffect(() => {
     if (!location) return;
     const intervalMs = preferences.updateIntervalMinutes * 60 * 1000;
