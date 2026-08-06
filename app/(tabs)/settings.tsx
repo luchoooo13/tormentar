@@ -14,6 +14,7 @@ import { useLocation } from "@/hooks/useLocation";
 import { searchCities, type CitySearchResult } from "@/lib/services/geocodingService";
 import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useAlertsContext } from "@/lib/alerts-context";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
   { id: "leve", label: "Leve", color: "#FFA500" },
