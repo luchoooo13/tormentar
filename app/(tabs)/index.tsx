@@ -12,29 +12,18 @@
 import { ScrollView, Text, View, Pressable, RefreshControl } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { useAlerts } from "@/hooks/useAlerts";
+import { useAlertsContext } from "@/lib/alerts-context";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { formatAlertTime } from "@/lib/services/weatherService";
+import { SEVERITY_COLORS, SEVERITY_ICONS } from "@/shared/alertSeverity";
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
-  { id: "leve", label: "Leve", color: "#FFA500" },
-  { id: "moderada", label: "Moderada", color: "#FF6B35" },
-  { id: "severa", label: "Fuerte", color: "#EF4444" },
+  { id: "leve", label: "Leve", color: SEVERITY_COLORS.leve },
+  { id: "moderada", label: "Moderada", color: SEVERITY_COLORS.moderada },
+  { id: "severa", label: "Fuerte", color: SEVERITY_COLORS.severa },
 ];
-
-const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  leve: "#FFA500",
-  moderada: "#FF6B35",
-  severa: "#EF4444",
-};
-
-const SEVERITY_ICONS: Record<AlertSeverity, string> = {
-  leve: "cloud-queue",
-  moderada: "cloud",
-  severa: "cloud-download",
-};
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -47,7 +36,7 @@ export default function HomeScreen() {
     error,
     hasApiKey,
     refresh,
-  } = useAlerts();
+  } = useAlertsContext();
 
   const renderAlertCard = (alert: WeatherAlert) => {
     const alertColor = SEVERITY_COLORS[alert.severity];
