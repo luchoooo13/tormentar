@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { LocationData } from "@/shared/types/weather";
@@ -22,7 +23,11 @@ export function useLocation() {
       setError(undefined);
 
       // Solicitar permiso
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      let status = "granted";
+      if (Platform.OS !== "web") {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        status = permission.status;
+      }
       if (status !== "granted") {
         setError("Permiso de ubicación denegado");
         setLoading(false);

@@ -35,6 +35,7 @@ export function useWeatherNotifications() {
   // notificaciones programadas con scheduleNotificationAsync no se
   // muestran nunca, aunque el código no tire ningún error.
   const requestPermissions = async () => {
+    if (Platform.OS === "web") return true;
     try {
       const { status: existing } = await Notifications.getPermissionsAsync();
       if (existing === "granted") return true;
@@ -48,6 +49,7 @@ export function useWeatherNotifications() {
 
   // Inicializar audio
   useEffect(() => {
+    if (Platform.OS === "web") return;
     const setupAudio = async () => {
       try {
         await Audio.setAudioModeAsync({
@@ -165,6 +167,7 @@ export function useWeatherNotifications() {
 
   // Crear canales de notificación en Android
   const setupNotificationChannels = async () => {
+    if (Platform.OS !== "android") return;
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("weather_alerts", {
         name: "Alertas de Clima",
