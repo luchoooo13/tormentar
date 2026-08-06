@@ -167,7 +167,8 @@ export default function MapScreen() {
                   <View className="flex-row items-center gap-2 mb-3">
                     <MaterialIcons name="location-on" size={14} color={colors.muted} />
                     <Text className="text-xs text-muted">
-                      {alert.latitude.toFixed(2)}°, {alert.longitude.toFixed(2)}°
+                      {typeof alert.latitude === "number" ? alert.latitude.toFixed(2) : "--"}°,{" "}
+                      {typeof alert.longitude === "number" ? alert.longitude.toFixed(2) : "--"}°
                     </Text>
                   </View>
 
