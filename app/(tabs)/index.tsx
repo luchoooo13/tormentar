@@ -117,7 +117,7 @@ export default function HomeScreen() {
           <Text className="text-2xl font-bold text-foreground">
             {location?.city ?? "Buscando ubicacion..."}
           </Text>
-          {location && (
+          {location && typeof location.latitude === "number" && typeof location.longitude === "number" && (
             <Text className="text-xs text-muted">
               {location.latitude.toFixed(2)}°, {location.longitude.toFixed(2)}°
             </Text>
