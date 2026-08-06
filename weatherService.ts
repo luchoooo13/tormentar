@@ -112,9 +112,17 @@ function buildAlertsFromPoints(
 }
 
 // Obtener datos de clima y alertas (estimadas del pronóstico gratuito)
+//
+// `signal` es opcional: si se pasa un AbortSignal, permite cancelar el
+// pedido en curso (por ejemplo porque el usuario cambió de ubicación
+// antes de que la respuesta anterior llegara). Sin esto, dos pedidos
+// para dos ubicaciones distintas pueden "cruzarse" y el más lento
+// termina pisando el estado con datos de un lugar que ya no es el
+// actual (requests incombinables entre sí).
 export async function getWeatherAlerts(
   latitude: number,
-  longitude: number
+  longitude: number,
+  signal?: AbortSignal
 ): Promise<WeatherData | null> {
   if (!hasApiKey()) {
     console.error("Falta configurar EXPO_PUBLIC_OPENWEATHER_API_KEY.");
@@ -125,9 +133,11 @@ export async function getWeatherAlerts(
     const [currentRes, forecastRes] = await Promise.all([
       axios.get(CURRENT_URL, {
         params: { lat: latitude, lon: longitude, appid: API_KEY, units: "metric", lang: "es" },
+        signal,
       }),
       axios.get(FORECAST_URL, {
         params: { lat: latitude, lon: longitude, appid: API_KEY, units: "metric", lang: "es" },
+        signal,
       }),
     ]);
 
@@ -168,6 +178,12 @@ export async function getWeatherAlerts(
       alerts,
     };
   } catch (error) {
+    // Pedido cancelado a propósito (llegó uno más nuevo antes de que
+    // este terminara). No es un error real: no hay nada que mostrarle
+    // al usuario, simplemente se descarta este resultado.
+    if (axios.isCancel(error)) {
+      return null;
+    }
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       if (status === 401) {
