@@ -5,15 +5,8 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = path.join(__dirname, 'dist');
 
-// --- SOLO PARA DIAGNOSTICAR, SACAR DESPUÉS ---
-// Inyecta la consola Eruda ANTES que el resto del JS de la app, para poder
-// ver errores que pasan apenas arranca, sin tener que activarla a mano.
-const ERUDA_SNIPPET =
-  '<script src="https://cdn.jsdelivr.net/npm/eruda"></script>' +
-  '<script>eruda.init();</script>';
-// -----------------------------------------------
-
 const server = http.createServer((req, res) => {
+  // Endpoint de ping para keep-alive
   if (req.url === '/ping') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('pong');
@@ -22,7 +15,7 @@ const server = http.createServer((req, res) => {
 
   let filePath = req.url === '/' ? '/index.html' : req.url;
   filePath = path.join(DIST_DIR, filePath);
-
+  
   const ext = path.extname(filePath);
   const mimeTypes = {
     '.html': 'text/html',
@@ -35,31 +28,22 @@ const server = http.createServer((req, res) => {
     '.ico': 'image/x-icon',
     '.mp3': 'audio/mpeg'
   };
-
-  const sendHtml = (data) => {
-    const html = data.toString('utf8').replace('<head>', '<head>' + ERUDA_SNIPPET);
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(html);
-  };
-
+  
   fs.readFile(filePath, (err, data) => {
     if (err) {
+      // Si no encuentra el archivo, sirve index.html (para SPA)
       fs.readFile(path.join(DIST_DIR, 'index.html'), (e, d) => {
         if (e) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
           res.end('404 Not Found');
           return;
         }
-        sendHtml(d);
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(d);
       });
       return;
     }
-
-    if (ext === '.html') {
-      sendHtml(data);
-      return;
-    }
-
+    
     res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
     res.end(data);
   });
