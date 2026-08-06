@@ -40,6 +40,24 @@ export function useAlerts() {
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
 
+  // --- Guard anti-carrera para los requests HTTP ---
+  // fetchAlerts puede dispararse por varias causas a la vez: cambio de
+  // ubicación, el intervalo periódico, o un refresh manual del usuario.
+  // Si dos pedidos quedan en vuelo al mismo tiempo, pueden resolverse
+  // en cualquier orden: el más lento (con datos de una ubicación u
+  // ocasión ya vieja) puede llegar después y pisar el estado con
+  // resultados "incombinables" con lo que el usuario está viendo ahora.
+  //
+  // Se resuelve con dos cosas juntas:
+  // 1) requestIdRef: cada llamada saca un número correlativo. Al volver
+  //    la respuesta, si ese número ya no es el más reciente, se
+  //    descarta sin tocar el estado (ni loading, ni error, ni weather).
+  // 2) AbortController: el pedido anterior se cancela de entrada al
+  //    arrancar uno nuevo, para no seguir gastando red en una
+  //    respuesta que de todos modos se va a ignorar.
+  const requestIdRef = useRef(0);
+  const activeControllerRef = useRef<AbortController | null>(null);
+
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
 
@@ -51,11 +69,25 @@ export function useAlerts() {
       return;
     }
 
+    // Cancela cualquier pedido anterior todavía en vuelo: su resultado
+    // ya no le interesa a nadie, sea cual sea la ubicación que pedía.
+    activeControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeControllerRef.current = controller;
+
+    const requestId = ++requestIdRef.current;
+    const isStale = () => requestId !== requestIdRef.current;
+
     setLoading(true);
     setError(undefined);
 
     try {
-      const data = await getWeatherAlerts(location.latitude, location.longitude);
+      const data = await getWeatherAlerts(location.latitude, location.longitude, controller.signal);
+
+      // Llegó, pero ya hay un pedido más nuevo en curso (o este fue
+      // cancelado): se descarta en silencio, sin pisar el estado
+      // actual ni mostrar error.
+      if (isStale()) return;
 
       if (!data) {
         setError("No se pudieron obtener las alertas en este momento.");
@@ -74,6 +106,10 @@ export function useAlerts() {
           (a) => !knownAlertIds.current.has(a.id) && enabledSeverities.includes(a.severity)
         );
         for (const alert of newRelevantAlerts) {
+          // Si mientras se notifica llega un pedido más nuevo, se corta
+          // acá: no tiene sentido seguir notificando alertas de una
+          // consulta que ya quedó obsoleta.
+          if (isStale()) return;
           await sendNotification(alert, {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
@@ -81,13 +117,15 @@ export function useAlerts() {
         }
       }
 
+      if (isStale()) return;
       currentAlerts.forEach((a) => knownAlertIds.current.add(a.id));
       isFirstLoad.current = false;
     } catch (err) {
+      if (isStale()) return;
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   }, [location, sendNotification]);
 
@@ -105,6 +143,15 @@ export function useAlerts() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.latitude, location?.longitude]);
+
+  // Al desmontar, cancela cualquier pedido que haya quedado en vuelo
+  // para no intentar actualizar estado de un componente que ya no
+  // existe.
+  useEffect(() => {
+    return () => {
+      activeControllerRef.current?.abort();
+    };
+  }, []);
 
   // Actualización periódica según el intervalo único configurado.
   useEffect(() => {
