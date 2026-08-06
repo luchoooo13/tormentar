@@ -98,7 +98,40 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
+    startKeepAlive();
   });
+}
+
+// Keep-alive: Render (plan free) apaga el servidor despues de ~15 min
+// sin recibir trafico HTTP entrante. Para evitarlo, el propio server
+// se pinguea a si mismo cada 10 minutos contra su URL publica, lo que
+// cuenta como trafico entrante real y resetea el contador de Render.
+//
+// RENDER_EXTERNAL_URL la define Render automaticamente en cualquier
+// Web Service (ver https://render.com/docs/environment-variables).
+// Si no existe (por ejemplo corriendo local o en otro hosting), no
+// hace nada: no tiene sentido auto-pinguearse fuera de Render.
+function startKeepAlive() {
+  const externalUrl = process.env.RENDER_EXTERNAL_URL;
+  if (!externalUrl) {
+    console.log("[keep-alive] RENDER_EXTERNAL_URL no definida, keep-alive desactivado.");
+    return;
+  }
+
+  const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos (< 15 min limite de Render free)
+  const healthUrl = `${externalUrl.replace(/\/$/, "")}/api/health`;
+
+  const ping = async () => {
+    try {
+      const res = await fetch(healthUrl);
+      console.log(`[keep-alive] ping ${res.status} a las ${new Date().toLocaleTimeString()}`);
+    } catch (err) {
+      console.warn("[keep-alive] fallo el ping:", err instanceof Error ? err.message : err);
+    }
+  };
+
+  console.log(`[keep-alive] activado, pingueando ${healthUrl} cada ${PING_INTERVAL_MS / 60000} min`);
+  setInterval(ping, PING_INTERVAL_MS);
 }
 
 startServer().catch(console.error);
