@@ -6,11 +6,12 @@
  * desincronizada del resto de la app.
  */
 import { useState } from "react";
-import { ScrollView, Text, View, Pressable, Switch, TextInput } from "react-native";
+import { ScrollView, Text, View, Pressable, Switch, TextInput, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { useLocation } from "@/hooks/useLocation";
+import { searchCities, type CitySearchResult } from "@/lib/services/geocodingService";
 import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
@@ -23,10 +24,39 @@ const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
 export default function SettingsScreen() {
   const colors = useColors();
   const { preferences, updatePreferences, setMinSeverity } = useAlertPreferences();
-  const { location } = useLocation();
+  const { location, loading: locationLoading, error: locationError, getCurrentLocation, setManualLocation } =
+    useLocation();
 
   const [searchCity, setSearchCity] = useState("");
   const [showCitySearch, setShowCitySearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<CitySearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | undefined>(undefined);
+
+  const handleSearchCity = async () => {
+    if (searchCity.trim().length < 2) return;
+    setSearching(true);
+    setSearchError(undefined);
+    try {
+      const results = await searchCities(searchCity);
+      setSearchResults(results);
+      if (results.length === 0) {
+        setSearchError("No se encontraron ciudades con ese nombre.");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error buscando la ciudad";
+      setSearchError(message);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectCity = async (city: CitySearchResult) => {
+    await setManualLocation(city.latitude, city.longitude);
+    setSearchResults([]);
+    setSearchCity("");
+    setShowCitySearch(false);
+  };
 
   const SettingRow = ({
     icon,
@@ -127,26 +157,102 @@ export default function SettingsScreen() {
 
           {showCitySearch && (
             <View className="mt-3 gap-2">
-              <TextInput
-                placeholder="Buscar ciudad..."
-                placeholderTextColor={colors.muted}
-                value={searchCity}
-                onChangeText={setSearchCity}
-                style={{
-                  backgroundColor: colors.surface,
-                  color: colors.foreground,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                }}
-              />
-              <Text className="text-xs text-muted">
-                La busqueda por nombre de ciudad requiere geocodificacion (pendiente de
-                implementar); por ahora se puede fijar una ubicacion manual por coordenadas.
-              </Text>
+              <View className="flex-row gap-2">
+                <TextInput
+                  placeholder="Buscar ciudad..."
+                  placeholderTextColor={colors.muted}
+                  value={searchCity}
+                  onChangeText={setSearchCity}
+                  onSubmitEditing={handleSearchCity}
+                  returnKeyType="search"
+                  style={{
+                    flex: 1,
+                    backgroundColor: colors.surface,
+                    color: colors.foreground,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                  }}
+                />
+                <Pressable
+                  onPress={handleSearchCity}
+                  disabled={searching || searchCity.trim().length < 2}
+                  style={({ pressed }) => ({
+                    backgroundColor: colors.primary,
+                    borderRadius: 8,
+                    paddingHorizontal: 16,
+                    justifyContent: "center",
+                    opacity: pressed || searching || searchCity.trim().length < 2 ? 0.6 : 1,
+                  })}
+                >
+                  {searching ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <MaterialIcons name="search" size={20} color="white" />
+                  )}
+                </Pressable>
+              </View>
+
+              {searchError && <Text className="text-xs" style={{ color: colors.error }}>{searchError}</Text>}
+
+              {searchResults.length > 0 && (
+                <View className="gap-1">
+                  {searchResults.map((city) => (
+                    <Pressable
+                      key={city.id}
+                      onPress={() => handleSelectCity(city)}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.7 : 1,
+                      })}
+                    >
+                      <View
+                        className="p-3 rounded-lg border flex-row items-center gap-2"
+                        style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+                      >
+                        <MaterialIcons name="place" size={18} color={colors.primary} />
+                        <Text className="text-sm text-foreground flex-1">
+                          {city.name}
+                          {city.admin1 ? `, ${city.admin1}` : ""}
+                          {city.country ? ` - ${city.country}` : ""}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              <View className="h-px my-1" style={{ backgroundColor: colors.border }} />
+
+              <Pressable
+                onPress={getCurrentLocation}
+                disabled={locationLoading}
+                style={({ pressed }) => ({
+                  opacity: pressed || locationLoading ? 0.7 : 1,
+                })}
+              >
+                <View
+                  className="p-3 rounded-lg border flex-row items-center gap-2"
+                  style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+                >
+                  {locationLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <MaterialIcons name="my-location" size={18} color={colors.primary} />
+                  )}
+                  <Text className="text-sm font-semibold text-foreground">
+                    {locationLoading ? "Obteniendo ubicacion..." : "Usar mi ubicacion actual"}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {locationError && (
+                <Text className="text-xs" style={{ color: colors.error }}>
+                  {locationError}
+                </Text>
+              )}
             </View>
           )}
         </View>
