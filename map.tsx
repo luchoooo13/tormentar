@@ -8,7 +8,7 @@
  * severidad, para que Inicio y Mapa siempre muestren exactamente las
  * mismas alertas.
  */
-import { ScrollView, Text, View, Pressable, Platform } from "react-native";
+import { ScrollView, Text, View, Pressable } from "react-native";
 import { useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -18,9 +18,9 @@ import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  leve: "#F59E0B",
-  moderada: "#EA580C",
-  severa: "#DC2626",
+  leve: "#FFA500",
+  moderada: "#FF6B35",
+  severa: "#EF4444",
 };
 
 const SEVERITY_ICONS: Record<AlertSeverity, string> = {
@@ -35,18 +35,6 @@ const SEVERITY_LABELS: Record<AlertSeverity, string> = {
   severa: "Fuerte",
 };
 
-/** Sombra suave, compatible con iOS/Android/Web */
-const cardShadow = Platform.select({
-  web: { boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)" } as any,
-  default: {
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-});
-
 export default function MapScreen() {
   const colors = useColors();
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null);
@@ -54,109 +42,64 @@ export default function MapScreen() {
 
   return (
     <ScreenContainer className="flex-1 gap-0">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
-        {/* Encabezado tipo "hero" */}
-        <View
-          className="px-5 pt-6 pb-6 mb-4"
-          style={{
-            backgroundColor: colors.primary,
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 28,
-          }}
-        >
-          <View className="flex-row items-center gap-2 mb-1">
-            <MaterialIcons name="map" size={22} color="#FFFFFF" />
-            <Text className="text-2xl font-extrabold" style={{ color: "#FFFFFF" }}>
-              Mapa de alertas
-            </Text>
+      <ScrollView className="flex-1">
+        {/* Encabezado */}
+        <View className="px-4 pt-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+          <View className="flex-row items-center gap-2">
+            <MaterialIcons name="map" size={24} color={colors.primary} />
+            <Text className="text-2xl font-bold text-foreground">Mapa de Alertas</Text>
           </View>
-          <Text className="text-xs" style={{ color: "#FFFFFF", opacity: 0.85 }}>
-            Visualizá las áreas afectadas por tormentas
+          <Text className="text-xs text-muted mt-1">
+            Visualiza las areas afectadas por tormentas
           </Text>
         </View>
 
         {/* Simulacion de mapa */}
-        <View className="px-4 mb-3">
+        <View className="px-4 py-4">
           <View
-            className="w-full h-64 rounded-2xl items-center justify-center"
-            style={{ backgroundColor: colors.surface, ...cardShadow }}
+            className="w-full h-64 rounded-xl border-2 items-center justify-center"
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            }}
           >
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 36,
-                backgroundColor: colors.primary + "14",
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 10,
-              }}
-            >
-              <MaterialIcons name="map" size={38} color={colors.primary} />
-            </View>
-            <Text className="text-foreground text-sm font-semibold">Mapa interactivo</Text>
-            <Text className="text-muted text-xs mt-0.5">
-              Seleccioná una alerta para ver detalles
+            <MaterialIcons name="map" size={80} color={colors.muted} />
+            <Text className="text-muted text-sm mt-2">Mapa interactivo</Text>
+            <Text className="text-muted text-xs">
+              (Selecciona una alerta para ver detalles)
             </Text>
           </View>
         </View>
 
         {!hasApiKey && (
-          <View className="px-4 mb-3">
-            <View
-              className="p-4 rounded-2xl flex-row gap-3"
-              style={{ backgroundColor: colors.error + "12", ...cardShadow }}
-            >
-              <MaterialIcons name="error-outline" size={20} color={colors.error} />
-              <View className="flex-1">
-                <Text className="text-sm font-bold text-foreground mb-1">
-                  Alertas no configuradas
-                </Text>
-                <Text className="text-xs text-muted" style={{ lineHeight: 17 }}>
-                  Falta EXPO_PUBLIC_OPENWEATHER_API_KEY para obtener alertas reales.
-                </Text>
-              </View>
+          <View className="px-4 pb-2">
+            <View className="p-4 rounded-xl border" style={{ backgroundColor: colors.surface, borderColor: colors.error }}>
+              <Text className="text-sm font-semibold text-foreground mb-1">Alertas no configuradas</Text>
+              <Text className="text-xs text-muted">
+                Falta EXPO_PUBLIC_OPENWEATHER_API_KEY para obtener alertas reales.
+              </Text>
             </View>
           </View>
         )}
 
         {/* Lista de alertas en el mapa */}
-        <View className="px-4">
+        <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="warning" size={20} color={colors.error} />
-            <Text className="text-lg font-bold text-foreground">Alertas en el área</Text>
+            <Text className="text-lg font-bold text-foreground">Alertas en el Area</Text>
           </View>
 
           {error && hasApiKey && (
-            <View
-              className="p-4 rounded-2xl mb-3 flex-row gap-2 items-center"
-              style={{ backgroundColor: colors.error + "12", ...cardShadow }}
-            >
-              <MaterialIcons name="error-outline" size={18} color={colors.error} />
-              <Text className="text-sm text-foreground flex-1">{error}</Text>
+            <View className="bg-surface p-4 rounded-xl border mb-3" style={{ borderColor: colors.error }}>
+              <Text className="text-sm text-foreground">{error}</Text>
             </View>
           )}
 
           {filteredAlerts.length === 0 && !error && (
-            <View
-              className="p-8 rounded-2xl items-center"
-              style={{ backgroundColor: colors.surface, ...cardShadow }}
-            >
-              <View
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  backgroundColor: colors.success + "1A",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <MaterialIcons name="check-circle" size={34} color={colors.success} />
-              </View>
-              <Text className="text-base font-bold text-foreground">Sin alertas</Text>
-              <Text className="text-xs text-muted text-center mt-1" style={{ lineHeight: 17 }}>
+            <View className="bg-surface p-6 rounded-xl border items-center" style={{ borderColor: colors.border }}>
+              <MaterialIcons name="check-circle" size={48} color={colors.success} />
+              <Text className="text-base font-semibold text-foreground mt-2">Sin alertas</Text>
+              <Text className="text-xs text-muted text-center mt-1">
                 No hay alertas activas para los niveles seleccionados en tu zona.
               </Text>
             </View>
@@ -172,27 +115,28 @@ export default function MapScreen() {
                 key={alert.id}
                 onPress={() => setSelectedAlert(isSelected ? null : alert.id)}
                 style={({ pressed }) => ({
-                  opacity: pressed ? 0.85 : 1,
+                  opacity: pressed ? 0.7 : 1,
                 })}
               >
                 <View
-                  className="mb-3 p-4 rounded-2xl"
+                  className="mb-3 p-4 rounded-xl border-l-4"
                   style={{
-                    backgroundColor: isSelected ? alertColor + "0F" : colors.surface,
+                    backgroundColor: isSelected ? alertColor + "15" : colors.surface,
                     borderLeftColor: alertColor,
                     borderLeftWidth: 4,
-                    ...cardShadow,
+                    borderWidth: 1,
+                    borderColor: isSelected ? alertColor : colors.border,
                   }}
                 >
                   {/* Encabezado */}
                   <View className="flex-row items-center justify-between mb-2">
-                    <View className="flex-row items-center gap-3 flex-1">
+                    <View className="flex-row items-center gap-2 flex-1">
                       <View
                         style={{
                           width: 36,
                           height: 36,
-                          borderRadius: 11,
-                          backgroundColor: alertColor + "1A",
+                          borderRadius: 18,
+                          backgroundColor: alertColor + "20",
                           justifyContent: "center",
                           alignItems: "center",
                         }}
@@ -200,15 +144,10 @@ export default function MapScreen() {
                         <MaterialIcons name={alertIcon as any} size={18} color={alertColor} />
                       </View>
                       <View className="flex-1">
-                        <Text
-                          className="font-bold text-xs"
-                          style={{ color: alertColor, letterSpacing: 0.5 }}
-                        >
-                          {SEVERITY_LABELS[alert.severity].toUpperCase()}
+                        <Text className="font-semibold text-xs uppercase" style={{ color: alertColor }}>
+                          {SEVERITY_LABELS[alert.severity]}
                         </Text>
-                        <Text className="text-xs text-muted mt-0.5">
-                          Radio de {alert.radius ?? 10} km
-                        </Text>
+                        <Text className="text-xs text-muted">Radio: {alert.radius ?? 10} km</Text>
                       </View>
                     </View>
                     <MaterialIcons
@@ -219,34 +158,30 @@ export default function MapScreen() {
                   </View>
 
                   {/* Titulo */}
-                  <Text className="text-base font-bold text-foreground mb-1.5">{alert.event}</Text>
+                  <Text className="text-base font-bold text-foreground mb-2">{alert.event}</Text>
 
                   {/* Descripcion */}
-                  <Text className="text-sm text-muted mb-3" style={{ lineHeight: 19 }}>
-                    {alert.description}
-                  </Text>
+                  <Text className="text-sm text-muted mb-3">{alert.description}</Text>
 
                   {/* Coordenadas */}
-                  <View className="flex-row items-center gap-1.5 mb-1">
+                  <View className="flex-row items-center gap-2 mb-3">
                     <MaterialIcons name="location-on" size={14} color={colors.muted} />
                     <Text className="text-xs text-muted">
-                      {alert.latitude.toFixed(2)}°, {alert.longitude.toFixed(2)}°
+                      {typeof alert.latitude === "number" ? alert.latitude.toFixed(2) : "--"}°,{" "}
+                      {typeof alert.longitude === "number" ? alert.longitude.toFixed(2) : "--"}°
                     </Text>
                   </View>
 
                   {/* Detalles expandidos */}
                   {isSelected && (
-                    <View
-                      className="mt-2 pt-3"
-                      style={{ borderTopWidth: 1, borderTopColor: colors.border }}
-                    >
+                    <View className="pt-3 border-t" style={{ borderTopColor: colors.border }}>
                       <View className="gap-2">
                         <View className="flex-row items-center justify-between">
                           <View className="flex-row items-center gap-2">
                             <MaterialIcons name="schedule" size={16} color={colors.muted} />
                             <Text className="text-xs text-muted">Vigencia</Text>
                           </View>
-                          <Text className="text-xs font-bold text-foreground">
+                          <Text className="text-xs font-semibold text-foreground">
                             {formatAlertTime(alert.start, alert.end)}
                           </Text>
                         </View>
@@ -254,30 +189,22 @@ export default function MapScreen() {
                         <View className="flex-row items-center justify-between">
                           <View className="flex-row items-center gap-2">
                             <MaterialIcons name="circle" size={16} color={colors.muted} />
-                            <Text className="text-xs text-muted">Área de cobertura</Text>
+                            <Text className="text-xs text-muted">Area de cobertura</Text>
                           </View>
-                          <Text className="text-xs font-bold text-foreground">
+                          <Text className="text-xs font-semibold text-foreground">
                             {alert.radius ?? 10} km de radio
                           </Text>
                         </View>
 
                         {/* Recomendaciones */}
-                        <View
-                          className="mt-2 p-3 rounded-xl"
-                          style={{ backgroundColor: alertColor + "0F" }}
-                        >
+                        <View className="mt-2 p-3 rounded-lg" style={{ backgroundColor: alertColor + "10" }}>
                           <View className="flex-row items-start gap-2">
-                            <MaterialIcons
-                              name="lightbulb"
-                              size={16}
-                              color={alertColor}
-                              style={{ marginTop: 2 }}
-                            />
+                            <MaterialIcons name="lightbulb" size={16} color={alertColor} style={{ marginTop: 2 }} />
                             <View className="flex-1">
-                              <Text className="text-xs font-bold" style={{ color: alertColor }}>
-                                Recomendación de seguridad
+                              <Text className="text-xs font-semibold" style={{ color: alertColor }}>
+                                Recomendacion de Seguridad
                               </Text>
-                              <Text className="text-xs text-muted mt-1" style={{ lineHeight: 16 }}>
+                              <Text className="text-xs text-muted mt-1">
                                 {alert.severity === "severa"
                                   ? "Busca refugio inmediatamente. Evita estar en espacios abiertos."
                                   : alert.severity === "moderada"
@@ -297,26 +224,19 @@ export default function MapScreen() {
         </View>
 
         {/* Leyenda */}
-        <View className="px-4 pt-1">
+        <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="info" size={18} color={colors.foreground} />
-            <Text className="text-sm font-bold text-foreground">Leyenda</Text>
+            <Text className="text-sm font-semibold text-foreground">Leyenda</Text>
           </View>
 
-          <View
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: colors.surface, ...cardShadow }}
-          >
+          <View className="gap-2">
             {[
-              { color: "#F59E0B", label: "Leve", desc: "Lluvia ligera" },
-              { color: "#EA580C", label: "Moderada", desc: "Tormentas con vientos" },
-              { color: "#DC2626", label: "Fuerte", desc: "Alerta crítica" },
-            ].map((item, i) => (
-              <View
-                key={item.label}
-                className="flex-row items-center gap-3 p-3"
-                style={i > 0 ? { borderTopWidth: 1, borderTopColor: colors.border } : undefined}
-              >
+              { color: "#FFA500", label: "Leve", desc: "Lluvia ligera" },
+              { color: "#FF6B35", label: "Moderada", desc: "Tormentas con vientos" },
+              { color: "#EF4444", label: "Fuerte", desc: "Alerta critica" },
+            ].map((item) => (
+              <View key={item.label} className="flex-row items-center gap-3 p-3 rounded-lg bg-surface">
                 <View
                   style={{
                     width: 12,
@@ -326,13 +246,16 @@ export default function MapScreen() {
                   }}
                 />
                 <View className="flex-1">
-                  <Text className="text-sm font-bold text-foreground">{item.label}</Text>
+                  <Text className="text-sm font-semibold text-foreground">{item.label}</Text>
                   <Text className="text-xs text-muted">{item.desc}</Text>
                 </View>
               </View>
             ))}
           </View>
         </View>
+
+        {/* Espaciador */}
+        <View className="h-8" />
       </ScrollView>
     </ScreenContainer>
   );
