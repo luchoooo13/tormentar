@@ -2,38 +2,27 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Instalar pnpm
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 
+# Copiar archivos de dependencias
 COPY pnpm-lock.yaml package.json ./
-RUN pnpm install --frozen-lockfile
-FROM node:22-alpine
 
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
-
-COPY pnpm-lock.yaml package.json ./
+# Instalar dependencias usando el lockfile
 RUN pnpm install --frozen-lockfile
 
+# Copiar el resto del código
 COPY . .
 
-# Corrige las versiones de los paquetes expo-* para que combinen entre sí
-# (esto es lo que causaba "createPermissionHook is not a function")
-RUN npx expo install --fix
-
+# Variables de entorno para el build
 ARG EXPO_PUBLIC_OPENWEATHER_API_KEY
 ENV EXPO_PUBLIC_OPENWEATHER_API_KEY=$EXPO_PUBLIC_OPENWEATHER_API_KEY
 
+# Exportar la aplicación para web
 RUN npx expo export -p web --output-dir dist
 
+# Exponer el puerto
 EXPOSE 3000
-CMD ["node", "server.js"]
-COPY . .
 
-ARG EXPO_PUBLIC_OPENWEATHER_API_KEY
-ENV EXPO_PUBLIC_OPENWEATHER_API_KEY=$EXPO_PUBLIC_OPENWEATHER_API_KEY
-
-RUN npx expo export -p web --output-dir dist
-
-EXPOSE 3000
-CMD ["node", "server.js"]
+# Comando para iniciar el servidor
+CMD ["pnpm", "start"]
