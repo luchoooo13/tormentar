@@ -18,11 +18,14 @@ COPY . .
 ARG EXPO_PUBLIC_OPENWEATHER_API_KEY
 ENV EXPO_PUBLIC_OPENWEATHER_API_KEY=$EXPO_PUBLIC_OPENWEATHER_API_KEY
 
-# Exportar la aplicación para web
+# Compilar el servidor (esto genera dist/index.js)
+RUN pnpm build
+
+# Exportar la aplicación para web (esto genera los archivos estáticos en dist/)
 RUN npx expo export -p web --output-dir dist
 
 # Exponer el puerto
 EXPOSE 3000
 
 # Comando para iniciar el servidor
-CMD ["pnpm", "start"]
+CMD ["node", "dist/index.js"]
