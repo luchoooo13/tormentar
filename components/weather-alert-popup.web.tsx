@@ -12,6 +12,7 @@
  *  - Colores segun severidad (mismos que el resto de la app).
  */
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useAlertsContext } from "@/lib/alerts-context";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
@@ -89,7 +90,9 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alert.id]);
 
-  const handleClose = () => {
+  const handleClose = (e?: { stopPropagation?: () => void; preventDefault?: () => void }) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (audioRef.current) audioRef.current.pause();
     onDone();
@@ -135,6 +138,7 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
             {alert.severity === "severa" ? "🚨 ALERTA " + label.toUpperCase() : "⚠️ ALERTA " + label.toUpperCase()}
           </span>
           <button
+            type="button"
             onClick={handleClose}
             aria-label="Cerrar"
             style={{
@@ -144,7 +148,10 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
               cursor: "pointer",
               fontSize: 16,
               lineHeight: 1,
-              padding: 2,
+              padding: 6,
+              pointerEvents: "auto",
+              position: "relative",
+              zIndex: 1,
             }}
           >
             ✕
@@ -171,23 +178,33 @@ export function WeatherAlertPopup() {
   }, [visible, popupQueue]);
 
   if (!visible) return null;
+  if (typeof document === "undefined") return null;
 
   const handleDone = () => {
     dismissPopup(visible.id);
     setVisible(null);
   };
 
-  return (
+  // Se monta con un Portal directo a document.body (en vez de quedar
+  // anidado dentro del arbol de <Stack>/GestureHandlerRootView) porque
+  // Reanimated suele aplicarle transforms a los contenedores de las
+  // pantallas, lo que crea un "stacking context" propio en el navegador.
+  // Con eso, el zIndex de este popup solo compite DENTRO de ese
+  // contexto: se ve arriba visualmente pero los clicks (como el boton
+  // de cerrar) a veces terminan capturados por el contenido de abajo.
+  // Portal saca al popup de ese arbol por completo y evita el problema.
+  return createPortal(
     <div
       style={{
         position: "fixed",
         top: 16,
         right: 16,
-        zIndex: 9999,
+        zIndex: 999999,
         pointerEvents: "auto",
       }}
     >
       <PopupCard key={visible.id} alert={visible} onDone={handleDone} />
-    </div>
+    </div>,
+    document.body
   );
 }
