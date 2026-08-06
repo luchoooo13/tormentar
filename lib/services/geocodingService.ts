@@ -21,6 +21,36 @@ export interface CitySearchResult {
   admin1?: string; // provincia / estado
 }
 
+export interface ReverseGeocodeResult {
+  city?: string;
+  country?: string;
+}
+
+// Geocodificacion inversa (coordenadas -> nombre de ciudad) compatible
+// con web. `Location.reverseGeocodeAsync` de expo-location NO funciona
+// en navegador (requiere el geocoder nativo de iOS/Android): falla en
+// silencio y la ciudad queda vacia para siempre. Usamos BigDataCloud,
+// que es gratuito, no pide API key y tiene CORS habilitado.
+export async function reverseGeocodeWeb(
+  latitude: number,
+  longitude: number
+): Promise<ReverseGeocodeResult> {
+  try {
+    const response = await axios.get("https://api.bigdatacloud.net/data/reverse-geocode-client", {
+      params: { latitude, longitude, localityLanguage: "es" },
+    });
+
+    const data = response.data;
+    return {
+      city: data?.city || data?.locality || data?.principalSubdivision || undefined,
+      country: data?.countryName || undefined,
+    };
+  } catch (err) {
+    console.warn("Error en geocodificacion inversa:", err);
+    return {};
+  }
+}
+
 export async function searchCities(query: string): Promise<CitySearchResult[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
