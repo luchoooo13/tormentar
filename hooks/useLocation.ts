@@ -106,8 +106,17 @@ export function useLocation() {
       try {
         const saved = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
         if (saved) {
-          setLocation(JSON.parse(saved));
-          setLoading(false);
+          const parsed = JSON.parse(saved);
+          const isValid =
+            parsed && typeof parsed.latitude === "number" && typeof parsed.longitude === "number";
+          if (isValid) {
+            setLocation(parsed);
+            setLoading(false);
+          } else {
+            // Ubicación guardada corrupta o de un formato viejo: descartarla y pedir una nueva.
+            await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
+            await getCurrentLocation();
+          }
         } else {
           await getCurrentLocation();
         }
