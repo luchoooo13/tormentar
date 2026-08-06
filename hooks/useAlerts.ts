@@ -1,23 +1,23 @@
 /**
  * useAlerts Hook
- * Trae alertas REALES desde OpenWeatherMap (antes las pantallas usaban
- * datos hardcodeados de demostración y nunca llamaban a la API real).
- *
- * - Usa la ubicación real del dispositivo (useLocation).
- * - Actualiza según el intervalo único configurado en las preferencias.
- * - Filtra según los niveles de severidad elegidos por el usuario
- *   (leve / moderada / fuerte).
- * - Dispara notificaciones locales solo para alertas nuevas que el
- *   usuario eligió recibir.
- * - Pide permisos de notificación al iniciar para que las alertas
- *   realmente se muestren en Android 13+ e iOS.
+ * Trae alertas REALES desde OpenWeatherMap.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocation } from "@/hooks/useLocation";
-import { useAlertPreferences, getEnabledSeverities } from "@/hooks/useAlertPreferences";
+import {
+  useAlertPreferences,
+  getEnabledSeverities,
+} from "@/hooks/useAlertPreferences";
 import { useWeatherNotifications } from "@/hooks/useWeatherNotifications";
-import { getWeatherAlerts, hasApiKey, sortAlertsBySeverity } from "@/lib/services/weatherService";
+import {
+  getWeatherAlerts,
+  hasApiKey,
+  sortAlertsBySeverity,
+} from "@/lib/services/weatherService";
 import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
+
+const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
 
 export function useAlerts() {
   const {
@@ -27,18 +27,36 @@ export function useAlerts() {
     getCurrentLocation,
   } = useLocation();
   const { preferences } = useAlertPreferences();
-  const { sendNotification, setupNotificationChannels, requestPermissions } = useWeatherNotifications();
+  const {
+    sendNotification,
+    setupNotificationChannels,
+    requestPermissions,
+  } = useWeatherNotifications();
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  // IDs de alertas ya vistas, para no volver a notificar lo mismo y
-  // para distinguir "alerta nueva" de "alerta que ya estaba".
+  // IDs de alertas ya vistas, persistidas en AsyncStorage.
   const knownAlertIds = useRef<Set<string>>(new Set());
-  const isFirstLoad = useRef(true);
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+
+  // Cargar alertas conocidas al montar
+  useEffect(() => {
+    const loadKnownAlerts = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(KNOWN_ALERTS_KEY);
+        if (saved) {
+          const ids = JSON.parse(saved);
+          knownAlertIds.current = new Set(ids);
+        }
+      } catch (e) {
+        console.error("Error loading known alerts", e);
+      }
+    };
+    loadKnownAlerts();
+  }, []);
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
@@ -68,21 +86,46 @@ export function useAlerts() {
       const currentAlerts = data.alerts || [];
       const prefs = preferencesRef.current;
 
-      if (prefs.notificationsEnabled && !isFirstLoad.current) {
+      if (prefs.notificationsEnabled) {
         const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
         const newRelevantAlerts = currentAlerts.filter(
-          (a) => !knownAlertIds.current.has(a.id) && enabledSeverities.includes(a.severity)
+          (a) =>
+            !knownAlertIds.current.has(a.id) &&
+            enabledSeverities.includes(a.severity)
         );
+
         for (const alert of newRelevantAlerts) {
           await sendNotification(alert, {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
           });
+          knownAlertIds.current.add(alert.id);
+        }
+
+        // Persistir si hubo cambios
+        if (newRelevantAlerts.length > 0) {
+          await AsyncStorage.setItem(
+            KNOWN_ALERTS_KEY,
+            JSON.stringify(Array.from(knownAlertIds.current))
+          );
         }
       }
 
-      currentAlerts.forEach((a) => knownAlertIds.current.add(a.id));
-      isFirstLoad.current = false;
+      // Asegurar que todas las alertas actuales se marquen como conocidas
+      let changed = false;
+      currentAlerts.forEach((a) => {
+        if (!knownAlertIds.current.has(a.id)) {
+          knownAlertIds.current.add(a.id);
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        await AsyncStorage.setItem(
+          KNOWN_ALERTS_KEY,
+          JSON.stringify(Array.from(knownAlertIds.current))
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
@@ -91,20 +134,18 @@ export function useAlerts() {
     }
   }, [location, sendNotification]);
 
-  // Canales de notificación (Android) y permiso de notificaciones, una
-  // sola vez. Sin pedir el permiso, sendNotification no muestra nada.
+  // Canales de notificación (Android) y permiso de notificaciones
   useEffect(() => {
     requestPermissions();
     setupNotificationChannels();
-  }, [setupNotificationChannels]);
+  }, [requestPermissions, setupNotificationChannels]);
 
   // Buscar alertas apenas se conoce la ubicación.
   useEffect(() => {
     if (location) {
       fetchAlerts();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location?.latitude, location?.longitude]);
+  }, [location?.latitude, location?.longitude, fetchAlerts]);
 
   // Actualización periódica según el intervalo único configurado.
   useEffect(() => {

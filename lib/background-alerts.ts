@@ -9,9 +9,11 @@ import * as TaskManager from "expo-task-manager";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
+import { getWeatherAlerts } from "./services/weatherService";
+import { getEnabledSeverities } from "../hooks/useAlertPreferences";
 
 const BACKGROUND_ALERT_TASK = "background-weather-alerts";
-const LAST_LOCATION_KEY = "tormentar_last_location";
+const LAST_LOCATION_KEY = "tormentar_location"; // Coincidir con useLocation.ts
 const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
 const PREFERENCES_KEY = "tormentar_preferences";
 
@@ -38,6 +40,7 @@ TaskManager.defineTask(BACKGROUND_ALERT_TASK, async () => {
           minSeverity: "leve",
           soundEnabled: true,
           vibrationEnabled: true,
+          updateIntervalMinutes: 15,
         };
 
     if (!preferences.notificationsEnabled) {
@@ -45,14 +48,47 @@ TaskManager.defineTask(BACKGROUND_ALERT_TASK, async () => {
       return BackgroundFetch.BackgroundFetchResult.NoData;
     }
 
-    // Obtener alertas conocidas
+    // Obtener alertas reales desde el servicio de clima
+    const weatherData = await getWeatherAlerts(
+      location.latitude,
+      location.longitude
+    );
+
+    if (!weatherData || !weatherData.alerts || weatherData.alerts.length === 0) {
+      console.log("[BackgroundAlerts] No alerts found");
+      return BackgroundFetch.BackgroundFetchResult.NoData;
+    }
+
+    // Obtener alertas conocidas para no repetir notificaciones
     const knownIdsRaw = await AsyncStorage.getItem(KNOWN_ALERTS_KEY);
     const knownIds = new Set(knownIdsRaw ? JSON.parse(knownIdsRaw) : []);
 
-    // Simular obtención de alertas (en producción, llamarías a tu API)
-    // Para esta versión, solo notificamos si hay cambios en preferencias
+    const enabledSeverities = getEnabledSeverities(preferences.minSeverity);
+    const newRelevantAlerts = weatherData.alerts.filter(
+      (a) => !knownIds.has(a.id) && enabledSeverities.includes(a.severity)
+    );
+
+    if (newRelevantAlerts.length === 0) {
+      console.log("[BackgroundAlerts] No new relevant alerts");
+      return BackgroundFetch.BackgroundFetchResult.NoData;
+    }
+
+    // Notificar cada nueva alerta
+    for (const alert of newRelevantAlerts) {
+      await sendLocalNotification(alert.event, alert.description, {
+        alertId: alert.id,
+      });
+      knownIds.add(alert.id);
+    }
+
+    // Guardar el historial actualizado de alertas conocidas
+    await AsyncStorage.setItem(
+      KNOWN_ALERTS_KEY,
+      JSON.stringify(Array.from(knownIds))
+    );
+
     console.log(
-      `[BackgroundAlerts] Checked at ${new Date().toLocaleTimeString()}`
+      `[BackgroundAlerts] Notified ${newRelevantAlerts.length} new alerts at ${new Date().toLocaleTimeString()}`
     );
 
     return BackgroundFetch.BackgroundFetchResult.NewData;
@@ -105,14 +141,18 @@ export async function registerBackgroundAlertsAsync() {
       console.warn("[BackgroundAlerts] Notification permissions not granted");
     }
 
+    // Obtener el intervalo preferido por el usuario
+    const prefsRaw = await AsyncStorage.getItem(PREFERENCES_KEY);
+    const intervalMinutes = prefsRaw ? JSON.parse(prefsRaw).updateIntervalMinutes : 15;
+
     // Registrar la tarea de fondo
     await BackgroundFetch.registerTaskAsync(BACKGROUND_ALERT_TASK, {
-      minimumInterval: 15 * 60, // 15 minutos (mínimo en iOS)
+      minimumInterval: Math.max(intervalMinutes * 60, 15 * 60), // Mínimo 15 min (limitación de iOS)
       stopOnTerminate: false, // Seguir corriendo si la app se cierra
       startOnBoot: true, // Empezar al reiniciar el dispositivo
     });
 
-    console.log("[BackgroundAlerts] Background task registered");
+    console.log(`[BackgroundAlerts] Background task registered with interval: ${intervalMinutes} min`);
     return true;
   } catch (error) {
     console.error("[BackgroundAlerts] Failed to register:", error);
@@ -137,7 +177,10 @@ export async function unregisterBackgroundAlertsAsync() {
 /**
  * Guarda la ubicación actual para usarla en las tareas de fondo
  */
-export async function saveLocationForBackground(latitude: number, longitude: number) {
+export async function saveLocationForBackground(
+  latitude: number,
+  longitude: number
+) {
   try {
     await AsyncStorage.setItem(
       LAST_LOCATION_KEY,

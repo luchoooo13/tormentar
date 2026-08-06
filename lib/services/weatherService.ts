@@ -43,7 +43,7 @@ function classifyCondition(weatherId: number, windSpeed: number): AlertSeverity 
 
   if ([503, 504].includes(weatherId)) return "severa";
   if ([502, 511, 522, 531].includes(weatherId)) return "moderada";
-  if ([501, 521].includes(weatherId)) return "leve";
+  if ([500, 501, 520, 521].includes(weatherId)) return "leve";
 
   if ([602, 622].includes(weatherId)) return "moderada";
   if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) return "leve";
