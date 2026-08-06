@@ -34,8 +34,12 @@ export function useWeatherNotifications() {
   // Pedir permiso de notificaciones. Sin esto, en Android 13+ e iOS las
   // notificaciones programadas con scheduleNotificationAsync no se
   // muestran nunca, aunque el código no tire ningún error.
-  const requestPermissions = async () => {
-    if (Platform.OS === "web") return true;
+const requestPermissions = async () => {
+    // Antes esto devolvia `true` en web sin llamar a la API real, asi
+    // que el navegador nunca mostraba el cartel de "permitir
+    // notificaciones" y el popup de alerta quedaba bloqueado en
+    // silencio. expo-notifications si soporta pedir permiso en web
+    // (usa el Notification API del navegador por debajo).
     try {
       const { status: existing } = await Notifications.getPermissionsAsync();
       if (existing === "granted") return true;
