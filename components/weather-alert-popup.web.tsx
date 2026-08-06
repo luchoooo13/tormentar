@@ -10,6 +10,11 @@
  *  - Moderada / Fuerte: 30s en pantalla, parpadea en su propio color,
  *    sonido de alarma EAS (Canada).
  *  - Colores segun severidad (mismos que el resto de la app).
+ *
+ * NOTA (fix): el sonido antes dependia de archivos mp3 en /public/sounds/
+ * que nunca existieron en el proyecto (por eso nunca sonaba, fallaba en
+ * silencio). Ahora el sonido se genera por codigo con la Web Audio API,
+ * asi no depende de ningun archivo externo.
  */
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -22,13 +27,12 @@ import {
   SEVERITY_LABELS,
   SEVERITY_POPUP_DURATION_MS,
   SEVERITY_POPUP_BLINKS,
-  SEVERITY_SOUND_URL,
 } from "@/shared/alertSeverity";
-import type { WeatherAlert } from "@/shared/types/weather";
+import type { WeatherAlert, AlertSeverity } from "@/shared/types/weather";
 
 const STYLE_TAG_ID = "tormentar-alert-popup-styles";
+const LOG_TAG = "[TormentarAlertPopup]";
 
-// Inyecta el keyframe de parpadeo una sola vez en el documento.
 function ensureBlinkStylesInjected() {
   if (typeof document === "undefined") return;
   if (document.getElementById(STYLE_TAG_ID)) return;
@@ -50,13 +54,60 @@ function ensureBlinkStylesInjected() {
   document.head.appendChild(style);
 }
 
+// Genera el sonido de alerta con la Web Audio API en vez de depender de
+// un archivo .mp3 externo (que no existia en /public/sounds, por eso
+// nunca sonaba). Devuelve una funcion para cortar el sonido a mano.
+function playSeveritySound(severity: AlertSeverity): () => void {
+  if (typeof window === "undefined") return () => {};
+  const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+  if (!AudioCtx) return () => {};
+
+  const ctx = new AudioCtx();
+  const stopFns: Array<() => void> = [];
+
+  const beep = (startAt: number, freq: number, dur: number, gainValue = 0.18) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.value = 0;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const t0 = ctx.currentTime + startAt;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(gainValue, t0 + 0.02);
+    gain.gain.linearRampToValueAtTime(0, t0 + dur - 0.02);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+    stopFns.push(() => {
+      try {
+        osc.stop();
+      } catch {}
+    });
+  };
+
+  if (severity === "leve") {
+    // Un par de tonos cortos y suaves.
+    beep(0, 660, 0.18);
+    beep(0.22, 660, 0.18);
+  } else {
+    // Patron tipo EAS: tonos mas agudos y repetidos, mas urgente.
+    for (let i = 0; i < 4; i++) {
+      beep(i * 0.32, 880, 0.22, 0.22);
+    }
+  }
+
+  return () => {
+    stopFns.forEach((fn) => fn());
+    ctx.close().catch(() => {});
+  };
+}
+
 function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void }) {
   const { preferences } = useAlertPreferences();
-  // Tipado como `any` (igual que el resto del archivo del mapa hace con
-  // `window.L` de Leaflet) para no depender de que los tipos DOM del
-  // navegador esten incluidos en la config de TypeScript del proyecto.
-  const audioRef = useRef<any>(null);
+  const stopSoundRef = useRef<(() => void) | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finishedRef = useRef(false);
 
   const color = SEVERITY_COLORS[alert.severity];
   const icon = SEVERITY_ICONS[alert.severity];
@@ -64,28 +115,39 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
   const duration = SEVERITY_POPUP_DURATION_MS[alert.severity];
   const shouldBlink = SEVERITY_POPUP_BLINKS[alert.severity];
 
-  useEffect(() => {
-    ensureBlinkStylesInjected();
+  const finish = () => {
+    // Guard para que onDone no se dispare dos veces (ej: click en la X
+    // justo cuando el timeout ya estaba por saltar).
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (stopSoundRef.current) stopSoundRef.current();
+    console.log(`${LOG_TAG} cerrando alerta`, alert.id);
+    onDone();
+  };
 
-    if (preferences.soundEnabled && typeof window !== "undefined") {
-      const AudioCtor = (window as any).Audio;
-      const audio = new AudioCtor(SEVERITY_SOUND_URL[alert.severity]);
-      audioRef.current = audio;
-      audio.play().catch((err) => {
-        // Los navegadores pueden bloquear el autoplay hasta que el
-        // usuario haya interactuado con la pagina; no es un error fatal.
-        console.warn("No se pudo reproducir el sonido de alerta:", err);
-      });
+  useEffect(() => {
+    finishedRef.current = false;
+    ensureBlinkStylesInjected();
+    console.log(`${LOG_TAG} montada`, { id: alert.id, severity: alert.severity, duration });
+
+    if (preferences.soundEnabled) {
+      try {
+        stopSoundRef.current = playSeveritySound(alert.severity);
+      } catch (err) {
+        console.warn(`${LOG_TAG} no se pudo generar el sonido:`, err);
+      }
     }
 
-    timeoutRef.current = setTimeout(onDone, duration);
+    timeoutRef.current = setTimeout(() => {
+      console.log(`${LOG_TAG} timeout cumplido, cerrando`, alert.id);
+      finish();
+    }, duration);
 
     return () => {
+      console.log(`${LOG_TAG} desmontada (cleanup)`, alert.id);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      if (stopSoundRef.current) stopSoundRef.current();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alert.id]);
@@ -93,9 +155,8 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
   const handleClose = (e?: { stopPropagation?: () => void; preventDefault?: () => void }) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (audioRef.current) audioRef.current.pause();
-    onDone();
+    console.log(`${LOG_TAG} click en X`, alert.id);
+    finish();
   };
 
   return (
@@ -140,18 +201,19 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
           <button
             type="button"
             onClick={handleClose}
+            onTouchEnd={handleClose}
             aria-label="Cerrar"
             style={{
               background: "transparent",
               border: "none",
               color: "#9ca3af",
               cursor: "pointer",
-              fontSize: 16,
+              fontSize: 18,
               lineHeight: 1,
-              padding: 6,
+              padding: 8,
               pointerEvents: "auto",
               position: "relative",
-              zIndex: 1,
+              zIndex: 2,
             }}
           >
             ✕
@@ -170,9 +232,9 @@ export function WeatherAlertPopup() {
   const { popupQueue, dismissPopup } = useAlertsContext();
   const [visible, setVisible] = useState<WeatherAlert | null>(null);
 
-  // Tomar la siguiente alerta de la cola cuando no haya ninguna visible.
   useEffect(() => {
     if (!visible && popupQueue.length > 0) {
+      console.log(`${LOG_TAG} tomando siguiente de la cola`, popupQueue[0].id, "cola:", popupQueue.length);
       setVisible(popupQueue[0]);
     }
   }, [visible, popupQueue]);
@@ -185,14 +247,6 @@ export function WeatherAlertPopup() {
     setVisible(null);
   };
 
-  // Se monta con un Portal directo a document.body (en vez de quedar
-  // anidado dentro del arbol de <Stack>/GestureHandlerRootView) porque
-  // Reanimated suele aplicarle transforms a los contenedores de las
-  // pantallas, lo que crea un "stacking context" propio en el navegador.
-  // Con eso, el zIndex de este popup solo compite DENTRO de ese
-  // contexto: se ve arriba visualmente pero los clicks (como el boton
-  // de cerrar) a veces terminan capturados por el contenido de abajo.
-  // Portal saca al popup de ese arbol por completo y evita el problema.
   return createPortal(
     <div
       style={{
