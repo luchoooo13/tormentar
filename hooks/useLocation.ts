@@ -8,6 +8,26 @@ import { Platform } from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { LocationData } from "@/shared/types/weather";
+import { reverseGeocodeWeb } from "@/lib/services/geocodingService";
+
+// `Location.reverseGeocodeAsync` de expo-location no funciona en web
+// (requiere el geocoder nativo). En web usamos un servicio HTTP en su
+// lugar; en nativo seguimos usando el geocoder del sistema operativo.
+async function resolveCityName(latitude: number, longitude: number) {
+  if (Platform.OS === "web") {
+    return reverseGeocodeWeb(latitude, longitude);
+  }
+  try {
+    const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (reverseGeocode.length > 0) {
+      const address = reverseGeocode[0];
+      return { city: address.city || address.region || undefined, country: address.country || undefined };
+    }
+  } catch (e) {
+    console.warn("Error getting city name:", e);
+  }
+  return {};
+}
 
 const LOCATION_STORAGE_KEY = "tormentar_location";
 
@@ -45,20 +65,9 @@ export function useLocation() {
       };
 
       // Intentar obtener nombre de ciudad
-      try {
-        const reverseGeocode = await Location.reverseGeocodeAsync({
-          latitude: newLocation.latitude,
-          longitude: newLocation.longitude,
-        });
-
-        if (reverseGeocode.length > 0) {
-          const address = reverseGeocode[0];
-          newLocation.city = address.city || address.region || undefined;
-          newLocation.country = address.country || undefined;
-        }
-      } catch (e) {
-        console.warn("Error getting city name:", e);
-      }
+      const cityInfo = await resolveCityName(newLocation.latitude, newLocation.longitude);
+      newLocation.city = cityInfo.city;
+      newLocation.country = cityInfo.country;
 
       setLocation(newLocation);
 
@@ -81,20 +90,9 @@ export function useLocation() {
     };
 
     // Intentar obtener nombre de ciudad
-    try {
-      const reverseGeocode = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
-
-      if (reverseGeocode.length > 0) {
-        const address = reverseGeocode[0];
-        newLocation.city = address.city || address.region || undefined;
-        newLocation.country = address.country || undefined;
-      }
-    } catch (e) {
-      console.warn("Error getting city name:", e);
-    }
+    const cityInfo = await resolveCityName(latitude, longitude);
+    newLocation.city = cityInfo.city;
+    newLocation.country = cityInfo.country;
 
     setLocation(newLocation);
     await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
