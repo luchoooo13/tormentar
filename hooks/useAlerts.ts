@@ -19,7 +19,14 @@ import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
 
 const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
 
-export function useAlerts() {
+interface UseAlertsOptions {
+  // Se dispara con cada alerta nueva y relevante (ya filtrada por las
+  // severidades habilitadas) apenas se detecta. Lo usa el pop-up web
+  // para mostrar el cartel de alerta en pantalla.
+  onNewAlert?: (alert: WeatherAlert) => void;
+}
+
+export function useAlerts(options?: UseAlertsOptions) {
   const {
     location,
     loading: locationLoading,
@@ -41,10 +48,17 @@ export function useAlerts() {
   const knownAlertIds = useRef<Set<string>>(new Set());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+  const onNewAlertRef = useRef(options?.onNewAlert);
+  onNewAlertRef.current = options?.onNewAlert;
 
-  // Cargar alertas conocidas al montar
-  useEffect(() => {
-    const loadKnownAlerts = async () => {
+  // Cargar alertas conocidas al montar. Se guarda la promesa en un ref
+  // para que fetchAlerts pueda esperarla: si el primer fetch corre antes
+  // de que esto termine, knownAlertIds estaria vacio y CADA alerta ya
+  // vista se interpretaria como "nueva", disparando notificaciones y
+  // pop-ups falsos cada vez que se abre la app.
+  const knownAlertsLoadedRef = useRef<Promise<void> | null>(null);
+  if (!knownAlertsLoadedRef.current) {
+    knownAlertsLoadedRef.current = (async () => {
       try {
         const saved = await AsyncStorage.getItem(KNOWN_ALERTS_KEY);
         if (saved) {
@@ -54,9 +68,8 @@ export function useAlerts() {
       } catch (e) {
         console.error("Error loading known alerts", e);
       }
-    };
-    loadKnownAlerts();
-  }, []);
+    })();
+  }
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
@@ -78,6 +91,7 @@ export function useAlerts() {
     setError(undefined);
 
     try {
+      await knownAlertsLoadedRef.current;
       const data = await getWeatherAlerts(location.latitude, location.longitude);
 
       if (!data) {
@@ -104,6 +118,7 @@ export function useAlerts() {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
           });
+          onNewAlertRef.current?.(alert);
           knownAlertIds.current.add(alert.id);
         }
 
