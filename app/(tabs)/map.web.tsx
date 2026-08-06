@@ -17,28 +17,13 @@ import { ScrollView, Text, View, Pressable } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { useAlerts } from "@/hooks/useAlerts";
+import { useAlertsContext } from "@/lib/alerts-context";
+import { useWatchedLocalities } from "@/hooks/useWatchedLocalities";
 import { formatAlertTime } from "@/lib/services/weatherService";
-import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
+import { SEVERITY_COLORS, SEVERITY_ICONS, SEVERITY_LABELS } from "@/shared/alertSeverity";
+import type { WeatherAlert } from "@/shared/types/weather";
+import type { CitySearchResult } from "@/lib/services/geocodingService";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-
-const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  leve: "#FFA500",
-  moderada: "#FF6B35",
-  severa: "#EF4444",
-};
-
-const SEVERITY_ICONS: Record<AlertSeverity, string> = {
-  leve: "cloud-queue",
-  moderada: "cloud",
-  severa: "cloud-download",
-};
-
-const SEVERITY_LABELS: Record<AlertSeverity, string> = {
-  leve: "Leve",
-  moderada: "Moderada",
-  severa: "Fuerte",
-};
 
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
@@ -73,7 +58,19 @@ function loadLeaflet(): Promise<any> {
 export default function MapScreen() {
   const colors = useColors();
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null);
-  const { location, filteredAlerts, hasApiKey, error } = useAlerts();
+  const { location, filteredAlerts, hasApiKey, error } = useAlertsContext();
+  const {
+    localities,
+    alertsByLocality,
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    searching,
+    searchError,
+    addLocality,
+    removeLocality,
+    refreshAll,
+  } = useWatchedLocalities();
 
   const mapContainerRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -172,6 +169,52 @@ export default function MapScreen() {
     };
   }, [mapReady, filteredAlerts]);
 
+  // Dibujar un marcador + circulos de alerta por cada "otra localidad"
+  // agregada por el usuario. Se distinguen de las alertas de la
+  // ubicacion actual con borde punteado y una etiqueta "no oficial".
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current) return;
+    const L = (window as any).L;
+    const map = mapInstanceRef.current;
+
+    const layers: any[] = [];
+
+    localities.forEach((locality) => {
+      const cityIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:#9333EA;border:3px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+      const marker = L.marker([locality.latitude, locality.longitude], { icon: cityIcon })
+        .addTo(map)
+        .bindPopup(`<b>${locality.name}</b>${locality.admin1 ? `<br/>${locality.admin1}` : ""}`);
+      layers.push(marker);
+
+      const state = alertsByLocality[locality.id];
+      (state?.alerts ?? []).forEach((alert) => {
+        if (typeof alert.latitude !== "number" || typeof alert.longitude !== "number") return;
+        const color = SEVERITY_COLORS[alert.severity];
+        const circle = L.circle([alert.latitude, alert.longitude], {
+          radius: (alert.radius ?? 10) * 1000,
+          color,
+          fillColor: color,
+          fillOpacity: 0.12,
+          weight: 2,
+          dashArray: "6, 6",
+        }).addTo(map);
+        circle.bindPopup(
+          `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} (no oficial) · ${locality.name}`
+        );
+        layers.push(circle);
+      });
+    });
+
+    return () => {
+      layers.forEach((l) => l.remove());
+    };
+  }, [mapReady, localities, alertsByLocality]);
+
   // Resaltar/centrar la alerta seleccionada desde la lista.
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current || !selectedAlert) return;
@@ -180,6 +223,12 @@ export default function MapScreen() {
       mapInstanceRef.current.setView([alert.latitude, alert.longitude], 12);
     }
   }, [selectedAlert, mapReady, filteredAlerts]);
+
+  const centerOnLocality = (latitude: number, longitude: number) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([latitude, longitude], 11);
+    }
+  };
 
   return (
     <ScreenContainer className="flex-1 gap-0">
@@ -238,6 +287,153 @@ export default function MapScreen() {
               Activa el permiso de ubicacion del navegador (o cargala manualmente en
               Configuracion) para centrar el mapa en tu zona.
             </Text>
+          )}
+        </View>
+
+        {/* Otras localidades (alertas no oficiales) */}
+        <View className="px-4 pb-4">
+          <View className="flex-row items-center justify-between mb-1">
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="add-location-alt" size={20} color="#9333EA" />
+              <Text className="text-lg font-bold text-foreground">Otras localidades</Text>
+            </View>
+            {localities.length > 0 && (
+              <Pressable onPress={refreshAll} hitSlop={8}>
+                <MaterialIcons name="refresh" size={18} color={colors.muted} />
+              </Pressable>
+            )}
+          </View>
+          <Text className="text-xs text-muted mb-3">
+            Agrega ciudades para ver sus alertas estimadas (no oficiales) en el mapa, ademas de tu ubicacion actual.
+          </Text>
+
+          <View style={{ position: "relative", zIndex: 20 }}>
+            <View
+              className="flex-row items-center gap-2 px-3 rounded-xl border"
+              style={{ backgroundColor: colors.surface, borderColor: colors.border, height: 44 }}
+            >
+              <MaterialIcons name="search" size={18} color={colors.muted} />
+              {/* @ts-ignore - input nativo del DOM, valido en web */}
+              <input
+                value={searchQuery}
+                onChange={(e: any) => setSearchQuery(e.target.value)}
+                placeholder="Buscar ciudad (ej: Rosario, Cordoba...)"
+                style={{
+                  flex: 1,
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  color: colors.foreground,
+                  fontSize: 13,
+                }}
+              />
+              {searching && <MaterialIcons name="hourglass-empty" size={16} color={colors.muted} />}
+            </View>
+
+            {searchQuery.trim().length >= 2 && (searchResults.length > 0 || searchError) && (
+              <View
+                className="rounded-xl border mt-1 overflow-hidden"
+                style={{
+                  position: "absolute",
+                  top: 46,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                }}
+              >
+                {searchError ? (
+                  <Text className="text-xs p-3" style={{ color: colors.error }}>{searchError}</Text>
+                ) : (
+                  searchResults.map((city: CitySearchResult) => (
+                    <Pressable
+                      key={city.id}
+                      onPress={() => addLocality(city)}
+                      style={({ pressed }) => ({
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        backgroundColor: pressed ? colors.border : "transparent",
+                      })}
+                    >
+                      <Text className="text-sm text-foreground">
+                        {city.name}
+                        {city.admin1 ? `, ${city.admin1}` : ""}
+                        {city.country ? ` (${city.country})` : ""}
+                      </Text>
+                    </Pressable>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+
+          {localities.length === 0 ? (
+            <Text className="text-xs text-muted mt-3">
+              No agregaste ninguna localidad todavia. Busca una ciudad arriba para empezar a seguirla.
+            </Text>
+          ) : (
+            <View className="gap-2 mt-3">
+              {localities.map((locality) => {
+                const state = alertsByLocality[locality.id];
+                const alerts = state?.alerts ?? [];
+                const topAlert = alerts[0];
+                return (
+                  <View
+                    key={locality.id}
+                    className="p-3 rounded-xl border"
+                    style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Pressable
+                        onPress={() => centerOnLocality(locality.latitude, locality.longitude)}
+                        style={{ flex: 1 }}
+                      >
+                        <View className="flex-row items-center gap-2">
+                          <MaterialIcons name="location-city" size={16} color="#9333EA" />
+                          <Text className="text-sm font-semibold text-foreground">
+                            {locality.name}
+                            {locality.admin1 ? `, ${locality.admin1}` : ""}
+                          </Text>
+                        </View>
+                      </Pressable>
+                      <Pressable onPress={() => removeLocality(locality.id)} hitSlop={8}>
+                        <MaterialIcons name="close" size={18} color={colors.muted} />
+                      </Pressable>
+                    </View>
+
+                    <View className="flex-row items-center gap-2 mt-2">
+                      {state?.loading ? (
+                        <Text className="text-xs text-muted">Consultando...</Text>
+                      ) : state?.error ? (
+                        <Text className="text-xs" style={{ color: colors.error }}>{state.error}</Text>
+                      ) : alerts.length === 0 ? (
+                        <Text className="text-xs text-muted">Sin alertas en esta localidad</Text>
+                      ) : (
+                        <>
+                          <View
+                            style={{
+                              backgroundColor: SEVERITY_COLORS[topAlert.severity] + "20",
+                              paddingHorizontal: 8,
+                              paddingVertical: 3,
+                              borderRadius: 8,
+                            }}
+                          >
+                            <Text
+                              className="text-xs font-semibold"
+                              style={{ color: SEVERITY_COLORS[topAlert.severity] }}
+                            >
+                              {SEVERITY_LABELS[topAlert.severity]} · {alerts.length}{" "}
+                              {alerts.length === 1 ? "alerta" : "alertas"}
+                            </Text>
+                          </View>
+                          <Text className="text-xs text-muted">(no oficial)</Text>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           )}
         </View>
 
