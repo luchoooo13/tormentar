@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import fs from "fs";
 import { createServer } from "http";
 import net from "net";
 import path from "path";
@@ -81,13 +82,28 @@ async function startServer() {
   // (necesario para las rutas internas de la app, como /settings o /map,
   // al recargar la página o entrar por link directo).
   const distPath = path.join(__dirname, "..", "dist");
-  app.use(express.static(distPath));
+
+  // --- SOLO PARA DIAGNOSTICAR, SACAR DESPUÉS ---
+  // Inyecta la consola Eruda ANTES que el resto del JS de la app, para ver
+  // errores que pasan apenas arranca, sin tener que activarla a mano.
+  const ERUDA_SNIPPET =
+    '<script src="https://cdn.jsdelivr.net/npm/eruda"></script>' +
+    "<script>eruda.init();</script>";
+
+  const sendIndexWithEruda = (res: express.Response, next: express.NextFunction) => {
+    fs.readFile(path.join(distPath, "index.html"), "utf8", (err, html) => {
+      if (err) return next(err);
+      res.set("Content-Type", "text/html");
+      res.send(html.replace("<head>", "<head>" + ERUDA_SNIPPET));
+    });
+  };
+
+  app.use(express.static(distPath, { index: false }));
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
-    res.sendFile(path.join(distPath, "index.html"), (err) => {
-      if (err) next(err);
-    });
+    sendIndexWithEruda(res, next);
   });
+  // -----------------------------------------------
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
