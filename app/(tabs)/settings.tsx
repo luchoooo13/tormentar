@@ -11,10 +11,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { useLocation } from "@/hooks/useLocation";
+import { useAlertsContext } from "@/lib/alerts-context";
 import { searchCities, type CitySearchResult } from "@/lib/services/geocodingService";
 import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useAlertsContext } from "@/lib/alerts-context";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
   { id: "leve", label: "Leve", color: "#FFA500" },
@@ -27,6 +27,7 @@ export default function SettingsScreen() {
   const { preferences, updatePreferences, setMinSeverity } = useAlertPreferences();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation, setManualLocation } =
     useLocation();
+  const { pushTestAlert } = useAlertsContext();
 
   const [searchCity, setSearchCity] = useState("");
   const [showCitySearch, setShowCitySearch] = useState(false);
@@ -388,6 +389,47 @@ export default function SettingsScreen() {
             <Text className="text-xs text-muted mt-3">
               La app actualizara las alertas cada {preferences.updateIntervalMinutes} minutos
             </Text>
+          </View>
+        </View>
+
+        {/* Sección de Prueba de Alertas (temporal, para testing) */}
+        <View className="px-4 py-4">
+          <View className="flex-row items-center gap-2 mb-3">
+            <MaterialIcons name="bug-report" size={18} color={colors.foreground} />
+            <Text className="text-sm font-semibold text-foreground uppercase">
+              Probar alertas (no reales)
+            </Text>
+          </View>
+
+          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+            <Text className="text-xs text-muted mb-3">
+              Dispara un popup de alerta falso para probar sonido, boton de cerrar y tiempo en
+              pantalla, sin esperar clima real.
+            </Text>
+            <View className="flex-row gap-2">
+              {SEVERITY_LEVELS.map((level) => (
+                <Pressable
+                  key={level.id}
+                  onPress={() => pushTestAlert(level.id)}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: level.color,
+                    backgroundColor: level.color + "15",
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Text
+                    className="text-xs font-semibold text-center"
+                    style={{ color: level.color }}
+                  >
+                    {level.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </View>
 
