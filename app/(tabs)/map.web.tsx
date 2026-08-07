@@ -14,12 +14,13 @@
  * en km) que al tocarlo muestra el detalle.
  */
 import { ScrollView, Text, View, Pressable } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertsContext } from "@/lib/alerts-context";
-import { useRegionAlerts } from "@/hooks/useRegionAlerts";
+import { useRegionAlerts, type RegionPoint } from "@/hooks/useRegionAlerts";
 import { formatAlertTime } from "@/lib/services/weatherService";
+import { buildBuenosAiresGrid, BUENOS_AIRES_BBOX } from "@/lib/services/buenosAiresGrid";
 import { SEVERITY_COLORS, SEVERITY_ICONS, SEVERITY_LABELS } from "@/shared/alertSeverity";
 import type { WeatherAlert } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -60,6 +61,7 @@ export default function MapScreen() {
   const { location, filteredAlerts, hasApiKey, error } = useAlertsContext();
   const {
     regionAlerts,
+    regionPoints,
     regionLoading,
     regionError,
     regionProgress,
@@ -72,6 +74,24 @@ export default function MapScreen() {
   const layersRef = useRef<any[]>([]);
   const [mapError, setMapError] = useState<string | undefined>(undefined);
   const [mapReady, setMapReady] = useState(false);
+
+  // Cuantas veces se subdivide cada celda original de la grilla (la que
+  // efectivamente se consulta contra la API) para dibujar el mosaico.
+  // Con el espaciado default de 2.5 grados, 5 subdivisiones dan
+  // cuadraditos de 0.5 grados (~55km): bastante mas fieles al contorno
+  // real que un unico rectangulo de 2.5 grados por punto, sin pedir NI
+  // una consulta extra a la API (se sigue usando el mismo puñado de
+  // puntos ya consultados; solo se reparte el territorio entre ellos
+  // de forma mas fina).
+  const MOSAIC_SUBDIVISIONS = 5;
+
+  // Sub-grilla fina fija: no depende de los datos, solo del espaciado,
+  // asi que se calcula una sola vez.
+  const mosaicGrid = useMemo(
+    () => buildBuenosAiresGrid(gridSpacingDeg / MOSAIC_SUBDIVISIONS),
+    [gridSpacingDeg]
+  );
+  const mosaicCellSizeDeg = gridSpacingDeg / MOSAIC_SUBDIVISIONS;
 
   // Inicializar el mapa una sola vez.
   useEffect(() => {
@@ -178,48 +198,76 @@ export default function MapScreen() {
     };
   }, [mapReady, filteredAlerts]);
 
-  // Dibujar una celda resaltada por cada punto de la grilla de la
-  // Provincia de Buenos Aires que tenga alerta. Cada punto de grilla
-  // "representa" una casilla cuadrada de gridSpacingDeg x gridSpacingDeg
-  // grados centrada en el (por eso el rectangulo va de -mitad a +mitad
-  // en cada eje). Se usa un rectangulo en vez de un circulo a proposito:
-  // las casillas de la grilla son cuadradas por definicion (se generan
-  // recorriendo lat/lon en pasos fijos), asi que un rectangulo delimita
-  // el area real que ese punto representa sin superponerse de mas con
-  // las celdas vecinas ni "sangrar" hacia zonas que no consulto (rio,
-  // paises vecinos, etc). No requiere ninguna busqueda: cubre TODA la
-  // provincia automaticamente.
+  // Dibujar el mosaico de la Provincia de Buenos Aires: en vez de UN
+  // rectangulo grande por cada punto de grilla con alerta, se subdivide
+  // el territorio en cuadraditos mas chicos (mosaicGrid) y a CADA UNO
+  // se le asigna la severidad del punto de grilla real mas cercano
+  // (vecino mas proximo). Como regionPoints incluye tambien los puntos
+  // SIN alerta (severity: null), los cuadraditos que caen mas cerca de
+  // una localidad despejada quedan afuera del area resaltada — se "les
+  // saca el cuadrado" — mientras que los que caen mas cerca de un punto
+  // con alerta se pintan — se "les agrega el cuadrado" — logrando un
+  // contorno bastante mas fiel a donde esta realmente la alerta que un
+  // unico rectangulo gigante. No implica ninguna consulta extra a la
+  // API: se reparte el mismo puñado de puntos ya pedidos.
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
+    if (regionPoints.length === 0) return;
     const L = (window as any).L;
     const map = mapInstanceRef.current;
 
     const layers: any[] = [];
-    const halfCell = gridSpacingDeg / 2;
+    const halfCell = mosaicCellSizeDeg / 2;
 
-    regionAlerts.forEach((alert) => {
-      const color = SEVERITY_COLORS[alert.severity];
+    // Correccion aproximada por latitud: a -35/-40 grados, un grado de
+    // longitud mide bastante menos en km que un grado de latitud. Sin
+    // esto, el vecino mas cercano se calcularia mal cerca de los bordes
+    // este/oeste de la provincia.
+    const midLat = (BUENOS_AIRES_BBOX.minLat + BUENOS_AIRES_BBOX.maxLat) / 2;
+    const lonScale = Math.cos((midLat * Math.PI) / 180);
+
+    const nearestPoint = (lat: number, lon: number): RegionPoint => {
+      let best = regionPoints[0];
+      let bestDist = Infinity;
+      for (const p of regionPoints) {
+        const dLat = lat - p.latitude;
+        const dLon = (lon - p.longitude) * lonScale;
+        const dist = dLat * dLat + dLon * dLon;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = p;
+        }
+      }
+      return best;
+    };
+
+    mosaicGrid.forEach((cell) => {
+      const nearest = nearestPoint(cell.latitude, cell.longitude);
+      if (!nearest.severity) return; // localidad despejada: no se dibuja nada aca.
+
+      const color = SEVERITY_COLORS[nearest.severity];
       const bounds: [[number, number], [number, number]] = [
-        [alert.gridLatitude - halfCell, alert.gridLongitude - halfCell],
-        [alert.gridLatitude + halfCell, alert.gridLongitude + halfCell],
+        [cell.latitude - halfCell, cell.longitude - halfCell],
+        [cell.latitude + halfCell, cell.longitude + halfCell],
       ];
-      const rect = L.rectangle(bounds, {
+      const tile = L.rectangle(bounds, {
         color,
         fillColor: color,
-        fillOpacity: 0.28,
-        weight: 1,
-        dashArray: "6, 6",
+        fillOpacity: 0.3,
+        stroke: false,
       }).addTo(map);
-      rect.bindPopup(
-        `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} (no oficial, estimado por celda de zona)`
+
+      const label = nearest.alert?.event ?? SEVERITY_LABELS[nearest.severity];
+      tile.bindPopup(
+        `<b>${label}</b><br/>${SEVERITY_LABELS[nearest.severity]} (no oficial, estimado por zona)`
       );
-      layers.push(rect);
+      layers.push(tile);
     });
 
     return () => {
       layers.forEach((l) => l.remove());
     };
-  }, [mapReady, regionAlerts, gridSpacingDeg]);
+  }, [mapReady, regionPoints, mosaicGrid, mosaicCellSizeDeg]);
 
   // Resaltar/centrar la alerta seleccionada desde la lista.
   useEffect(() => {
