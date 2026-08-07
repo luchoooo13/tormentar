@@ -11,12 +11,11 @@
  *    sonido de alarma EAS (Canada).
  *  - Colores segun severidad (mismos que el resto de la app).
  *
- * NOTA (fix sonido): antes dependia de archivos mp3 en /public/sounds/
- * que nunca existieron en el proyecto (por eso nunca sonaba, fallaba en
- * silencio). Ahora el sonido se genera por codigo con la Web Audio API,
- * asi no depende de ningun archivo externo. Ademas se fuerza el resume()
- * del AudioContext porque los navegadores lo crean "suspended" hasta que
- * hubo alguna interaccion del usuario en la pagina.
+ * NOTA (fix sonido): los mp3 viven en /public/sounds/alerta-leve.mp3 y
+ * /public/sounds/eas-alarm-canada.mp3. Se fuerza play() dentro del
+ * mismo gesto/evento que dispara el popup y se atrapa el error si el
+ * navegador bloquea el autoplay por falta de interaccion previa del
+ * usuario en la pagina.
  */
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -34,6 +33,13 @@ import type { WeatherAlert, AlertSeverity } from "@/shared/types/weather";
 
 const STYLE_TAG_ID = "tormentar-alert-popup-styles";
 const LOG_TAG = "[TormentarAlertPopup]";
+
+// mp3 reales por severidad (viven en /public/sounds).
+const SEVERITY_SOUND_URL: Record<AlertSeverity, string> = {
+  leve: "/sounds/alerta-leve.mp3",
+  moderada: "/sounds/eas-alarm-canada.mp3",
+  severa: "/sounds/eas-alarm-canada.mp3",
+};
 
 function ensureBlinkStylesInjected() {
   if (typeof document === "undefined") return;
@@ -56,69 +62,23 @@ function ensureBlinkStylesInjected() {
   document.head.appendChild(style);
 }
 
-// Genera el sonido de alerta con la Web Audio API en vez de depender de
-// un archivo .mp3 externo (que no existia en /public/sounds, por eso
-// nunca sonaba). Devuelve una funcion para cortar el sonido a mano.
+// Reproduce el mp3 real segun la severidad. Devuelve una funcion para
+// cortar el sonido a mano (usada al cerrar el popup antes de tiempo).
 function playSeveritySound(severity: AlertSeverity): () => void {
   if (typeof window === "undefined") return () => {};
-  const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-  if (!AudioCtx) return () => {};
+  const AudioCtor = (window as any).Audio;
+  if (!AudioCtor) return () => {};
 
-  const ctx = new AudioCtx();
-  const stopFns: Array<() => void> = [];
-
-  const scheduleBeeps = () => {
-    const beep = (startAt: number, freq: number, dur: number, gainValue = 0.18) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "square";
-      osc.frequency.value = freq;
-      gain.gain.value = 0;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const t0 = ctx.currentTime + startAt;
-      gain.gain.setValueAtTime(0, t0);
-      gain.gain.linearRampToValueAtTime(gainValue, t0 + 0.02);
-      gain.gain.linearRampToValueAtTime(0, t0 + dur - 0.02);
-      osc.start(t0);
-      osc.stop(t0 + dur);
-      stopFns.push(() => {
-        try {
-          osc.stop();
-        } catch {}
-      });
-    };
-
-    if (severity === "leve") {
-      // Un par de tonos cortos y suaves.
-      beep(0, 660, 0.18);
-      beep(0.22, 660, 0.18);
-    } else {
-      // Patron tipo EAS: tonos mas agudos y repetidos, mas urgente.
-      for (let i = 0; i < 4; i++) {
-        beep(i * 0.32, 880, 0.22, 0.22);
-      }
-    }
-  };
-
-  // Los navegadores crean el AudioContext "suspended" hasta que hubo
-  // alguna interaccion del usuario en la pagina (click, tap, tecla).
-  // Como el popup aparece solo, sin que nadie toque nada en ese
-  // instante, hay que forzar el resume() antes de programar los tonos.
-  if (ctx.state === "suspended") {
-    ctx
-      .resume()
-      .then(scheduleBeeps)
-      .catch((err: unknown) => {
-        console.warn(`${LOG_TAG} no se pudo reanudar el AudioContext:`, err);
-      });
-  } else {
-    scheduleBeeps();
-  }
+  const audio = new AudioCtor(SEVERITY_SOUND_URL[severity]);
+  audio.play().catch((err: unknown) => {
+    // Los navegadores bloquean el autoplay hasta que hubo alguna
+    // interaccion del usuario en la pagina (click, tap, tecla). No es
+    // un error fatal: si el usuario ya toco algo antes, esto no pasa.
+    console.warn(`${LOG_TAG} no se pudo reproducir el sonido (autoplay bloqueado?):`, err);
+  });
 
   return () => {
-    stopFns.forEach((fn) => fn());
-    ctx.close().catch(() => {});
+    audio.pause();
   };
 }
 
@@ -154,7 +114,7 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
       try {
         stopSoundRef.current = playSeveritySound(alert.severity);
       } catch (err) {
-        console.warn(`${LOG_TAG} no se pudo generar el sonido:`, err);
+        console.warn(`${LOG_TAG} no se pudo reproducir el sonido:`, err);
       }
     }
 
