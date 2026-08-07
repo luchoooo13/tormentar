@@ -9,15 +9,15 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useAlertPreferences, getEnabledSeverities } from "@/hooks/useAlertPreferences";
-import { getWeatherAlerts, hasApiKey } from "@/lib/services/weatherService";
+import { useAlertPreferences, getEnabledSeverities, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
+import { getWeatherAlerts, hasApiKey, isAlertActive } from "@/lib/services/weatherService";
 import {
   buildBuenosAiresGrid,
   GRID_SPACING_DEG,
   GRID_CELL_RADIUS_KM,
   type GridPoint,
 } from "@/lib/services/buenosAiresGrid";
-import type { WeatherAlert } from "@/shared/types/weather";
+import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
 
 // Cuantos puntos de la grilla se consultan en simultaneo. Evita pegarle
 // a la API gratuita de OpenWeatherMap con muchos pedidos al mismo tiempo.
@@ -43,9 +43,30 @@ export interface RegionAlert extends WeatherAlert {
   gridLongitude: number;
 }
 
+// Estado ACTUAL (ahora mismo) de un punto de la grilla: incluye tambien
+// los puntos SIN alerta (severity: null). Antes solo se guardaban los
+// puntos con alerta, lo que hacia imposible saber donde terminaba una
+// zona con alerta y empezaba una sin alerta: solo se sabia "aca hay
+// alerta", nunca "aca NO hay". Con los puntos limpios tambien
+// guardados, se puede recortar el area en el mapa contra las
+// localidades vecinas que estan despejadas (y viceversa).
+export interface RegionPoint {
+  latitude: number;
+  longitude: number;
+  severity: AlertSeverity | null;
+  alert?: RegionAlert;
+}
+
+interface RegionCache {
+  timestamp: number;
+  alerts: RegionAlert[];
+  points: RegionPoint[];
+}
+
 export function useRegionAlerts() {
   const { preferences } = useAlertPreferences();
   const [alerts, setAlerts] = useState<RegionAlert[]>([]);
+  const [points, setPoints] = useState<RegionPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -56,12 +77,10 @@ export function useRegionAlerts() {
   const enabledSeveritiesRef = useRef(enabledSeverities);
   enabledSeveritiesRef.current = enabledSeverities;
 
-  const persistCache = useCallback(async (next: RegionAlert[]) => {
+  const persistCache = useCallback(async (next: RegionAlert[], nextPoints: RegionPoint[]) => {
     try {
-      await AsyncStorage.setItem(
-        REGION_CACHE_KEY,
-        JSON.stringify({ timestamp: Date.now(), alerts: next })
-      );
+      const cache: RegionCache = { timestamp: Date.now(), alerts: next, points: nextPoints };
+      await AsyncStorage.setItem(REGION_CACHE_KEY, JSON.stringify(cache));
     } catch (e) {
       console.error("Error guardando cache de alertas regionales", e);
     }
@@ -71,26 +90,48 @@ export function useRegionAlerts() {
     if (!hasApiKey()) return;
     setLoading(true);
     setError(undefined);
-    const points = grid.current;
-    setProgress({ done: 0, total: points.length });
+    const gridPoints = grid.current;
+    setProgress({ done: 0, total: gridPoints.length });
 
     const collected: RegionAlert[] = [];
+    const collectedPoints: RegionPoint[] = [];
     let index = 0;
     let anyError: string | undefined;
 
     async function worker() {
-      while (index < points.length) {
-        const point = points[index++];
+      while (index < gridPoints.length) {
+        const point = gridPoints[index++];
         try {
           const data = await getWeatherAlerts(point.latitude, point.longitude);
           const relevant = (data?.alerts || []).filter((a) =>
             enabledSeveritiesRef.current.includes(a.severity)
           );
-          relevant.forEach((a) => {
-            collected.push({ ...a, gridLatitude: point.latitude, gridLongitude: point.longitude });
+          const relevantWithGrid: RegionAlert[] = relevant.map((a) => ({
+            ...a,
+            gridLatitude: point.latitude,
+            gridLongitude: point.longitude,
+          }));
+          relevantWithGrid.forEach((a) => collected.push(a));
+
+          // Severidad AHORA MISMO en este punto: entre las alertas
+          // vigentes en este instante, la mas grave. Si no hay ninguna
+          // vigente ahora (aunque haya alguna estimada para mas
+          // adelante en el pronostico), el punto queda "limpio" para
+          // el mosaico del mapa.
+          const activeNow = relevantWithGrid
+            .filter(isAlertActive)
+            .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+          const current = activeNow[0];
+
+          collectedPoints.push({
+            latitude: point.latitude,
+            longitude: point.longitude,
+            severity: current ? current.severity : null,
+            alert: current,
           });
         } catch (err) {
           anyError = err instanceof Error ? err.message : "Error desconocido";
+          collectedPoints.push({ latitude: point.latitude, longitude: point.longitude, severity: null });
         } finally {
           setProgress((prev) => ({ ...prev, done: prev.done + 1 }));
         }
@@ -105,30 +146,34 @@ export function useRegionAlerts() {
     collected.forEach((a) => {
       if (!byId.has(a.id)) byId.set(a.id, a);
     });
+    const dedupedAlerts = Array.from(byId.values());
 
-    setAlerts(Array.from(byId.values()));
+    setAlerts(dedupedAlerts);
+    setPoints(collectedPoints);
     setError(anyError);
     setLoading(false);
     if (!anyError) {
-      persistCache(Array.from(byId.values()));
+      persistCache(dedupedAlerts, collectedPoints);
     }
   }, [persistCache]);
 
   // Al montar: intentar usar la cache si todavia esta fresca (menos de
   // REGION_REFRESH_INTERVAL_MS de antiguedad) para no volver a barrer
   // toda la grilla cada vez que se entra a la pantalla de Mapa. Si esta
-  // vencida o no existe, hace el fetch normal.
+  // vencida, no existe, o es de un formato viejo (sin "points"), hace
+  // el fetch normal.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(REGION_CACHE_KEY);
         if (saved) {
-          const parsed = JSON.parse(saved) as { timestamp: number; alerts: RegionAlert[] };
-          const age = Date.now() - parsed.timestamp;
-          if (age < REGION_REFRESH_INTERVAL_MS) {
+          const parsed = JSON.parse(saved) as Partial<RegionCache>;
+          const age = Date.now() - (parsed.timestamp ?? 0);
+          if (age < REGION_REFRESH_INTERVAL_MS && Array.isArray(parsed.points)) {
             if (!cancelled) {
-              setAlerts(parsed.alerts);
+              setAlerts(parsed.alerts ?? []);
+              setPoints(parsed.points);
             }
             return;
           }
@@ -164,9 +209,9 @@ export function useRegionAlerts() {
       try {
         const saved = await AsyncStorage.getItem(REGION_CACHE_KEY);
         if (saved) {
-          const parsed = JSON.parse(saved) as { timestamp: number; alerts: RegionAlert[] };
-          const age = Date.now() - parsed.timestamp;
-          if (age < REGION_REFRESH_INTERVAL_MS) return;
+          const parsed = JSON.parse(saved) as Partial<RegionCache>;
+          const age = Date.now() - (parsed.timestamp ?? 0);
+          if (age < REGION_REFRESH_INTERVAL_MS && Array.isArray(parsed.points)) return;
         }
       } catch (e) {
         console.error("Error leyendo cache de alertas regionales", e);
@@ -184,6 +229,7 @@ export function useRegionAlerts() {
 
   return {
     regionAlerts: alerts,
+    regionPoints: points,
     regionLoading: loading,
     regionError: error,
     regionProgress: progress,
