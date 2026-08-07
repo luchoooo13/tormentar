@@ -28,27 +28,77 @@ export function hasApiKey(): boolean {
 
 const SEVERITY_ORDER: Record<AlertSeverity, number> = { severa: 0, moderada: 1, leve: 2 };
 
+// Tipo de fenomeno que motivo la alerta. Antes solo se guardaba la
+// severidad (leve/moderada/severa) y el mensaje siempre decia
+// genericamente "Riesgo de tormenta ...", sin distinguir si el motivo
+// fue viento, lluvia, tormenta electrica o nieve.
+type Phenomenon = "viento" | "tormenta" | "lluvia" | "nieve";
+
+// Etiqueta de cada fenomeno, ya ajustada segun la severidad con la que
+// se dispara (ej. "Viento" en leve, "Viento fuerte" en moderada,
+// "Viento muy fuerte" en severa).
+const PHENOMENON_LABELS: Record<Phenomenon, Record<AlertSeverity, string>> = {
+  viento: { leve: "Viento", moderada: "Viento fuerte", severa: "Viento muy fuerte" },
+  tormenta: { leve: "Tormenta eléctrica leve", moderada: "Tormenta eléctrica", severa: "Tormenta eléctrica fuerte" },
+  lluvia: { leve: "Lluvia", moderada: "Lluvia fuerte", severa: "Lluvia muy fuerte" },
+  nieve: { leve: "Nieve leve", moderada: "Nieve", severa: "Nieve intensa" },
+};
+
+interface Classification {
+  severity: AlertSeverity;
+  // Puede haber mas de un fenomeno empatado en la misma severidad (ej.
+  // viento fuerte Y lluvia fuerte al mismo tiempo): se combinan en el
+  // mensaje ("Viento fuerte y Lluvia fuerte") en vez de mostrar solo
+  // uno y ocultar el otro.
+  phenomena: Phenomenon[];
+}
+
 // El plan free no incluye alertas oficiales (eso vive solo en One Call
-// 3.0/4.0, que exige tarjeta). Estimamos el riesgo de tormenta a partir
-// de los códigos de condición climática y el viento del pronóstico de
-// 5 días / 3 horas. No son alertas oficiales del servicio meteorológico.
-function classifyCondition(weatherId: number, windSpeed: number): AlertSeverity | null {
-  if (windSpeed >= 17) return "severa"; // ~61 km/h
-  if (windSpeed >= 10.8) return "moderada"; // ~39 km/h
+// 3.0/4.0, que exige tarjeta). Estimamos el riesgo a partir de los
+// códigos de condición climática y el viento del pronóstico de 5 días
+// / 3 horas. No son alertas oficiales del servicio meteorológico.
+//
+// Se evaluan el viento y el codigo de condicion climatica por
+// SEPARADO, cada uno con su propia severidad, y despues se combinan:
+// la severidad final es la mas grave de las dos, y el mensaje incluye
+// TODOS los fenomenos que hayan alcanzado esa severidad maxima.
+function classifyCondition(weatherId: number, windSpeed: number): Classification | null {
+  const candidates: { severity: AlertSeverity; phenomenon: Phenomenon }[] = [];
 
-  if ([202, 212, 232].includes(weatherId)) return "severa";
-  if (weatherId >= 200 && weatherId <= 232) return "moderada";
+  if (windSpeed >= 17) candidates.push({ severity: "severa", phenomenon: "viento" }); // ~61 km/h
+  else if (windSpeed >= 10.8) candidates.push({ severity: "moderada", phenomenon: "viento" }); // ~39 km/h
 
-  if (weatherId === 781 || weatherId === 771) return "severa"; // tornado / squalls
+  if ([202, 212, 232].includes(weatherId)) candidates.push({ severity: "severa", phenomenon: "tormenta" });
+  else if (weatherId >= 200 && weatherId <= 232) candidates.push({ severity: "moderada", phenomenon: "tormenta" });
+  else if (weatherId === 781 || weatherId === 771) candidates.push({ severity: "severa", phenomenon: "viento" }); // tornado / squalls
+  else if ([503, 504].includes(weatherId)) candidates.push({ severity: "severa", phenomenon: "lluvia" });
+  else if ([502, 511, 522, 531].includes(weatherId)) candidates.push({ severity: "moderada", phenomenon: "lluvia" });
+  else if ([500, 501, 520, 521].includes(weatherId)) candidates.push({ severity: "leve", phenomenon: "lluvia" });
+  else if ([602, 622].includes(weatherId)) candidates.push({ severity: "moderada", phenomenon: "nieve" });
+  else if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) candidates.push({ severity: "leve", phenomenon: "nieve" });
 
-  if ([503, 504].includes(weatherId)) return "severa";
-  if ([502, 511, 522, 531].includes(weatherId)) return "moderada";
-  if ([500, 501, 520, 521].includes(weatherId)) return "leve";
+  if (candidates.length === 0) return null;
 
-  if ([602, 622].includes(weatherId)) return "moderada";
-  if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) return "leve";
+  const worstSeverity = candidates.reduce(
+    (worst, c) => (SEVERITY_ORDER[c.severity] < SEVERITY_ORDER[worst] ? c.severity : worst),
+    candidates[0].severity
+  );
+  const phenomena = Array.from(
+    new Set(candidates.filter((c) => c.severity === worstSeverity).map((c) => c.phenomenon))
+  );
 
-  return null;
+  return { severity: worstSeverity, phenomena };
+}
+
+function buildEventName(severity: AlertSeverity, phenomena: Phenomenon[]): string {
+  if (phenomena.length === 0) {
+    return severity === "severa"
+      ? "Riesgo de tormenta fuerte"
+      : severity === "moderada"
+      ? "Riesgo de tormenta moderada"
+      : "Condición climática leve";
+  }
+  return phenomena.map((p) => PHENOMENON_LABELS[p][severity]).join(" y ");
 }
 
 interface ForecastPoint {
@@ -64,18 +114,16 @@ function buildAlertsFromPoints(
   longitude: number
 ): WeatherAlert[] {
   const alerts: WeatherAlert[] = [];
-  let open: { start: number; end: number; severity: AlertSeverity; description: string } | null = null;
+  let open:
+    | { start: number; end: number; severity: AlertSeverity; phenomena: Set<Phenomenon>; description: string }
+    | null = null;
 
   const closeOpen = () => {
     if (!open) return;
+    const phenomenaList = Array.from(open.phenomena);
     alerts.push({
       id: `${open.start}-${open.end}`,
-      event:
-        open.severity === "severa"
-          ? "Riesgo de tormenta fuerte"
-          : open.severity === "moderada"
-          ? "Riesgo de tormenta moderada"
-          : "Condición climática leve",
+      event: buildEventName(open.severity, phenomenaList),
       description: `Estimado a partir del pronóstico: ${open.description}.`,
       start: open.start,
       end: open.end,
@@ -89,22 +137,32 @@ function buildAlertsFromPoints(
   };
 
   for (const point of points) {
-    const severity = classifyCondition(point.weatherId, point.windSpeed);
-    if (!severity) {
+    const classification = classifyCondition(point.weatherId, point.windSpeed);
+    if (!classification) {
       closeOpen();
       continue;
     }
+    const { severity, phenomena } = classification;
     if (open && SEVERITY_ORDER[severity] <= SEVERITY_ORDER[open.severity]) {
       open.end = point.dt + 3 * 3600;
       if (SEVERITY_ORDER[severity] < SEVERITY_ORDER[open.severity]) {
+        // La severidad subio: el fenomeno que la disparo ahora pasa a
+        // ser el protagonista del mensaje (se reinicia el set).
         open.severity = severity;
+        open.phenomena = new Set(phenomena);
         open.description = point.description;
+      } else {
+        // Misma severidad que ya veniamos arrastrando: si aparece un
+        // fenomeno nuevo a ese mismo nivel (ej. empezo solo con lluvia
+        // fuerte y ahora tambien sopla viento fuerte), se suma al
+        // mensaje en vez de perderse.
+        phenomena.forEach((p) => open!.phenomena.add(p));
       }
     } else if (open) {
       closeOpen();
-      open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+      open = { start: point.dt, end: point.dt + 3 * 3600, severity, phenomena: new Set(phenomena), description: point.description };
     } else {
-      open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+      open = { start: point.dt, end: point.dt + 3 * 3600, severity, phenomena: new Set(phenomena), description: point.description };
     }
   }
   closeOpen();
