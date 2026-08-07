@@ -64,7 +64,7 @@ export default function MapScreen() {
     regionError,
     regionProgress,
     refreshRegion,
-    gridCellRadiusKm,
+    gridSpacingDeg,
   } = useRegionAlerts();
 
   const mapContainerRef = useRef<any>(null);
@@ -110,17 +110,31 @@ export default function MapScreen() {
     if (typeof location?.latitude !== "number" || typeof location?.longitude !== "number") return;
 
     const L = (window as any).L;
-    mapInstanceRef.current.setView([location.latitude, location.longitude], 11);
+    const map = mapInstanceRef.current;
+    map.setView([location.latitude, location.longitude], 11);
+
+    // Pane propio para el marcador del usuario, por encima del pane de
+    // overlays (donde viven los circulos de alertas, z-index 400). Asi
+    // el marcador queda SIEMPRE visible por encima de cualquier circulo
+    // de alerta, sin importar el orden en que se agreguen al mapa.
+    if (!map.getPane("userMarkerPane")) {
+      map.createPane("userMarkerPane");
+      map.getPane("userMarkerPane").style.zIndex = "650";
+    }
 
     const userIcon = L.divIcon({
       className: "",
-      html: `<div style="width:16px;height:16px;border-radius:50%;background:${colors.primary};border:3px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)"></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+      html: `<div style="width:18px;height:18px;border-radius:50%;background:${colors.primary};border:3px solid white;box-shadow:0 0 0 2px ${colors.primary}, 0 1px 6px rgba(0,0,0,0.5)"></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
     });
 
-    const userMarker = L.marker([location.latitude, location.longitude], { icon: userIcon })
-      .addTo(mapInstanceRef.current)
+    const userMarker = L.marker([location.latitude, location.longitude], {
+      icon: userIcon,
+      pane: "userMarkerPane",
+      zIndexOffset: 1000,
+    })
+      .addTo(map)
       .bindPopup("Tu ubicacion");
 
     layersRef.current.push(userMarker);
@@ -165,38 +179,47 @@ export default function MapScreen() {
   }, [mapReady, filteredAlerts]);
 
   // Dibujar una celda resaltada por cada punto de la grilla de la
-  // Provincia de Buenos Aires que tenga alerta. El radio de cada celda
-  // es la mitad del espaciado de la grilla, asi que las celdas vecinas
-  // con alerta quedan pegadas entre si y se ve como una zona continua
-  // resaltada en vez de puntos sueltos. No require ninguna busqueda:
-  // cubre TODA la provincia automaticamente.
+  // Provincia de Buenos Aires que tenga alerta. Cada punto de grilla
+  // "representa" una casilla cuadrada de gridSpacingDeg x gridSpacingDeg
+  // grados centrada en el (por eso el rectangulo va de -mitad a +mitad
+  // en cada eje). Se usa un rectangulo en vez de un circulo a proposito:
+  // las casillas de la grilla son cuadradas por definicion (se generan
+  // recorriendo lat/lon en pasos fijos), asi que un rectangulo delimita
+  // el area real que ese punto representa sin superponerse de mas con
+  // las celdas vecinas ni "sangrar" hacia zonas que no consulto (rio,
+  // paises vecinos, etc). No requiere ninguna busqueda: cubre TODA la
+  // provincia automaticamente.
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
     const L = (window as any).L;
     const map = mapInstanceRef.current;
 
     const layers: any[] = [];
+    const halfCell = gridSpacingDeg / 2;
 
     regionAlerts.forEach((alert) => {
       const color = SEVERITY_COLORS[alert.severity];
-      const circle = L.circle([alert.gridLatitude, alert.gridLongitude], {
-        radius: gridCellRadiusKm * 1000,
+      const bounds: [[number, number], [number, number]] = [
+        [alert.gridLatitude - halfCell, alert.gridLongitude - halfCell],
+        [alert.gridLatitude + halfCell, alert.gridLongitude + halfCell],
+      ];
+      const rect = L.rectangle(bounds, {
         color,
         fillColor: color,
         fillOpacity: 0.28,
         weight: 1,
         dashArray: "6, 6",
       }).addTo(map);
-      circle.bindPopup(
-        `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} (no oficial, estimado por zona)`
+      rect.bindPopup(
+        `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} (no oficial, estimado por celda de zona)`
       );
-      layers.push(circle);
+      layers.push(rect);
     });
 
     return () => {
       layers.forEach((l) => l.remove());
     };
-  }, [mapReady, regionAlerts, gridCellRadiusKm]);
+  }, [mapReady, regionAlerts, gridSpacingDeg]);
 
   // Resaltar/centrar la alerta seleccionada desde la lista.
   useEffect(() => {
