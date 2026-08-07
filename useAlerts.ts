@@ -1,25 +1,29 @@
 /**
  * useAlerts Hook
- * Trae alertas REALES desde OpenWeatherMap (antes las pantallas usaban
- * datos hardcodeados de demostración y nunca llamaban a la API real).
- *
- * - Usa la ubicación real del dispositivo (useLocation).
- * - Actualiza según el intervalo único configurado en las preferencias.
- * - Filtra según los niveles de severidad elegidos por el usuario
- *   (leve / moderada / fuerte).
- * - Dispara notificaciones locales solo para alertas nuevas que el
- *   usuario eligió recibir.
- * - Pide permisos de notificación al iniciar para que las alertas
- *   realmente se muestren en Android 13+ e iOS.
+ * Trae alertas REALES desde OpenWeatherMap.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocation } from "@/hooks/useLocation";
-import { useAlertPreferences, getEnabledSeverities } from "@/hooks/useAlertPreferences";
+import {
+  useAlertPreferences,
+  getEnabledSeverities,
+} from "@/hooks/useAlertPreferences";
 import { useWeatherNotifications } from "@/hooks/useWeatherNotifications";
-import { getWeatherAlerts, hasApiKey, sortAlertsBySeverity } from "@/lib/services/weatherService";
+import {
+  getWeatherAlerts,
+  hasApiKey,
+  sortAlertsBySeverity,
+} from "@/lib/services/weatherService";
 import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
 
-export function useAlerts() {
+const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
+
+interface UseAlertsOptions {
+  onNewAlert?: (alert: WeatherAlert) => void;
+}
+
+export function useAlerts(options?: UseAlertsOptions) {
   const {
     location,
     loading: locationLoading,
@@ -27,39 +31,60 @@ export function useAlerts() {
     getCurrentLocation,
   } = useLocation();
   const { preferences } = useAlertPreferences();
-  const { sendNotification, setupNotificationChannels, requestPermissions } = useWeatherNotifications();
+  const {
+    sendNotification,
+    setupNotificationChannels,
+    requestPermissions,
+  } = useWeatherNotifications();
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  // IDs de alertas ya vistas, para no volver a notificar lo mismo y
-  // para distinguir "alerta nueva" de "alerta que ya estaba".
   const knownAlertIds = useRef<Set<string>>(new Set());
-  const isFirstLoad = useRef(true);
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+  const onNewAlertRef = useRef(options?.onNewAlert);
+  onNewAlertRef.current = options?.onNewAlert;
 
-  // --- Guard anti-carrera para los requests HTTP ---
-  // fetchAlerts puede dispararse por varias causas a la vez: cambio de
-  // ubicación, el intervalo periódico, o un refresh manual del usuario.
-  // Si dos pedidos quedan en vuelo al mismo tiempo, pueden resolverse
-  // en cualquier orden: el más lento (con datos de una ubicación u
-  // ocasión ya vieja) puede llegar después y pisar el estado con
-  // resultados "incombinables" con lo que el usuario está viendo ahora.
-  //
-  // Se resuelve con dos cosas juntas:
-  // 1) requestIdRef: cada llamada saca un número correlativo. Al volver
-  //    la respuesta, si ese número ya no es el más reciente, se
-  //    descarta sin tocar el estado (ni loading, ni error, ni weather).
-  // 2) AbortController: el pedido anterior se cancela de entrada al
-  //    arrancar uno nuevo, para no seguir gastando red en una
-  //    respuesta que de todos modos se va a ignorar.
+  const knownAlertsLoadedRef = useRef<Promise<void> | null>(null);
+  if (!knownAlertsLoadedRef.current) {
+    knownAlertsLoadedRef.current = (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(KNOWN_ALERTS_KEY);
+        if (saved) {
+          const ids = JSON.parse(saved);
+          knownAlertIds.current = new Set(ids);
+        }
+      } catch (e) {
+        console.error("Error loading known alerts", e);
+      }
+    })();
+  }
+
+  // FIX: guard anti-carrera. Antes, si dos fetchAlerts() quedaban en
+  // vuelo al mismo tiempo (posible por el loop de renders que causaba
+  // el bug de useWeatherNotifications, o simplemente por un refresh
+  // manual mientras el intervalo automatico tambien disparaba uno),
+  // los dos leian knownAlertIds ANTES de que el otro terminara de
+  // marcar la alerta como conocida. Los dos la trataban como "nueva"
+  // y los dos llamaban a onNewAlert, asi que la alerta volvia a
+  // encolarse para el popup incluso despues de que el usuario ya la
+  // habia cerrado. requestIdRef descarta el resultado de cualquier
+  // fetch que ya no sea el mas reciente.
   const requestIdRef = useRef(0);
-  const activeControllerRef = useRef<AbortController | null>(null);
+  // Marca de tiempo del ultimo fetch (exitoso o no), usada para no
+  // disparar un refetch extra por "volver a la pestana" si ya hubo uno
+  // hace muy poco.
+  const lastFetchAtRef = useRef(0);
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
+    if (typeof location.latitude !== "number" || typeof location.longitude !== "number") {
+      setError("La ubicación no es válida todavía. Volvé a intentar en unos segundos.");
+      setLoading(false);
+      return;
+    }
 
     if (!hasApiKey()) {
       setError(
@@ -69,12 +94,6 @@ export function useAlerts() {
       return;
     }
 
-    // Cancela cualquier pedido anterior todavía en vuelo: su resultado
-    // ya no le interesa a nadie, sea cual sea la ubicación que pedía.
-    activeControllerRef.current?.abort();
-    const controller = new AbortController();
-    activeControllerRef.current = controller;
-
     const requestId = ++requestIdRef.current;
     const isStale = () => requestId !== requestIdRef.current;
 
@@ -82,11 +101,11 @@ export function useAlerts() {
     setError(undefined);
 
     try {
-      const data = await getWeatherAlerts(location.latitude, location.longitude, controller.signal);
+      await knownAlertsLoadedRef.current;
+      const data = await getWeatherAlerts(location.latitude, location.longitude);
 
-      // Llegó, pero ya hay un pedido más nuevo en curso (o este fue
-      // cancelado): se descarta en silencio, sin pisar el estado
-      // actual ni mostrar error.
+      // Llegó, pero ya hay un fetch más nuevo en curso: se descarta en
+      // silencio para no notificar/mostrar el popup con datos viejos.
       if (isStale()) return;
 
       if (!data) {
@@ -100,66 +119,107 @@ export function useAlerts() {
       const currentAlerts = data.alerts || [];
       const prefs = preferencesRef.current;
 
-      if (prefs.notificationsEnabled && !isFirstLoad.current) {
+      if (prefs.notificationsEnabled) {
         const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
         const newRelevantAlerts = currentAlerts.filter(
-          (a) => !knownAlertIds.current.has(a.id) && enabledSeverities.includes(a.severity)
+          (a) =>
+            !knownAlertIds.current.has(a.id) &&
+            enabledSeverities.includes(a.severity)
         );
+
         for (const alert of newRelevantAlerts) {
-          // Si mientras se notifica llega un pedido más nuevo, se corta
-          // acá: no tiene sentido seguir notificando alertas de una
-          // consulta que ya quedó obsoleta.
-          if (isStale()) return;
+          // Marcar como conocida ANTES de notificar, no despues: asi
+          // si otro fetch se dispara mientras esto corre, ya la ve
+          // como conocida y no la vuelve a encolar.
+          knownAlertIds.current.add(alert.id);
           await sendNotification(alert, {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
           });
+          if (isStale()) return;
+          onNewAlertRef.current?.(alert);
+        }
+
+        if (newRelevantAlerts.length > 0) {
+          await AsyncStorage.setItem(
+            KNOWN_ALERTS_KEY,
+            JSON.stringify(Array.from(knownAlertIds.current))
+          );
         }
       }
 
-      if (isStale()) return;
-      currentAlerts.forEach((a) => knownAlertIds.current.add(a.id));
-      isFirstLoad.current = false;
+      let changed = false;
+      currentAlerts.forEach((a) => {
+        if (!knownAlertIds.current.has(a.id)) {
+          knownAlertIds.current.add(a.id);
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        await AsyncStorage.setItem(
+          KNOWN_ALERTS_KEY,
+          JSON.stringify(Array.from(knownAlertIds.current))
+        );
+      }
     } catch (err) {
       if (isStale()) return;
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
     } finally {
       if (!isStale()) setLoading(false);
+      lastFetchAtRef.current = Date.now();
     }
   }, [location, sendNotification]);
 
-  // Canales de notificación (Android) y permiso de notificaciones, una
-  // sola vez. Sin pedir el permiso, sendNotification no muestra nada.
   useEffect(() => {
     requestPermissions();
     setupNotificationChannels();
-  }, [setupNotificationChannels]);
+  }, [requestPermissions, setupNotificationChannels]);
 
-  // Buscar alertas apenas se conoce la ubicación.
   useEffect(() => {
     if (location) {
       fetchAlerts();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location?.latitude, location?.longitude]);
+  }, [location?.latitude, location?.longitude, fetchAlerts]);
 
-  // Al desmontar, cancela cualquier pedido que haya quedado en vuelo
-  // para no intentar actualizar estado de un componente que ya no
-  // existe.
-  useEffect(() => {
-    return () => {
-      activeControllerRef.current?.abort();
-    };
-  }, []);
-
-  // Actualización periódica según el intervalo único configurado.
+  // Alertas "en vivo" mientras la pagina esta abierta: se re-piden solas
+  // cada updateIntervalMinutes, sin que el usuario tenga que refrescar.
   useEffect(() => {
     if (!location) return;
     const intervalMs = preferences.updateIntervalMinutes * 60 * 1000;
     const id = setInterval(fetchAlerts, intervalMs);
     return () => clearInterval(id);
   }, [location, preferences.updateIntervalMinutes, fetchAlerts]);
+
+  // Ademas del intervalo, refrescar apenas la pestana vuelve a estar
+  // visible/en foco (por ej. el usuario minimizo el navegador, cambio
+  // de pestana un rato, o la compu se suspendio). Sin esto, si el
+  // intervalo cae justo mientras la pestana esta en segundo plano (los
+  // navegadores frenan los timers ahi), el usuario puede volver y ver
+  // datos viejos sin darse cuenta. Se evita golpear la API de mas
+  // exigiendo que haya pasado al menos MIN_REFOCUS_GAP_MS desde el
+  // ultimo fetch.
+  useEffect(() => {
+    if (!location || typeof document === "undefined") return;
+
+    const MIN_REFOCUS_GAP_MS = 60 * 1000;
+
+    const maybeRefetch = () => {
+      if (document.visibilityState !== "visible") return;
+      const elapsed = Date.now() - lastFetchAtRef.current;
+      if (elapsed >= MIN_REFOCUS_GAP_MS) {
+        fetchAlerts();
+      }
+    };
+
+    document.addEventListener("visibilitychange", maybeRefetch);
+    window.addEventListener("focus", maybeRefetch);
+    return () => {
+      document.removeEventListener("visibilitychange", maybeRefetch);
+      window.removeEventListener("focus", maybeRefetch);
+    };
+  }, [location, fetchAlerts]);
 
   const allAlerts: WeatherAlert[] = weather?.alerts || [];
   const enabledSeverities = getEnabledSeverities(preferences.minSeverity);
