@@ -151,6 +151,37 @@ export function useRegionAlerts() {
     return () => clearInterval(id);
   }, [fetchRegion]);
 
+  // Al volver a la pestana (foco/visibilidad), revisar si la cache ya
+  // vencio y, si es asi, barrer la grilla de nuevo. Esto cubre el caso
+  // en que el intervalo de 30 min cae mientras la pestana esta en
+  // segundo plano (los navegadores frenan los timers ahi) y el usuario
+  // vuelve encontrandose con datos viejos sin saberlo.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const maybeRefetch = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const saved = await AsyncStorage.getItem(REGION_CACHE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved) as { timestamp: number; alerts: RegionAlert[] };
+          const age = Date.now() - parsed.timestamp;
+          if (age < REGION_REFRESH_INTERVAL_MS) return;
+        }
+      } catch (e) {
+        console.error("Error leyendo cache de alertas regionales", e);
+      }
+      fetchRegion();
+    };
+
+    document.addEventListener("visibilitychange", maybeRefetch);
+    window.addEventListener("focus", maybeRefetch);
+    return () => {
+      document.removeEventListener("visibilitychange", maybeRefetch);
+      window.removeEventListener("focus", maybeRefetch);
+    };
+  }, [fetchRegion]);
+
   return {
     regionAlerts: alerts,
     regionLoading: loading,
