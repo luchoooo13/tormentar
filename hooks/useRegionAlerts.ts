@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAlertPreferences, getEnabledSeverities, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
-import { getWeatherAlerts, hasApiKey, isAlertActive } from "@/lib/services/weatherService";
+import { getWeatherAlerts, hasApiKey } from "@/lib/services/weatherService";
 import {
   buildBuenosAiresGrid,
   GRID_SPACING_DEG,
@@ -35,6 +35,15 @@ const REGION_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 // el componente; reusa el resultado mientras no este vencido.
 const REGION_CACHE_KEY = "tormentar_region_alerts_cache";
 
+// Version del esquema de la cache. Subirla invalida cualquier cache
+// vieja guardada en el navegador del usuario, aunque todavia este
+// "fresca" segun su timestamp. Se subio de 1 a 2 al corregir el bug
+// que dejaba el mosaico vacio (exigia alerta activa "ahora mismo" en
+// vez de la mas grave de todo el horizonte): sin esto, quien ya tenia
+// una cache vieja (vacia) guardada la seguiria viendo hasta por 30 min
+// despues de actualizar el codigo.
+const REGION_CACHE_VERSION = 2;
+
 export interface RegionAlert extends WeatherAlert {
   // Punto de grilla del que salio esta alerta (se usa para dibujar la
   // celda resaltada en el mapa, independientemente de si la alerta en
@@ -58,6 +67,7 @@ export interface RegionPoint {
 }
 
 interface RegionCache {
+  version: number;
   timestamp: number;
   alerts: RegionAlert[];
   points: RegionPoint[];
@@ -79,7 +89,12 @@ export function useRegionAlerts() {
 
   const persistCache = useCallback(async (next: RegionAlert[], nextPoints: RegionPoint[]) => {
     try {
-      const cache: RegionCache = { timestamp: Date.now(), alerts: next, points: nextPoints };
+      const cache: RegionCache = {
+        version: REGION_CACHE_VERSION,
+        timestamp: Date.now(),
+        alerts: next,
+        points: nextPoints,
+      };
       await AsyncStorage.setItem(REGION_CACHE_KEY, JSON.stringify(cache));
     } catch (e) {
       console.error("Error guardando cache de alertas regionales", e);
@@ -113,21 +128,23 @@ export function useRegionAlerts() {
           }));
           relevantWithGrid.forEach((a) => collected.push(a));
 
-          // Severidad AHORA MISMO en este punto: entre las alertas
-          // vigentes en este instante, la mas grave. Si no hay ninguna
-          // vigente ahora (aunque haya alguna estimada para mas
-          // adelante en el pronostico), el punto queda "limpio" para
-          // el mosaico del mapa.
-          const activeNow = relevantWithGrid
-            .filter(isAlertActive)
-            .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-          const current = activeNow[0];
+          // Severidad representativa de este punto para el mosaico: la
+          // mas grave entre TODAS las estimadas en su horizonte (no
+          // solo la que este activa en este preciso instante). Antes
+          // se exigia que hubiera una alerta activa "ahora mismo", pero
+          // como la severidad se estima en bloques de 3 horas del
+          // pronostico, el instante exacto "ahora" rara vez cae dentro
+          // de un bloque con condicion: eso dejaba casi todos los
+          // puntos sin nada y el mosaico se veia vacio.
+          const worst = [...relevantWithGrid].sort(
+            (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]
+          )[0];
 
           collectedPoints.push({
             latitude: point.latitude,
             longitude: point.longitude,
-            severity: current ? current.severity : null,
-            alert: current,
+            severity: worst ? worst.severity : null,
+            alert: worst,
           });
         } catch (err) {
           anyError = err instanceof Error ? err.message : "Error desconocido";
@@ -158,10 +175,10 @@ export function useRegionAlerts() {
   }, [persistCache]);
 
   // Al montar: intentar usar la cache si todavia esta fresca (menos de
-  // REGION_REFRESH_INTERVAL_MS de antiguedad) para no volver a barrer
-  // toda la grilla cada vez que se entra a la pantalla de Mapa. Si esta
-  // vencida, no existe, o es de un formato viejo (sin "points"), hace
-  // el fetch normal.
+  // REGION_REFRESH_INTERVAL_MS de antiguedad) Y es del esquema actual
+  // (REGION_CACHE_VERSION), para no volver a barrer toda la grilla cada
+  // vez que se entra a la pantalla de Mapa. Si esta vencida, no existe,
+  // o es de una version vieja del esquema, hace el fetch normal.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -170,7 +187,8 @@ export function useRegionAlerts() {
         if (saved) {
           const parsed = JSON.parse(saved) as Partial<RegionCache>;
           const age = Date.now() - (parsed.timestamp ?? 0);
-          if (age < REGION_REFRESH_INTERVAL_MS && Array.isArray(parsed.points)) {
+          const isCurrentVersion = parsed.version === REGION_CACHE_VERSION;
+          if (age < REGION_REFRESH_INTERVAL_MS && isCurrentVersion && Array.isArray(parsed.points)) {
             if (!cancelled) {
               setAlerts(parsed.alerts ?? []);
               setPoints(parsed.points);
@@ -211,7 +229,8 @@ export function useRegionAlerts() {
         if (saved) {
           const parsed = JSON.parse(saved) as Partial<RegionCache>;
           const age = Date.now() - (parsed.timestamp ?? 0);
-          if (age < REGION_REFRESH_INTERVAL_MS && Array.isArray(parsed.points)) return;
+          const isCurrentVersion = parsed.version === REGION_CACHE_VERSION;
+          if (age < REGION_REFRESH_INTERVAL_MS && isCurrentVersion && Array.isArray(parsed.points)) return;
         }
       } catch (e) {
         console.error("Error leyendo cache de alertas regionales", e);
