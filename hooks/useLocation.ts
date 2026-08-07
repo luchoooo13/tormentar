@@ -1,14 +1,19 @@
 /**
  * useLocation Hook
- * Hook para obtener y manejar la ubicación del usuario
+ * Hook para obtener y manejar la ubicación del usuario.
+ * Ahora usa un cache en memoria y un sistema de listeners para que
+ * la ubicación sea ÚNICA en toda la aplicación. Si se cambia en
+ * Configuración, se actualiza al instante en Inicio y Mapa.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Platform } from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { LocationData } from "@/shared/types/weather";
 import { reverseGeocodeWeb } from "@/lib/services/geocodingService";
+
+const LOCATION_STORAGE_KEY = "tormentar_location";
 
 // `Location.reverseGeocodeAsync` de expo-location no funciona en web
 // (requiere el geocoder nativo). En web usamos un servicio HTTP en su
@@ -29,18 +34,31 @@ async function resolveCityName(latitude: number, longitude: number) {
   return {};
 }
 
-const LOCATION_STORAGE_KEY = "tormentar_location";
+// Estado compartido en memoria
+let memoryLocation: LocationData | null = null;
+let memoryLoading = true;
+let memoryError: string | undefined = undefined;
+let loadPromise: Promise<void> | null = null;
+const listeners = new Set<(state: { location: LocationData | null; loading: boolean; error?: string }) => void>();
+
+function notifyListeners() {
+  const state = { location: memoryLocation, loading: memoryLoading, error: memoryError };
+  listeners.forEach((l) => l(state));
+}
 
 export function useLocation() {
-  const [location, setLocation] = useState<LocationData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [state, setState] = useState({
+    location: memoryLocation,
+    loading: memoryLoading,
+    error: memoryError,
+  });
 
   // Obtener ubicación actual
-  const getCurrentLocation = async () => {
+  const getCurrentLocation = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(undefined);
+      memoryLoading = true;
+      memoryError = undefined;
+      notifyListeners();
 
       // Solicitar permiso
       let status = "granted";
@@ -49,8 +67,9 @@ export function useLocation() {
         status = permission.status;
       }
       if (status !== "granted") {
-        setError("Permiso de ubicación denegado");
-        setLoading(false);
+        memoryError = "Permiso de ubicación denegado";
+        memoryLoading = false;
+        notifyListeners();
         return;
       }
 
@@ -69,21 +88,26 @@ export function useLocation() {
       newLocation.city = cityInfo.city;
       newLocation.country = cityInfo.country;
 
-      setLocation(newLocation);
+      memoryLocation = newLocation;
+      memoryLoading = false;
+      notifyListeners();
 
       // Guardar en AsyncStorage
       await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(message);
+      memoryError = message;
+      memoryLoading = false;
+      notifyListeners();
       console.error("Error getting location:", err);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   // Establecer ubicación manual
-  const setManualLocation = async (latitude: number, longitude: number) => {
+  const setManualLocation = useCallback(async (latitude: number, longitude: number) => {
+    memoryLoading = true;
+    notifyListeners();
+
     const newLocation: LocationData = {
       latitude,
       longitude,
@@ -94,43 +118,65 @@ export function useLocation() {
     newLocation.city = cityInfo.city;
     newLocation.country = cityInfo.country;
 
-    setLocation(newLocation);
+    memoryLocation = newLocation;
+    memoryLoading = false;
+    notifyListeners();
     await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
-  };
-
-  // Inicializar: obtener ubicación guardada o solicitar nueva
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const isValid =
-            parsed && typeof parsed.latitude === "number" && typeof parsed.longitude === "number";
-          if (isValid) {
-            setLocation(parsed);
-            setLoading(false);
-          } else {
-            // Ubicación guardada corrupta o de un formato viejo: descartarla y pedir una nueva.
-            await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
-            await getCurrentLocation();
-          }
-        } else {
-          await getCurrentLocation();
-        }
-      } catch (err) {
-        console.error("Error initializing location:", err);
-        setLoading(false);
-      }
-    };
-
-    init();
   }, []);
 
+  useEffect(() => {
+    const listener = (s: { location: LocationData | null; loading: boolean; error?: string }) => setState(s);
+    listeners.add(listener);
+
+    const init = async () => {
+      if (loadPromise) {
+        await loadPromise;
+        return;
+      }
+
+      loadPromise = (async () => {
+        try {
+          const saved = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const isValid =
+              parsed && typeof parsed.latitude === "number" && typeof parsed.longitude === "number";
+            if (isValid) {
+              memoryLocation = parsed;
+              memoryLoading = false;
+            } else {
+              await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
+              await getCurrentLocation();
+            }
+          } else {
+            await getCurrentLocation();
+          }
+        } catch (err) {
+          console.error("Error initializing location:", err);
+          memoryLoading = false;
+        } finally {
+          notifyListeners();
+        }
+      })();
+      await loadPromise;
+    };
+
+    if (memoryLoading && !loadPromise) {
+      init();
+    } else {
+      // Si ya cargó o está cargando, sincronizamos el estado local
+      setState({ location: memoryLocation, loading: memoryLoading, error: memoryError });
+    }
+
+    return () => {
+      listeners.delete(listener);
+    };
+  }, [getCurrentLocation]);
+
   return {
-    location,
-    loading,
-    error,
+    location: state.location,
+    loading: state.loading,
+    error: state.error,
     getCurrentLocation,
     setManualLocation,
   };
