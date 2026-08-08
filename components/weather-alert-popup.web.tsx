@@ -22,6 +22,7 @@ import { createPortal } from "react-dom";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useAlertsContext } from "@/lib/alerts-context";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 import {
   SEVERITY_COLORS,
   SEVERITY_ICONS,
@@ -225,6 +226,25 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
 export function WeatherAlertPopup() {
   const { popupQueue, dismissPopup } = useAlertsContext();
   const [visible, setVisible] = useState<WeatherAlert | null>(null);
+  const { notify } = useBrowserNotifications();
+  // Alertas por las que YA se disparo la notificacion nativa del
+  // navegador, para no repetirla si el mismo item sigue en la cola
+  // en renders sucesivos.
+  const notifiedIdsRef = useRef<Set<string>>(new Set());
+
+  // Se dispara apenas la alerta entra a la cola, SIN esperar a que le
+  // toque el turno de mostrarse como popup en pantalla. Importante
+  // porque el popup visual se muestra de a uno (con un timeout que los
+  // navegadores frenan en pestañas de fondo); la notificacion nativa
+  // no puede depender de eso, tiene que salir apenas hay alerta nueva.
+  useEffect(() => {
+    for (const alert of popupQueue) {
+      if (!notifiedIdsRef.current.has(alert.id)) {
+        notifiedIdsRef.current.add(alert.id);
+        notify(alert);
+      }
+    }
+  }, [popupQueue, notify]);
 
   useEffect(() => {
     if (!visible && popupQueue.length > 0) {
