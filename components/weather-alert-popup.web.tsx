@@ -54,13 +54,10 @@ function ensureBlinkStylesInjected() {
         filter: brightness(1);
       }
       50% {
-        border-color: var(--tormentar-alert-color-dim, transparent);
+        border-color: transparent;
         box-shadow: 0 0 22px 6px var(--tormentar-alert-color, #EF4444);
         filter: brightness(1.18);
       }
-    }
-    .tormentar-alert-popup-blink {
-      animation: tormentar-alert-blink 0.9s ease-in-out infinite;
     }
     @keyframes tormentar-alert-slide-in {
       from { transform: translateY(-16px); opacity: 0; }
@@ -146,15 +143,21 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
     finish();
   };
 
+  // BUG ANTERIOR: la animacion de entrada (slide-in) se ponia con
+  // "animation" directo en el inline style, y el parpadeo se aplicaba
+  // por separado via className + CSS externo, TAMBIEN con "animation".
+  // Como las dos tocan la misma propiedad CSS en el mismo elemento, el
+  // inline style (mayor prioridad) pisaba por completo la animacion de
+  // parpadeo: nunca llegaba a correr. La solucion es combinar ambas
+  // animaciones en un unico valor separado por coma.
+  const animationValue = shouldBlink
+    ? "tormentar-alert-slide-in 0.25s ease-out, tormentar-alert-blink 0.9s ease-in-out infinite"
+    : "tormentar-alert-slide-in 0.25s ease-out";
+
   return (
     <div
-      className={shouldBlink ? "tormentar-alert-popup-blink" : undefined}
       style={{
         ["--tormentar-alert-color" as any]: color,
-        // Version "apagada" del mismo color (25% alpha) para que el
-        // marco realmente parpadee (color -> tenue -> color), en vez
-        // de quedarse fijo y que solo brille el resplandor exterior.
-        ["--tormentar-alert-color-dim" as any]: color + "40",
         display: "flex",
         gap: 12,
         alignItems: "flex-start",
@@ -165,7 +168,7 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
         backgroundColor: "#1c1c1eee",
         backdropFilter: "blur(6px)",
         boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-        animation: "tormentar-alert-slide-in 0.25s ease-out",
+        animation: animationValue,
         fontFamily: "inherit",
       }}
     >
