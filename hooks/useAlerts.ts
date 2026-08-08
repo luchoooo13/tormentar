@@ -18,6 +18,13 @@ import {
 import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
 
 const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
+// Historial local de TODAS las alertas vistas (para la pantalla de
+// Historial). Es independiente de knownAlertIds/remindedAlertIds: esos
+// dos existen solo para no re-notificar, mientras que esto guarda la
+// alerta completa (evento, descripcion, horarios) para poder listarla
+// despues aunque ya haya dejado de estar activa en la API.
+const ALERT_HISTORY_KEY = "tormentar_alert_history";
+const ALERT_HISTORY_MAX = 300;
 // Alertas por las que YA se mando el aviso "del dia" (recordatorio el
 // dia que efectivamente arranca la alerta). Es un set SEPARADO de
 // knownAlertIds: knownAlertIds evita re-notificar la misma alerta cada
@@ -37,6 +44,26 @@ function isSameLocalDay(unixSeconds: number, reference: Date): boolean {
     d.getMonth() === reference.getMonth() &&
     d.getDate() === reference.getDate()
   );
+}
+
+// Guarda (upsert por id) las alertas recibidas en el historial local.
+// Se llama en CADA fetch exitoso, no solo cuando hay alertas nuevas,
+// para que el historial refleje la version mas reciente de cada
+// alerta (por si la descripcion/horario se actualiza en la API).
+async function saveAlertsToHistory(alerts: WeatherAlert[]): Promise<void> {
+  if (alerts.length === 0) return;
+  try {
+    const raw = await AsyncStorage.getItem(ALERT_HISTORY_KEY);
+    const existing: WeatherAlert[] = raw ? JSON.parse(raw) : [];
+    const byId = new Map(existing.map((a) => [a.id, a] as const));
+    for (const alert of alerts) byId.set(alert.id, alert);
+    const merged = Array.from(byId.values())
+      .sort((a, b) => b.start - a.start)
+      .slice(0, ALERT_HISTORY_MAX);
+    await AsyncStorage.setItem(ALERT_HISTORY_KEY, JSON.stringify(merged));
+  } catch (e) {
+    console.error("Error saving alert history", e);
+  }
 }
 
 interface UseAlertsOptions {
@@ -143,6 +170,7 @@ export function useAlerts(options?: UseAlertsOptions) {
       setWeather(data);
 
       const currentAlerts = data.alerts || [];
+      void saveAlertsToHistory(currentAlerts);
       const prefs = preferencesRef.current;
 
       if (prefs.notificationsEnabled) {
