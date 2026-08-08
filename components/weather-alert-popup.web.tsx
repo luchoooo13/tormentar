@@ -48,8 +48,16 @@ function ensureBlinkStylesInjected() {
   style.id = STYLE_TAG_ID;
   style.textContent = `
     @keyframes tormentar-alert-blink {
-      0%, 100% { box-shadow: 0 0 0 0 var(--tormentar-alert-color, #EF4444); filter: brightness(1); }
-      50% { box-shadow: 0 0 22px 6px var(--tormentar-alert-color, #EF4444); filter: brightness(1.18); }
+      0%, 100% {
+        border-color: var(--tormentar-alert-color, #EF4444);
+        box-shadow: 0 0 0 0 var(--tormentar-alert-color, #EF4444);
+        filter: brightness(1);
+      }
+      50% {
+        border-color: var(--tormentar-alert-color-dim, transparent);
+        box-shadow: 0 0 22px 6px var(--tormentar-alert-color, #EF4444);
+        filter: brightness(1.18);
+      }
     }
     .tormentar-alert-popup-blink {
       animation: tormentar-alert-blink 0.9s ease-in-out infinite;
@@ -143,6 +151,10 @@ function PopupCard({ alert, onDone }: { alert: WeatherAlert; onDone: () => void 
       className={shouldBlink ? "tormentar-alert-popup-blink" : undefined}
       style={{
         ["--tormentar-alert-color" as any]: color,
+        // Version "apagada" del mismo color (25% alpha) para que el
+        // marco realmente parpadee (color -> tenue -> color), en vez
+        // de quedarse fijo y que solo brille el resplandor exterior.
+        ["--tormentar-alert-color-dim" as any]: color + "40",
         display: "flex",
         gap: 12,
         alignItems: "flex-start",
