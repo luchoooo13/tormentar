@@ -25,4 +25,24 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/**
+ * Suscripciones de Web Push (notificaciones push del navegador).
+ * Cada fila es UN dispositivo/navegador que activo "Notificaciones
+ * push" en Configuracion. No requiere login: la app no tiene cuentas
+ * de usuario obligatorias, asi que las notificaciones se mandan a
+ * TODAS las suscripciones guardadas (uso personal/familiar).
+ */
+export const pushSubscriptions = mysqlTable("pushSubscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** URL unica que da el navegador al suscribirse (identifica el dispositivo). */
+  endpoint: varchar("endpoint", { length: 512 }).notNull().unique(),
+  /** Claves publicas del navegador para cifrar el mensaje (estandar Web Push). */
+  p256dh: varchar("p256dh", { length: 255 }).notNull(),
+  auth: varchar("auth", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
 // TODO: Add your tables here
