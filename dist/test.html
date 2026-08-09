@@ -113,7 +113,7 @@
         <div class="container">
             <div class="header"><h1>⚙️ Configuración</h1></div>
             <div class="config-item"><span>Predicciones Inteligentes</span><button class="config-toggle on"></button></div>
-            <div class="config-item"><span>Fuente: OpenWeatherMap</span><span style="color: #aaa;">API 2.5/3.0</span></div>
+            <div class="config-item"><span>Fuente: Open-Meteo</span><span style="color: #aaa;">Gratuita, sin API key</span></div>
         </div>
     </div>
 
@@ -125,106 +125,160 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
+        // Open-Meteo: gratuita, open source y SIN API key.
+        // Un solo endpoint /v1/forecast devuelve condiciones actuales
+        // y pronóstico horario, reemplazando las 2 llamadas anteriores.
+        const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+        const GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
+        const mapWmoToDesc = {
+            0: "Despejado", 1: "Principalmente despejado", 2: "Parcialmente nublado",
+            3: "Nublado", 45: "Niebla", 48: "Niebla con escarcha",
+            51: "Llovizna ligera", 53: "Llovizna moderada", 55: "Llovizna densa",
+            61: "Lluvia ligera", 63: "Lluvia moderada", 65: "Lluvia intensa",
+            71: "Nevada ligera", 73: "Nevada moderada", 75: "Nevada intensa",
+            77: "Granizo", 80: "Chubascos ligeros", 81: "Chubascos moderados",
+            82: "Chubascos violentos", 95: "Tormenta eléctrica",
+            96: "Tormenta con granizo ligero", 99: "Tormenta con granizo intenso"
+        };
+
         let map = null;
         let circlesLayer = null;
         let alertsData = {};
         let sensitivity = 'normal';
+        let currentLocation = { lat: -34.6037, lon: -58.3816 };
 
         async function init() {
             navigator.geolocation.getCurrentPosition(
-                pos => fetchData(pos.coords.latitude, pos.coords.longitude),
-                err => fetchData(-34.6037, -58.3816)
+                async pos => {
+                    currentLocation.lat = pos.coords.latitude;
+                    currentLocation.lon = pos.coords.longitude;
+                    await fetchData(currentLocation.lat, currentLocation.lon);
+                },
+                async err => {
+                    // Fallback: geocodificar Buenos Aires con Open-Meteo
+                    try {
+                        const res = await fetch(`${GEOCODING_URL}?name=Buenos Aires&count=1&language=es`);
+                        const data = await res.json();
+                        if (data.results && data.results.length > 0) {
+                            currentLocation.lat = data.results[0].latitude;
+                            currentLocation.lon = data.results[0].longitude;
+                        }
+                    } catch (e) { /* usar fallback por defecto */ }
+                    fetchData(currentLocation.lat, currentLocation.lon);
+                }
             );
         }
 
         async function fetchData(lat, lon) {
             try {
-                // Usamos la API 2.5 para asegurar compatibilidad y obtener datos de predicción
-                const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
-                const weather = await weatherRes.json();
-                
-                const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`);
-                const forecast = await forecastRes.json();
-                
-                updateUI(weather, forecast);
+                // Una sola llamada a Open-Meteo: condiciones actuales +
+                // pronóstico horario (reemplaza las 2 llamadas de antes).
+                const url = `${FORECAST_URL}?latitude=${lat}&longitude=${lon}` +
+                    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure,cloud_cover` +
+                    `&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m` +
+                    `&wind_speed_unit=ms&temperature_unit=celsius&timezone=auto&forecast_days=1`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                // Nombre de la ciudad vía geocodificación inversa de Open-Meteo
+                let cityName = 'Ubicación Detectada';
+                try {
+                    const geoRes = await fetch(`${GEOCODING_URL}?name=${encodeURIComponent(lat.toFixed(2))}&count=1&language=es`);
+                    // El endpoint de búsqueda por texto no admite coordenadas;
+                    // usamos reverse geocoding gratuito de BigDataCloud.
+                    const revRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
+                    const rev = await revRes.json();
+                    if (rev.city) cityName = rev.city;
+                    else if (rev.locality) cityName = rev.locality;
+                } catch (e) { /* nombre por defecto */ }
+
+                updateUI(data, cityName);
             } catch (e) {
                 console.error(e);
-                document.getElementById('alerts-list').innerHTML = '<div class="alert-card"><div class="alert-title">Error de Conexión</div><div class="alert-desc">No se pudo conectar con el motor meteorológico.</div></div>';
+                document.getElementById('alerts-list').innerHTML = '<div class="alert-card"><div class="alert-title">Error de Conexión</div><div class="alert-desc">No se pudo conectar con el motor meteorológico (Open-Meteo).</div></div>';
             }
         }
 
-        function updateUI(weather, forecast) {
-            // Fix "undefined" city
-            document.getElementById('city-name').innerText = `📍 ${weather.name || 'Ubicación Detectada'}`;
-            document.getElementById('coords').innerText = `Coordenadas: ${weather.coord.lat.toFixed(2)}°, ${weather.coord.lon.toFixed(2)}°`;
-            document.getElementById('temp').innerText = `🌡️ Temperatura: ${Math.round(weather.main.temp)}°C`;
-            document.getElementById('humidity').innerText = `💧 Humedad: ${weather.main.humidity}%`;
-            document.getElementById('wind').innerText = `💨 Viento: ${weather.wind.speed} m/s`;
-            document.getElementById('pressure').innerText = `⏲️ Presión: ${weather.main.pressure} hPa`;
+        function updateUI(data, cityName) {
+            const current = data.current || {};
+            document.getElementById('city-name').innerText = `📍 ${cityName}`;
+            document.getElementById('coords').innerText = `Coordenadas: ${currentLocation.lat.toFixed(2)}°, ${currentLocation.lon.toFixed(2)}°`;
+            document.getElementById('temp').innerText = `🌡️ Temperatura: ${Math.round(current.temperature_2m ?? 0)}°C`;
+            document.getElementById('humidity').innerText = `💧 Humedad: ${current.relative_humidity_2m ?? 0}%`;
+            document.getElementById('wind').innerText = `💨 Viento: ${(current.wind_speed_10m ?? 0).toFixed(1)} m/s`;
+            document.getElementById('pressure').innerText = `⏲️ Presión: ${Math.round(current.surface_pressure ?? 0)} hPa`;
 
-            predictAlerts(weather, forecast);
+            predictAlerts(data);
         }
 
-        function predictAlerts(weather, forecast) {
+        function predictAlerts(data) {
             const alertsList = document.getElementById('alerts-list');
             const mapAlertsList = document.getElementById('map-alerts-list');
             alertsList.innerHTML = '';
             mapAlertsList.innerHTML = '';
             alertsData = {};
+
+            const current = data.current || {};
+            const hourly = data.hourly || {};
+            const lat = currentLocation.lat;
+            const lon = currentLocation.lon;
             
             let predicted = [];
 
-            // LÓGICA DE PREDICCIÓN PROPIA
-            // 1. Vientos Fuertes
-            if (weather.wind.speed > (sensitivity === 'alta' ? 10 : 15)) {
+            // LÓGICA DE PREDICCIÓN PROPIA (basada en datos de Open-Meteo)
+            // 1. Vientos Fuertes (viento actual en m/s, igual que antes)
+            if ((current.wind_speed_10m ?? 0) > (sensitivity === 'alta' ? 10 : 15)) {
                 predicted.push({
                     id: 'wind',
                     event: 'Alerta: Vientos Fuertes',
-                    desc: `El motor detecta ráfagas de ${weather.wind.speed} m/s. Riesgo de caída de objetos.`,
+                    desc: `El motor detecta ráfagas de ${(current.wind_speed_10m ?? 0).toFixed(1)} m/s. Riesgo de caída de objetos.`,
                     type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
+                    lat: lat,
+                    lon: lon,
                     radio: 8000
                 });
             }
 
             // 2. Tormenta Inminente (Basado en nubes y humedad)
-            if (weather.clouds.all > 80 && weather.main.humidity > 75) {
+            if ((current.cloud_cover ?? 0) > 80 && (current.relative_humidity_2m ?? 0) > 75) {
                 predicted.push({
                     id: 'storm',
                     event: 'Predicción: Tormenta Eléctrica',
                     desc: 'Alta saturación de humedad y nubosidad detectada. Probabilidad elevada de descargas eléctricas.',
                     type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
+                    lat: lat,
+                    lon: lon,
                     radio: 12000
                 });
             }
 
             // 3. Inestabilidad por Presión
-            if (weather.main.pressure < 1008) {
+            if ((current.surface_pressure ?? 1013) < 1008) {
                 predicted.push({
                     id: 'pressure',
                     event: 'Aviso: Baja Presión',
                     desc: 'La presión atmosférica está cayendo, lo que indica un cambio brusco de tiempo y posible formación de tormentas.',
                     type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
+                    lat: lat,
+                    lon: lon,
                     radio: 15000
                 });
             }
 
-            // 4. Lluvia en el pronóstico próximo
-            const nextRain = forecast.list.slice(0, 3).find(f => f.weather[0].main === 'Rain');
+            // 4. Lluvia en el pronóstico próximo (código WMO 51-67, 80-82)
+            const rainCodes = [51,53,55,61,63,65,66,67,80,81,82,95,96,99];
+            const nextRain = (hourly.time ?? []).slice(0, 6).find((t, i) =>
+                rainCodes.includes(hourly.weather_code[i]) || (hourly.precipitation_probability?.[i] ?? 0) > 70
+            );
             if (nextRain) {
                 predicted.push({
                     id: 'rain',
                     event: 'Predicción: Lluvia Inminente',
-                    desc: `Se detecta formación de lluvia en las próximas 3 horas. Tome precauciones.`,
+                    desc: 'Se detecta formación de lluvia en las próximas 6 horas. Tome precauciones.',
                     type: 'predictiva',
-                    lat: weather.coord.lat,
-                    lon: weather.coord.lon,
+                    lat: lat,
+                    lon: lon,
                     radio: 10000
                 });
             }
