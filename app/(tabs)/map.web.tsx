@@ -186,7 +186,7 @@ export default function MapScreen() {
       }).addTo(map);
 
       circle.bindPopup(
-        `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} - Radio ${alert.radius ?? 10} km`
+        `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} - Radio ${alert.radius ?? 10} km<br/>Vigencia: ${formatAlertTime(alert.start, alert.end)}`
       );
       circle.on("click", () => setSelectedAlert((prev) => (prev === alert.id ? null : alert.id)));
 
@@ -258,8 +258,11 @@ export default function MapScreen() {
       }).addTo(map);
 
       const label = nearest.alert?.event ?? SEVERITY_LABELS[nearest.severity];
+      const vigencia = nearest.alert
+        ? `<br/>Vigencia: ${formatAlertTime(nearest.alert.start, nearest.alert.end)}`
+        : "";
       tile.bindPopup(
-        `<b>${label}</b><br/>${SEVERITY_LABELS[nearest.severity]} (no oficial, estimado por zona)`
+        `<b>${label}</b><br/>${SEVERITY_LABELS[nearest.severity]} (no oficial, estimado por zona)${vigencia}`
       );
       layers.push(tile);
     });
