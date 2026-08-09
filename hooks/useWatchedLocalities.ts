@@ -3,7 +3,7 @@
  * Maneja una lista de "otras localidades" que el usuario agrega a mano
  * (buscandolas por nombre) para ver, en el Mapa, sus alertas NO
  * OFICIALES (mismo criterio estimado que usa el resto de la app: se
- * calculan a partir del pronostico gratuito de OpenWeatherMap, no son
+ * calculan a partir del pronostico gratuito de Open-Meteo, no son
  * alertas oficiales de ningun servicio meteorologico).
  */
 import { useCallback, useEffect, useRef, useState } from "react";

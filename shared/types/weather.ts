@@ -1,6 +1,6 @@
 /**
  * Weather Alert Types
- * Tipos para alertas de clima de OpenWeatherMap
+ * Tipos para alertas de clima (fuente: Open-Meteo, estructura unificada)
  */
 
 export type AlertSeverity = "leve" | "moderada" | "severa";

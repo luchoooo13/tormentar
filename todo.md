@@ -1,7 +1,7 @@
 # Tormentar - Project TODO
 
 ## Fase 1: Configuración Base
-- [x] Configurar API key de OpenWeatherMap
+- [x] Configurar fuente de datos meteorológica: migración de OpenWeatherMap a Open-Meteo (gratis, sin API key)
 - [x] Actualizar colores Material You en theme.config.js
 - [x] Crear estructura de tipos TypeScript para alertas
 - [x] Configurar permisos de ubicación en app.config.ts
@@ -13,7 +13,7 @@
 - [ ] Permitir búsqueda de ciudades
 
 ## Fase 3: Integración de API de Clima
-- [x] Crear servicio de API para OpenWeatherMap
+- [x] Crear servicio de API (Open-Meteo, con mapeo de códigos WMO a severidades)
 - [x] Implementar función para obtener alertas de tormentas
 - [x] Categorizar alertas por severidad (leve, moderada, severa)
 - [ ] Implementar caché local de datos

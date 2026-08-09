@@ -1,6 +1,6 @@
 /**
  * useAlerts Hook
- * Trae alertas REALES desde OpenWeatherMap.
+ * Trae alertas REALES desde Open-Meteo (servicio gratuito sin API key).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -128,7 +128,7 @@ export function useAlerts(options?: UseAlertsOptions) {
 
     if (!hasApiKey()) {
       setError(
-        "Falta configurar la API key de OpenWeatherMap (EXPO_PUBLIC_OPENWEATHER_API_KEY) para recibir alertas reales."
+        "No se pudo conectar con el servicio meteorologico gratuito (Open-Meteo). Verifica tu conexion a internet."
       );
       setLoading(false);
       return;

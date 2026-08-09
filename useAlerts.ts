@@ -1,6 +1,6 @@
 /**
  * useAlerts Hook
- * Trae alertas REALES desde OpenWeatherMap.
+ * Trae alertas REALES desde Open-Meteo (servicio gratuito sin API key).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -10,14 +10,44 @@ import {
   getEnabledSeverities,
 } from "@/hooks/useAlertPreferences";
 import { useWeatherNotifications } from "@/hooks/useWeatherNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import {
   getWeatherAlerts,
   hasApiKey,
   sortAlertsBySeverity,
 } from "@/lib/services/weatherService";
-import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
+import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
+
+// Titulos usados tanto en la notificacion local (pestaña abierta) como
+// en el push real (llega aunque el navegador este cerrado), para que
+// ambas digan lo mismo.
+const SEVERITY_PUSH_TITLES: Record<AlertSeverity, string> = {
+  leve: "⚠️ Alerta de Clima Leve",
+  moderada: "⚠️ Alerta de Clima Moderada",
+  severa: "🚨 ALERTA DE TORMENTA FUERTE",
+};
 
 const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
+// Alertas por las que YA se mando el aviso "del dia" (recordatorio el
+// dia que efectivamente arranca la alerta). Es un set SEPARADO de
+// knownAlertIds: knownAlertIds evita re-notificar la misma alerta cada
+// vez que se vuelve a pedir el pronostico (podria seguir apareciendo
+// en cada fetch durante 5 dias), pero antes eso tambien significaba
+// que si te avisaban con 5 dias de anticipacion, no habia ningun
+// aviso nuevo el dia que la tormenta realmente llegaba - facil
+// olvidarse en el medio.
+const REMINDED_ALERTS_KEY = "tormentar_reminded_alerts";
+
+// Dos alertas caen "el mismo dia" si coinciden año/mes/dia en hora
+// local del dispositivo (no UTC, para que "hoy" sea el dia del usuario).
+function isSameLocalDay(unixSeconds: number, reference: Date): boolean {
+  const d = new Date(unixSeconds * 1000);
+  return (
+    d.getFullYear() === reference.getFullYear() &&
+    d.getMonth() === reference.getMonth() &&
+    d.getDate() === reference.getDate()
+  );
+}
 
 interface UseAlertsOptions {
   onNewAlert?: (alert: WeatherAlert) => void;
@@ -36,12 +66,17 @@ export function useAlerts(options?: UseAlertsOptions) {
     setupNotificationChannels,
     requestPermissions,
   } = useWeatherNotifications();
+  // Push real (Web Push): llega al celular aunque el navegador este
+  // cerrado. sendPush es un no-op silencioso si el usuario no activo
+  // "Notificaciones push" en Configuracion.
+  const { sendPush } = usePushNotifications();
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
   const knownAlertIds = useRef<Set<string>>(new Set());
+  const remindedAlertIds = useRef<Set<string>>(new Set());
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
   const onNewAlertRef = useRef(options?.onNewAlert);
@@ -51,10 +86,15 @@ export function useAlerts(options?: UseAlertsOptions) {
   if (!knownAlertsLoadedRef.current) {
     knownAlertsLoadedRef.current = (async () => {
       try {
-        const saved = await AsyncStorage.getItem(KNOWN_ALERTS_KEY);
-        if (saved) {
-          const ids = JSON.parse(saved);
-          knownAlertIds.current = new Set(ids);
+        const [savedKnown, savedReminded] = await Promise.all([
+          AsyncStorage.getItem(KNOWN_ALERTS_KEY),
+          AsyncStorage.getItem(REMINDED_ALERTS_KEY),
+        ]);
+        if (savedKnown) {
+          knownAlertIds.current = new Set(JSON.parse(savedKnown));
+        }
+        if (savedReminded) {
+          remindedAlertIds.current = new Set(JSON.parse(savedReminded));
         }
       } catch (e) {
         console.error("Error loading known alerts", e);
@@ -88,7 +128,7 @@ export function useAlerts(options?: UseAlertsOptions) {
 
     if (!hasApiKey()) {
       setError(
-        "Falta configurar la API key de OpenWeatherMap (EXPO_PUBLIC_OPENWEATHER_API_KEY) para recibir alertas reales."
+        "No se pudo conectar con el servicio meteorologico gratuito (Open-Meteo). Verifica tu conexion a internet."
       );
       setLoading(false);
       return;
@@ -127,6 +167,8 @@ export function useAlerts(options?: UseAlertsOptions) {
             enabledSeverities.includes(a.severity)
         );
 
+        let remindedChanged = false;
+
         for (const alert of newRelevantAlerts) {
           // Marcar como conocida ANTES de notificar, no despues: asi
           // si otro fetch se dispara mientras esto corre, ya la ve
@@ -136,14 +178,68 @@ export function useAlerts(options?: UseAlertsOptions) {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
           });
+          sendPush({
+            title: SEVERITY_PUSH_TITLES[alert.severity],
+            body: alert.description,
+            severity: alert.severity,
+            alertId: alert.id,
+          });
           if (isStale()) return;
           onNewAlertRef.current?.(alert);
+          // Si esta alerta recien descubierta ademas arranca HOY (aviso
+          // corto), este mismo mensaje ya cumple el rol de "recordatorio
+          // del dia": se marca de una para que el bloque de abajo no la
+          // vuelva a notificar en el mismo ciclo.
+          if (isSameLocalDay(alert.start, new Date())) {
+            remindedAlertIds.current.add(alert.id);
+            remindedChanged = true;
+          }
         }
 
         if (newRelevantAlerts.length > 0) {
           await AsyncStorage.setItem(
             KNOWN_ALERTS_KEY,
             JSON.stringify(Array.from(knownAlertIds.current))
+          );
+        }
+
+        // Recordatorio del dia: entre TODAS las alertas relevantes de
+        // hoy (sean recien descubiertas o ya conocidas de dias
+        // anteriores), las que arrancan hoy segun el dia local del
+        // dispositivo y todavia no tuvieron su aviso "del dia" reciben
+        // una notificacion aparte. Asi, si te avisaron hace 5 dias que
+        // se venia una tormenta, el dia que efectivamente llega te
+        // vuelve a sonar igual, en vez de depender de que te hayas
+        // acordado solo.
+        const today = new Date();
+        const todaysReminders = currentAlerts.filter(
+          (a) =>
+            enabledSeverities.includes(a.severity) &&
+            isSameLocalDay(a.start, today) &&
+            !remindedAlertIds.current.has(a.id)
+        );
+
+        for (const alert of todaysReminders) {
+          remindedAlertIds.current.add(alert.id);
+          remindedChanged = true;
+          await sendNotification(
+            { ...alert, description: `Recordatorio de hoy: ${alert.description}` },
+            { soundEnabled: prefs.soundEnabled, vibrationEnabled: prefs.vibrationEnabled }
+          );
+          sendPush({
+            title: SEVERITY_PUSH_TITLES[alert.severity],
+            body: `Recordatorio de hoy: ${alert.description}`,
+            severity: alert.severity,
+            alertId: alert.id,
+          });
+          if (isStale()) return;
+          onNewAlertRef.current?.(alert);
+        }
+
+        if (remindedChanged) {
+          await AsyncStorage.setItem(
+            REMINDED_ALERTS_KEY,
+            JSON.stringify(Array.from(remindedAlertIds.current))
           );
         }
       }
@@ -170,7 +266,7 @@ export function useAlerts(options?: UseAlertsOptions) {
       if (!isStale()) setLoading(false);
       lastFetchAtRef.current = Date.now();
     }
-  }, [location, sendNotification]);
+  }, [location, sendNotification, sendPush]);
 
   useEffect(() => {
     requestPermissions();

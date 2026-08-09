@@ -1,40 +1,41 @@
 /**
  * Weather Service
- * Servicio para obtener datos de clima y alertas de OpenWeatherMap
+ * Servicio para obtener datos de clima y alertas
  *
- * Usa el plan FREE (sin tarjeta de crédito) que incluye:
- *   - Current Weather 2.5 (/data/2.5/weather)
- *   - 5 day / 3 hour forecast 2.5 (/data/2.5/forecast)
+ * PROVEEDOR: Open-Meteo (https://open-meteo.com/)
+ *   - Gratis, open source, SIN API KEY y sin registro para uso no comercial.
+ *   - Endpoint único /v1/forecast que devuelve condiciones actuales Y
+ *     pronóstico horario en una sola llamada (antes eran 2 con OpenWeatherMap).
+ *   - Pronóstico horario (no cada 3 horas), lo que hace las alertas
+ *     estimadas más precisas en inicio y fin.
  *
- * One Call 3.0/4.0 NO se usa porque exige suscripción con tarjeta.
  * Las "alertas" se estiman a partir de los códigos de condición
- * climática y el viento del pronóstico de 5 días.
+ * climática (WMO) y el viento del pronóstico horario, igual que antes
+ * con los códigos de OpenWeatherMap, a través del mapeo
+ * mapWeatherCode().
  */
 
 import axios from "axios";
 import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
 
+// Open-Meteo no requiere API key, por lo que hasApiKey() siempre
+// devuelve true y la app puede pedir alertas reales sin configuración
+// adicional. La variable de entorno se conserva solo por compatibilidad.
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || "";
-// Endpoints del plan FREE real (sin tarjeta de crédito).
-const CURRENT_URL = "https://api.openweathermap.org/data/2.5/weather";
-const FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast";
+const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 
-// Indica si hay una API key configurada. Sin esto, la app no puede
-// consultar alertas reales y las pantallas deben mostrarlo claramente
-// en vez de caer en datos de demostración silenciosos.
+// Indica si hay una API key configurada. Con Open-Meteo siempre se
+// puede consultar (no hay key), así que la app nunca queda "a ciegas".
 export function hasApiKey(): boolean {
-  return API_KEY.length > 0;
+  return true;
 }
 
 const SEVERITY_ORDER: Record<AlertSeverity, number> = { severa: 0, moderada: 1, leve: 2 };
 
-// Tipo de fenomeno que motivo la alerta. Antes solo se guardaba la
-// severidad (leve/moderada/severa) y el mensaje siempre decia
-// genericamente "Riesgo de tormenta ...", sin distinguir si el motivo
-// fue viento, lluvia, tormenta electrica o nieve.
+// Tipo de fenomeno que motivo la alerta.
 type Phenomenon = "viento" | "tormenta" | "lluvia" | "nieve";
 
-// Etiqueta de cada fenomeno, ya ajustada segun la severidad con la que
+// Etiqueta de cada fenomeno, ajustada según la severidad con la que
 // se dispara (ej. "Viento" en leve, "Viento fuerte" en moderada,
 // "Viento muy fuerte" en severa).
 const PHENOMENON_LABELS: Record<Phenomenon, Record<AlertSeverity, string>> = {
@@ -53,11 +54,27 @@ interface Classification {
   phenomena: Phenomenon[];
 }
 
-// El plan free no incluye alertas oficiales (eso vive solo en One Call
-// 3.0/4.0, que exige tarjeta). Estimamos el riesgo a partir de los
-// códigos de condición climática y el viento del pronóstico de 5 días
-// / 3 horas. No son alertas oficiales del servicio meteorológico.
-//
+/**
+ * Mapea el código WMO de Open-Meteo (0-99) al código de condición de
+ * OpenWeatherMap que ya interpreta classifyCondition(). Así el motor
+ * de severidades no necesita cambios.
+ */
+function mapWeatherCode(wmo: number): number {
+  const map: Record<number, number> = {
+    0: 800, // despejado
+    1: 801, 2: 802, 3: 804, // nubes
+    45: 741, 48: 741, // niebla
+    51: 500, 53: 501, 55: 502, 56: 511, 57: 511, // llovizna
+    61: 500, 63: 501, 65: 502, 66: 511, 67: 511, // lluvia
+    71: 601, 73: 602, 75: 602, 77: 611, // nieve / granizo
+    80: 520, 81: 521, 82: 522, // chubascos
+    85: 621, 86: 622, // chubascos de nieve
+    95: 211, // tormenta eléctrica
+    96: 212, 99: 212, // tormenta con granizo
+  };
+  return map[wmo] ?? 800;
+}
+
 // Se evaluan el viento y el codigo de condicion climatica por
 // SEPARADO, cada uno con su propia severidad, y despues se combinan:
 // la severidad final es la mas grave de las dos, y el mensaje incluye
@@ -127,7 +144,7 @@ function buildAlertsFromPoints(
       description: `Estimado a partir del pronóstico: ${open.description}.`,
       start: open.start,
       end: open.end,
-      sender_name: "Estimación propia (OpenWeatherMap, plan free)",
+      sender_name: "Estimación propia (Open-Meteo, gratis)",
       severity: open.severity,
       latitude,
       longitude,
@@ -144,7 +161,7 @@ function buildAlertsFromPoints(
     }
     const { severity, phenomena } = classification;
     if (open && SEVERITY_ORDER[severity] <= SEVERITY_ORDER[open.severity]) {
-      open.end = point.dt + 3 * 3600;
+      open.end = point.dt + 3600; // extensión horaria (pronóstico horario)
       if (SEVERITY_ORDER[severity] < SEVERITY_ORDER[open.severity]) {
         // La severidad subio: el fenomeno que la disparo ahora pasa a
         // ser el protagonista del mensaje (se reinicia el set).
@@ -160,9 +177,9 @@ function buildAlertsFromPoints(
       }
     } else if (open) {
       closeOpen();
-      open = { start: point.dt, end: point.dt + 3 * 3600, severity, phenomena: new Set(phenomena), description: point.description };
+      open = { start: point.dt, end: point.dt + 3600, severity, phenomena: new Set(phenomena), description: point.description };
     } else {
-      open = { start: point.dt, end: point.dt + 3 * 3600, severity, phenomena: new Set(phenomena), description: point.description };
+      open = { start: point.dt, end: point.dt + 3600, severity, phenomena: new Set(phenomena), description: point.description };
     }
   }
   closeOpen();
@@ -174,72 +191,77 @@ export async function getWeatherAlerts(
   latitude: number,
   longitude: number
 ): Promise<WeatherData | null> {
-  if (!hasApiKey()) {
-    console.error("Falta configurar EXPO_PUBLIC_OPENWEATHER_API_KEY.");
-    return null;
-  }
-
   try {
-    const [currentRes, forecastRes] = await Promise.all([
-      axios.get(CURRENT_URL, {
-        params: { lat: latitude, lon: longitude, appid: API_KEY, units: "metric", lang: "es" },
-      }),
-      axios.get(FORECAST_URL, {
-        params: { lat: latitude, lon: longitude, appid: API_KEY, units: "metric", lang: "es" },
-      }),
-    ]);
+    // Una sola llamada reemplaza las 2 de OpenWeatherMap: devuelve
+    // condiciones actuales + pronóstico horario de 5 días.
+    const res = await axios.get(FORECAST_URL, {
+      params: {
+        latitude,
+        longitude,
+        current:
+          "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover",
+        hourly: "temperature_2m,weather_code,wind_speed_10m",
+        wind_speed_unit: "ms", // m/s, igual que OpenWeatherMap
+        temperature_unit: "celsius",
+        timezone: "auto",
+        forecast_days: 5,
+      },
+    });
 
-    const current = currentRes.data;
-    const forecastList = forecastRes.data?.list || [];
+    const { current, hourly } = res.data;
+
+    // Punto actual (Open-Meteo lo devuelve como current, con timestamp
+    // en epoch segundos cuando timeformat=unixtime; aquí usamos la hora
+    // actual del sistema como referencia, igual que antes).
+    const nowSec = Math.floor(Date.now() / 1000);
 
     const points: ForecastPoint[] = [
       {
-        dt: Math.floor(Date.now() / 1000),
-        weatherId: current.weather?.[0]?.id ?? 800,
-        description: current.weather?.[0]?.description ?? "",
-        windSpeed: current.wind?.speed ?? 0,
+        dt: nowSec,
+        weatherId: mapWeatherCode(current?.weather_code ?? 0),
+        description: wmoDescription(current?.weather_code),
+        windSpeed: current?.wind_speed_10m ?? 0,
       },
-      ...forecastList.map((item: any) => ({
-        dt: item.dt,
-        weatherId: item.weather?.[0]?.id ?? 800,
-        description: item.weather?.[0]?.description ?? "",
-        windSpeed: item.wind?.speed ?? 0,
+      ...(hourly?.time ?? []).map((t: string, i: number) => ({
+        dt: Math.floor(new Date(t).getTime() / 1000),
+        weatherId: mapWeatherCode(hourly.weather_code[i] ?? 0),
+        description: wmoDescription(hourly.weather_code[i]),
+        windSpeed: hourly.wind_speed_10m[i] ?? 0,
       })),
     ];
 
     const alerts = buildAlertsFromPoints(points, latitude, longitude);
 
     return {
-      lat: current.coord?.lat ?? latitude,
-      lon: current.coord?.lon ?? longitude,
-      timezone: current.timezone,
+      lat: latitude,
+      lon: longitude,
+      timezone: res.data.timezone ?? "America/Argentina/Buenos_Aires",
       current: {
-        temp: current.main.temp,
-        feels_like: current.main.feels_like,
-        humidity: current.main.humidity,
-        pressure: current.main.pressure,
-        wind_speed: current.wind?.speed ?? 0,
-        wind_deg: current.wind?.deg ?? 0,
-        clouds: current.clouds?.all ?? 0,
-        weather: current.weather,
+        temp: current?.temperature_2m ?? 0,
+        feels_like: current?.apparent_temperature ?? current?.temperature_2m ?? 0,
+        humidity: current?.relative_humidity_2m ?? 0,
+        pressure: current?.surface_pressure ?? 0,
+        wind_speed: current?.wind_speed_10m ?? 0,
+        wind_deg: current?.wind_direction_10m ?? 0,
+        clouds: current?.cloud_cover ?? 0,
+        weather: [
+          {
+            id: mapWeatherCode(current?.weather_code ?? 0),
+            main: "",
+            description: wmoDescription(current?.weather_code),
+            icon: "",
+          },
+        ],
       },
       alerts,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      if (status === 401) {
-        throw new Error(
-          "OpenWeatherMap rechazó la API key (401). Puede tardar hasta 2 horas en activarse una key recién creada."
-        );
-      }
-      if (status === 429) {
-        throw new Error("Se superó el límite de llamadas a OpenWeatherMap por hoy.");
-      }
       const detail =
         (error.response?.data as any)?.message ?? JSON.stringify(error.response?.data ?? {});
-      console.error("Error de OpenWeatherMap:", status, detail);
-      throw new Error(`Error consultando OpenWeatherMap (${status ?? "sin conexión"}): ${detail}`);
+      console.error("Error de Open-Meteo:", status, detail);
+      throw new Error(`Error consultando el servicio meteorológico (${status ?? "sin conexión"}): ${detail}`);
     }
     console.error("Error fetching weather data:", error);
     return null;
@@ -302,4 +324,40 @@ export function formatAlertTime(startTime: number, endTime: number): string {
   });
 
   return `${startStr} - ${endStr}`;
+}
+
+// Etiqueta legible de un código de condición WMO (Open-Meteo)
+function wmoDescription(code: number | undefined): string {
+  if (code === undefined) return "Desconocido";
+  const labels: Record<number, string> = {
+    0: "Despejado",
+    1: "Principalmente despejado",
+    2: "Parcialmente nublado",
+    3: "Nublado",
+    45: "Niebla",
+    48: "Niebla con escarcha",
+    51: "Llovizna ligera",
+    53: "Llovizna moderada",
+    55: "Llovizna densa",
+    56: "Llovizna helada ligera",
+    57: "Llovizna helada densa",
+    61: "Lluvia ligera",
+    63: "Lluvia moderada",
+    65: "Lluvia intensa",
+    66: "Lluvia helada ligera",
+    67: "Lluvia helada intensa",
+    71: "Nevada ligera",
+    73: "Nevada moderada",
+    75: "Nevada intensa",
+    77: "Granizo",
+    80: "Chubascos ligeros",
+    81: "Chubascos moderados",
+    82: "Chubascos violentos",
+    85: "Chubascos de nieve ligeros",
+    86: "Chubascos de nieve intensos",
+    95: "Tormenta eléctrica",
+    96: "Tormenta eléctrica con granizo ligero",
+    99: "Tormenta eléctrica con granizo intenso",
+  };
+  return labels[code] ?? "Desconocido";
 }

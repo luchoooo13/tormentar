@@ -1,11 +1,11 @@
 /**
  * Home Screen - Weather Alerts
- * Pantalla principal con alertas de tormentas reales (OpenWeatherMap).
+ * Pantalla principal con alertas de tormentas reales (Open-Meteo).
  *
  * Antes esta pantalla mostraba una lista fija DEMO_ALERTS que nunca
  * cambiaba y no tenia relacion con la ubicacion real del usuario ni con
  * ningun servicio de clima. Ahora usa useAlerts (ubicacion real +
- * OpenWeatherMap + preferencias unificadas) y permite elegir, con
+ * Open-Meteo (servicio gratuito sin API key) + preferencias unificadas) y permite elegir, con
  * checkboxes independientes, que severidades quiere recibir el usuario:
  * leve, moderada y/o fuerte (severa), no un unico "minimo".
  */
@@ -148,7 +148,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Aviso si falta configurar la API key */}
+        {/* Aviso si el servicio meteorologico esta disponible */}
         {!hasApiKey && (
           <View className="px-4 py-3">
             <View
@@ -162,8 +162,8 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <Text className="text-xs text-muted">
-                Falta la variable EXPO_PUBLIC_OPENWEATHER_API_KEY para poder pedir alertas reales
-                a OpenWeatherMap. Hasta configurarla no se mostrara ninguna alerta.
+                No se pudo habilitar el servicio meteorologico. Verifica tu conexion a internet;
+                la app usa Open-Meteo (gratuito, sin API key), por lo que no requiere configuracion adicional.
               </Text>
             </View>
           </View>

@@ -3,7 +3,7 @@
  * Reemplaza la busqueda manual de "otras localidades" (ciudad por
  * ciudad) por una grilla fija que cubre automaticamente TODA la
  * Provincia de Buenos Aires. Consulta el pronostico gratuito de
- * OpenWeatherMap en cada punto de la grilla y arma una lista de
+ * Open-Meteo (sin API key) en cada punto de la grilla y arma una lista de
  * alertas estimadas (NO oficiales, mismo criterio que el resto de la
  * app) para pintar directamente en el mapa como zonas resaltadas.
  */
@@ -20,7 +20,7 @@ import {
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
 
 // Cuantos puntos de la grilla se consultan en simultaneo. Evita pegarle
-// a la API gratuita de OpenWeatherMap con muchos pedidos al mismo tiempo.
+// a la API gratuita de Open-Meteo con muchos pedidos al mismo tiempo.
 const CONCURRENCY = 5;
 
 // Intervalo de actualizacion PROPIO de la grilla regional, independiente
