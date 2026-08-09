@@ -10,21 +10,24 @@ import {
   getEnabledSeverities,
 } from "@/hooks/useAlertPreferences";
 import { useWeatherNotifications } from "@/hooks/useWeatherNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import {
   getWeatherAlerts,
   hasApiKey,
   sortAlertsBySeverity,
 } from "@/lib/services/weatherService";
-import type { WeatherAlert, WeatherData } from "@/shared/types/weather";
+import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
+
+// Titulos usados tanto en la notificacion local (pestaña abierta) como
+// en el push real (llega aunque el navegador este cerrado), para que
+// ambas digan lo mismo.
+const SEVERITY_PUSH_TITLES: Record<AlertSeverity, string> = {
+  leve: "⚠️ Alerta de Clima Leve",
+  moderada: "⚠️ Alerta de Clima Moderada",
+  severa: "🚨 ALERTA DE TORMENTA FUERTE",
+};
 
 const KNOWN_ALERTS_KEY = "tormentar_known_alerts";
-// Historial local de TODAS las alertas vistas (para la pantalla de
-// Historial). Es independiente de knownAlertIds/remindedAlertIds: esos
-// dos existen solo para no re-notificar, mientras que esto guarda la
-// alerta completa (evento, descripcion, horarios) para poder listarla
-// despues aunque ya haya dejado de estar activa en la API.
-const ALERT_HISTORY_KEY = "tormentar_alert_history";
-const ALERT_HISTORY_MAX = 300;
 // Alertas por las que YA se mando el aviso "del dia" (recordatorio el
 // dia que efectivamente arranca la alerta). Es un set SEPARADO de
 // knownAlertIds: knownAlertIds evita re-notificar la misma alerta cada
@@ -46,26 +49,6 @@ function isSameLocalDay(unixSeconds: number, reference: Date): boolean {
   );
 }
 
-// Guarda (upsert por id) las alertas recibidas en el historial local.
-// Se llama en CADA fetch exitoso, no solo cuando hay alertas nuevas,
-// para que el historial refleje la version mas reciente de cada
-// alerta (por si la descripcion/horario se actualiza en la API).
-async function saveAlertsToHistory(alerts: WeatherAlert[]): Promise<void> {
-  if (alerts.length === 0) return;
-  try {
-    const raw = await AsyncStorage.getItem(ALERT_HISTORY_KEY);
-    const existing: WeatherAlert[] = raw ? JSON.parse(raw) : [];
-    const byId = new Map(existing.map((a) => [a.id, a] as const));
-    for (const alert of alerts) byId.set(alert.id, alert);
-    const merged = Array.from(byId.values())
-      .sort((a, b) => b.start - a.start)
-      .slice(0, ALERT_HISTORY_MAX);
-    await AsyncStorage.setItem(ALERT_HISTORY_KEY, JSON.stringify(merged));
-  } catch (e) {
-    console.error("Error saving alert history", e);
-  }
-}
-
 interface UseAlertsOptions {
   onNewAlert?: (alert: WeatherAlert) => void;
 }
@@ -83,6 +66,10 @@ export function useAlerts(options?: UseAlertsOptions) {
     setupNotificationChannels,
     requestPermissions,
   } = useWeatherNotifications();
+  // Push real (Web Push): llega al celular aunque el navegador este
+  // cerrado. sendPush es un no-op silencioso si el usuario no activo
+  // "Notificaciones push" en Configuracion.
+  const { sendPush } = usePushNotifications();
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,7 +157,6 @@ export function useAlerts(options?: UseAlertsOptions) {
       setWeather(data);
 
       const currentAlerts = data.alerts || [];
-      void saveAlertsToHistory(currentAlerts);
       const prefs = preferencesRef.current;
 
       if (prefs.notificationsEnabled) {
@@ -191,6 +177,12 @@ export function useAlerts(options?: UseAlertsOptions) {
           await sendNotification(alert, {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
+          });
+          sendPush({
+            title: SEVERITY_PUSH_TITLES[alert.severity],
+            body: alert.description,
+            severity: alert.severity,
+            alertId: alert.id,
           });
           if (isStale()) return;
           onNewAlertRef.current?.(alert);
@@ -234,6 +226,12 @@ export function useAlerts(options?: UseAlertsOptions) {
             { ...alert, description: `Recordatorio de hoy: ${alert.description}` },
             { soundEnabled: prefs.soundEnabled, vibrationEnabled: prefs.vibrationEnabled }
           );
+          sendPush({
+            title: SEVERITY_PUSH_TITLES[alert.severity],
+            body: `Recordatorio de hoy: ${alert.description}`,
+            severity: alert.severity,
+            alertId: alert.id,
+          });
           if (isStale()) return;
           onNewAlertRef.current?.(alert);
         }
@@ -268,7 +266,7 @@ export function useAlerts(options?: UseAlertsOptions) {
       if (!isStale()) setLoading(false);
       lastFetchAtRef.current = Date.now();
     }
-  }, [location, sendNotification]);
+  }, [location, sendNotification, sendPush]);
 
   useEffect(() => {
     requestPermissions();
