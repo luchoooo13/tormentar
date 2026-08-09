@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <style>
@@ -27,6 +28,37 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        .msi {
+            font-family: 'Material Symbols Rounded';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            vertical-align: -5px;
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            -webkit-font-smoothing: antialiased;
+        }
+        .msi.filled { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+        .msi.sm { font-size: 15px; vertical-align: -3px; }
+
+        .severity-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 3px;
+            vertical-align: middle;
+        }
+        .severity-dot.leve { background: var(--severity-leve); }
+        .severity-dot.moderada { background: var(--severity-moderada); }
+        .severity-dot.severa { background: var(--severity-severa); }
 
         body {
             background: var(--bg-deep);
@@ -98,8 +130,9 @@
             background: var(--bg-panel);
             border: 1px solid var(--line);
             padding: 24px;
-            border-radius: 12px;
+            border-radius: 20px;
             margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
         }
 
         .weather-card h2 {
@@ -126,13 +159,15 @@
             background: var(--bg-panel);
             padding: 20px;
             margin-bottom: 12px;
-            border-radius: 12px;
-            transition: border-color 0.15s ease;
+            border-radius: 18px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
             border: 1px solid var(--line);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
         }
 
         .alert-card:hover {
             border-color: var(--text-faint);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
 
         .alert-card.leve::before,
@@ -168,7 +203,12 @@
             font-size: 12px;
             color: var(--text-faint);
             margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 3px 12px;
         }
+        .alert-meta .msi { vertical-align: -3px; margin-right: -2px; }
 
         .alert-action {
             margin-top: 4px;
@@ -207,26 +247,41 @@
             display: flex;
             gap: 0;
             z-index: 1000;
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
         }
 
         .tab-btn {
             flex: 1;
-            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 4px 0 2px;
             background: transparent;
             border: none;
             color: var(--text-faint);
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             text-align: center;
-            transition: color 0.15s ease;
-            border-top: 2px solid transparent;
         }
 
-        .tab-btn:hover { color: var(--text-dim); }
-        .tab-btn.active {
-            color: var(--text-main);
-            border-top-color: var(--accent);
+        .tab-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 20px;
+            border-radius: 16px;
+            transition: background 0.2s ease, color 0.2s ease;
+            color: var(--text-faint);
+        }
+
+        .tab-btn:hover .tab-indicator { color: var(--text-dim); }
+        .tab-btn.active { color: var(--text-main); }
+        .tab-btn.active .tab-indicator {
+            background: var(--accent-soft);
+            color: var(--accent);
         }
 
         .config-item {
@@ -355,7 +410,7 @@
             background: var(--text-main);
             color: var(--bg-deep);
             border: none;
-            border-radius: 9px;
+            border-radius: 24px;
             font-weight: 600;
             cursor: pointer;
             font-size: 13px;
@@ -364,6 +419,7 @@
             position: relative;
             z-index: 10;
         }
+        .action-btn .msi { vertical-align: -4px; }
         .action-btn:hover { opacity: 0.85; }
         .action-btn:disabled {
             opacity: 0.4;
@@ -485,24 +541,24 @@
     <div id="alertas" class="section active">
         <div class="container">
             <div class="header">
-                <h1>⚡ Tormentar</h1>
+                <h1><span class="msi filled" style="font-size:24px;">bolt</span> Tormentar</h1>
                 <p>Alertas de Tormentas en Tiempo Real</p>
             </div>
             
             <div class="filter-container">
-                <button class="filter-btn active" onclick="setFilter(this, 'leve')">🟡 Leve</button>
-                <button class="filter-btn" onclick="setFilter(this, 'moderada')">🟠 Moderada</button>
-                <button class="filter-btn" onclick="setFilter(this, 'severa')">🔴 Severa</button>
+                <button class="filter-btn active" onclick="setFilter(this, 'leve')"><span class="severity-dot leve"></span>Leve</button>
+                <button class="filter-btn" onclick="setFilter(this, 'moderada')"><span class="severity-dot moderada"></span>Moderada</button>
+                <button class="filter-btn" onclick="setFilter(this, 'severa')"><span class="severity-dot severa"></span>Severa</button>
             </div>
             
             <div class="weather-card" id="weatherCard">
                 <div class="loading">Elegí tu ubicación para ver alertas reales</div>
                 <div style="text-align:center;">
-                    <button class="action-btn" id="geoBtn" onclick="requestGeolocation()">📍 Usar mi ubicación</button>
+                    <button class="action-btn" id="geoBtn" onclick="requestGeolocation()"><span class="msi">my_location</span>Usar mi ubicación</button>
                 </div>
                 <div class="or-divider"><span>o buscá una ciudad</span></div>
                 <div class="search-container">
-                    <span class="search-icon">🔍</span>
+                    <span class="msi sm search-icon">search</span>
                     <input type="text" class="search-input" id="citySearch" placeholder="Escribí el nombre de una ciudad..." autocomplete="off" />
                     <div class="search-results" id="searchResults"></div>
                 </div>
@@ -520,22 +576,22 @@
     <div id="config" class="section">
         <div class="container">
             <div class="header">
-                <h1>⚙️ Configuración</h1>
+                <h1><span class="msi filled" style="font-size:24px;">settings</span> Configuración</h1>
                 <p>Personaliza tu experiencia</p>
             </div>
             
             <h3>Ubicación Actual</h3>
             <div class="location-info" id="configLocation" style="display:none;">
-                <span class="loc-icon">📍</span>
+                <span class="msi loc-icon">location_on</span>
                 <div>
                     <div class="loc-city" id="configCity">—</div>
                     <div class="loc-text" id="configCoords"></div>
                 </div>
             </div>
-            <button class="action-btn" onclick="requestGeolocation()" style="display:inline-flex;">📍 Usar mi ubicación GPS</button>
+            <button class="action-btn" onclick="requestGeolocation()" style="display:inline-flex;"><span class="msi">my_location</span>Usar mi ubicación GPS</button>
             <div class="or-divider"><span>o buscá otra ciudad</span></div>
             <div class="search-container">
-                <span class="search-icon">🔍</span>
+                <span class="msi sm search-icon">search</span>
                 <input type="text" class="search-input" id="configCitySearch" placeholder="Escribí el nombre de una ciudad..." autocomplete="off" />
                 <div class="search-results" id="configSearchResults"></div>
             </div>
@@ -577,15 +633,24 @@
     </div>
 
     <div class="alert-popup" id="alertPopup">
-        <h2 id="popupTitle">⚠️ Alerta de Tormenta</h2>
+        <h2 id="popupTitle"><span class="msi filled">warning</span> Alerta de Tormenta</h2>
         <p id="popupDesc">Se ha detectado una tormenta en tu área.</p>
         <button class="close-btn" onclick="closeAlertPopup()">Cerrar</button>
     </div>
 
     <div class="tabs-container">
-        <button class="tab-btn active" onclick="switchTab('alertas', this)">🏠 Alertas</button>
-        <button class="tab-btn" onclick="switchTab('mapa', this)">🗺️ Mapa</button>
-        <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Config</button>
+        <button class="tab-btn active" onclick="switchTab('alertas', this)" data-icon="home">
+            <span class="tab-indicator"><span class="msi filled">home</span></span>
+            <span>Alertas</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('mapa', this)" data-icon="map">
+            <span class="tab-indicator"><span class="msi">map</span></span>
+            <span>Mapa</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('config', this)" data-icon="settings">
+            <span class="tab-indicator"><span class="msi">settings</span></span>
+            <span>Config</span>
+        </button>
     </div>
 
     <script>
@@ -619,6 +684,18 @@
         let activeAlertAudio = null;
         const ALERT_SOUND_URL = 'alert-sound.mp3';
         
+        // ========== ÍCONOS (Material Symbols) ==========
+
+        const SEVERITY_ICON_NAMES = { leve: 'rainy', moderada: 'thunderstorm', severa: 'cyclone' };
+
+        function severityIcon(severity, opts) {
+            opts = opts || {};
+            const name = SEVERITY_ICON_NAMES[severity] || 'warning';
+            const cls = 'msi' + (opts.filled ? ' filled' : '') + (opts.sm ? ' sm' : '');
+            const style = opts.color ? ` style="color:${opts.color}"` : '';
+            return `<span class="${cls}"${style}>${name}</span>`;
+        }
+
         // ========== CLASIFICACIÓN DE CONDICIONES ==========
         
         function classifyCondition(weatherId, windSpeed) {
@@ -646,7 +723,7 @@
             const btn = document.getElementById('geoBtn');
             if (btn) {
                 btn.disabled = true;
-                btn.textContent = '⏳ Obteniendo...';
+                btn.innerHTML = '<span class="msi">hourglass_top</span>Obteniendo...';
             }
             
             navigator.geolocation.getCurrentPosition(
@@ -663,7 +740,7 @@
                     
                     if (btn) {
                         btn.disabled = false;
-                        btn.textContent = '📍 Actualizar ubicación';
+                        btn.innerHTML = '<span class="msi">my_location</span>Actualizar ubicación';
                     }
                     
                     updateLocationUI();
@@ -673,7 +750,7 @@
                     const btn = document.getElementById('geoBtn');
                     if (btn) {
                         btn.disabled = false;
-                        btn.textContent = '📍 Usar mi ubicación';
+                        btn.innerHTML = '<span class="msi">my_location</span>Usar mi ubicación';
                     }
                     
                     let msg = 'No se pudo obtener la ubicación.';
@@ -744,7 +821,7 @@
                 
                 resultsElement.innerHTML = cities.map(city => `
                     <div class="search-result-item" onclick="selectCity(${city.lat}, ${city.lon}, '${escapeHtml(city.name)}', '${escapeHtml(city.country || '')}', '${escapeHtml(city.state || '')}', this)">
-                        <div class="result-city">${city.name}${city.state ? ', ' + city.state : ''}</div>
+                        <div class="result-city">${escapeHtmlText(city.name)}${city.state ? ', ' + escapeHtmlText(city.state) : ''}</div>
                         <div class="result-country">${getCountryName(city.country)}${city.country ? ' · ' + city.country : ''}</div>
                     </div>
                 `).join('');
@@ -760,6 +837,11 @@
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        function escapeHtmlText(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
         
         function getCountryName(code) {
@@ -815,14 +897,6 @@
         // ========== ACTUALIZAR UI ==========
         
         function updateLocationUI() {
-            // Map location
-            const mapLoc = document.getElementById('mapLocation');
-            if (mapLoc) {
-                mapLoc.style.display = 'flex';
-                document.getElementById('mapCity').textContent = userLocation.city;
-                document.getElementById('mapCoords').textContent = `${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°`;
-            }
-            
             // Config location
             const configLoc = document.getElementById('configLocation');
             if (configLoc) {
@@ -845,7 +919,7 @@
             
             const weatherCard = document.getElementById('weatherCard');
             weatherCard.innerHTML = `
-                <h2>📍 ${userLocation.city}</h2>
+                <h2><span class="msi sm">location_on</span>${userLocation.city}</h2>
                 <div style="font-size:12px;color:#636368;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
                 <div class="loading">Cargando datos de clima...</div>
             `;
@@ -872,7 +946,7 @@
             } catch (e) {
                 console.error('Error fetching weather:', e);
                 weatherCard.innerHTML = `
-                    <h2>📍 ${userLocation.city}</h2>
+                    <h2><span class="msi sm">location_on</span>${userLocation.city}</h2>
                     <div style="font-size:12px;color:#636368;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
                     <div class="loading" style="color:#cc4f47;">Error al obtener datos. Verificá tu conexión.</div>
                 `;
@@ -882,7 +956,7 @@
         function displayWeather(data) {
             const weatherCard = document.getElementById('weatherCard');
             weatherCard.innerHTML = `
-                <h2>📍 ${userLocation.city}</h2>
+                <h2><span class="msi sm">location_on</span>${userLocation.city}</h2>
                 <div style="font-size:12px;color:#636368;margin-bottom:12px;">${userLocation.lat.toFixed(4)}°, ${userLocation.lng.toFixed(4)}°</div>
                 <div class="weather-info">
                     <div class="weather-item">
@@ -965,9 +1039,9 @@
         
         function createAlert(open) {
             const title = {
-                severa: '⚠️ Riesgo de tormenta fuerte',
-                moderada: '⛈️ Riesgo de tormenta moderada',
-                leve: '🌧️ Condición climática leve'
+                severa: 'Riesgo de tormenta fuerte',
+                moderada: 'Riesgo de tormenta moderada',
+                leve: 'Condición climática leve'
             }[open.severity];
             
             const radius = { severa: 35, moderada: 25, leve: 15 }[open.severity];
@@ -1003,19 +1077,21 @@
             }
             
             if (filtered.length === 0) {
-                alertsList.innerHTML = '<div class="loading" style="color:#5a9e6f;">✅ Sin alertas activas para este nivel de severidad en ' + userLocation.city + '.</div>';
+                alertsList.innerHTML = '<div class="loading" style="color:#5a9e6f;"><span class="msi filled sm" style="color:#5a9e6f;">check_circle</span>Sin alertas activas para este nivel de severidad en ' + userLocation.city + '.</div>';
                 return;
             }
             
             filtered.forEach(alert => {
                 const card = document.createElement('div');
                 card.className = 'alert-card ' + alert.severity;
-                const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[alert.severity];
-                const shortTitle = alert.title.replace(/^[^\s]+ /, '');
                 card.innerHTML = `
-                    <div class="alert-title">${icon} ${shortTitle}</div>
+                    <div class="alert-title">${severityIcon(alert.severity, { sm: true })}${alert.title}</div>
                     <div class="alert-desc">${alert.description}</div>
-                    <div class="alert-meta">📍 ${userLocation.city} | 📏 Radio: ${alert.radius} km | 🕐 ${alert.startTime} - ${alert.endTime}</div>
+                    <div class="alert-meta">
+                        <span><span class="msi sm">location_on</span>${userLocation.city}</span>
+                        <span><span class="msi sm">straighten</span>Radio: ${alert.radius} km</span>
+                        <span><span class="msi sm">schedule</span>${alert.startTime} - ${alert.endTime}</span>
+                    </div>
                     <button class="alert-action" onclick="triggerAlert('${escapeHtml(userLocation.city)}', '${alert.severity}')">Ver en Mapa</button>
                 `;
                 alertsList.appendChild(card);
@@ -1060,10 +1136,9 @@
         
         function showAlertPopup(zone, severity) {
             const popup = document.getElementById('alertPopup');
-            const icon = { leve: '🌧️', moderada: '⛈️', severa: '🌪️' }[severity];
-            const title = { leve: 'Tormenta Leve', moderada: '⚠️ ALERTA MODERADA', severa: '⚠️ ALERTA SEVERA' }[severity];
+            const title = { leve: 'Tormenta Leve', moderada: 'ALERTA MODERADA', severa: 'ALERTA SEVERA' }[severity];
             
-            document.getElementById('popupTitle').textContent = icon + ' ' + title;
+            document.getElementById('popupTitle').innerHTML = severityIcon(severity, { filled: true }) + ' ' + title;
             document.getElementById('popupDesc').textContent = 'Se ha detectado una tormenta en ' + zone + '. Toma precauciones.';
             
             popup.classList.remove('moderada', 'severa');
@@ -1149,8 +1224,14 @@
         function switchTab(tabId, btn) {
             document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
             document.getElementById(tabId).classList.add('active');
-            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-btn').forEach(function(b) {
+                b.classList.remove('active');
+                var ic = b.querySelector('.msi');
+                if (ic) ic.classList.remove('filled');
+            });
             btn.classList.add('active');
+            var activeIcon = btn.querySelector('.msi');
+            if (activeIcon) activeIcon.classList.add('filled');
             if (tabId === 'mapa') {
                 setTimeout(function() { initMap(); }, 100);
             }
@@ -1212,10 +1293,10 @@
                     var div = L.DomUtil.create('div', 'map-legend');
                     div.innerHTML = '<div style="background:rgba(0,0,0,0.8);padding:10px 14px;border-radius:8px;color:#fff;font-size:12px;line-height:1.8;">' +
                         '<b style="color:#d9a441;">Leyenda</b><br>' +
-                        '<span style="color:#5a9e6f;">●</span> Leve (10s sonido)<br>' +
-                        '<span style="color:#d9863f;">●</span> Moderada (30s sonido)<br>' +
-                        '<span style="color:#cc4f47;">●</span> Severa (30s sonido)<br>' +
-                        '<span style="color:#d9a441;">●</span> Tu ubicación</span>' +
+                        '<span class="severity-dot leve"></span> Leve (10s sonido)<br>' +
+                        '<span class="severity-dot moderada"></span> Moderada (10s sonido)<br>' +
+                        '<span class="severity-dot severa"></span> Severa (20s sonido)<br>' +
+                        '<span class="severity-dot" style="background:#d9a441;"></span> Tu ubicación' +
                         '</div>';
                     return div;
                 };
@@ -1241,7 +1322,7 @@
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 0.9
-                }).addTo(map).bindPopup('<b>📍 Tu ubicación</b><br>' + userLocation.city);
+                }).addTo(map).bindPopup('<b><span class="msi sm">my_location</span> Tu ubicación</b><br>' + userLocation.city);
             }
         }
         
@@ -1249,7 +1330,7 @@
             var colors = {
                 severa: '#cc4f47',
                 moderada: '#d9863f',
-                leve: '#5a9e6f'
+                leve: '#d9b34a'
             };
             
             // Solo dibujar zonas que tienen alerta activa (leve y para arriba)
@@ -1274,9 +1355,9 @@
                 });
                 
                 var popupContent = '<b>' + alert.zoneName + '</b><br>';
-                popupContent += '⚠️ ' + alert.title + '<br>';
+                popupContent += severityIcon(severity, { sm: true, color: color }) + ' ' + alert.title + '<br>';
                 popupContent += 'Severidad: ' + alert.severity + '<br>';
-                popupContent += '🕐 ' + alert.startTime + ' - ' + alert.endTime + '<br>';
+                popupContent += '<span class="msi sm">schedule</span> ' + alert.startTime + ' - ' + alert.endTime + '<br>';
                 
                 marker.addTo(map).bindPopup(popupContent);
             });
@@ -1342,9 +1423,9 @@
                 if (severity) {
                     var radius = { severa: 40, moderada: 25, leve: 15 }[severity];
                     var titles = {
-                        severa: '⚠️ Tormenta fuerte',
-                        moderada: '⛈️ Tormenta moderada',
-                        leve: '🌧️ Condición leve'
+                        severa: 'Tormenta fuerte',
+                        moderada: 'Tormenta moderada',
+                        leve: 'Condición leve'
                     };
                     
                     var now = new Date();
@@ -1414,7 +1495,7 @@
             const geoBtn = document.getElementById('geoBtn');
             if (geoBtn) {
                 geoBtn.disabled = false;
-                geoBtn.textContent = '📍 Usar mi ubicación';
+                geoBtn.innerHTML = '<span class="msi">my_location</span>Usar mi ubicación';
             }
             
             // Cargar datos del mapa regional de Buenos Aires
