@@ -12,6 +12,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { useLocation } from "@/hooks/useLocation";
 import { useAlertsContext } from "@/lib/alerts-context";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { searchCities, type CitySearchResult } from "@/lib/services/geocodingService";
 import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -28,6 +29,14 @@ export default function SettingsScreen() {
   const { location, loading: locationLoading, error: locationError, getCurrentLocation, setManualLocation } =
     useLocation();
   const { pushTestAlert } = useAlertsContext();
+  const {
+    supported: pushSupported,
+    enabled: pushEnabled,
+    loading: pushLoading,
+    error: pushError,
+    enablePush,
+    disablePush,
+  } = usePushNotifications();
 
   const [searchCity, setSearchCity] = useState("");
   const [showCitySearch, setShowCitySearch] = useState(false);
@@ -273,6 +282,26 @@ export default function SettingsScreen() {
             value={preferences.notificationsEnabled}
             onToggle={() => updatePreferences({ notificationsEnabled: !preferences.notificationsEnabled })}
           />
+
+          {pushSupported && (
+            <SettingRow
+              icon="phone-iphone"
+              title="Notificaciones push"
+              subtitle="Recibilas en el celular aunque el navegador este cerrado"
+              value={pushEnabled}
+              onToggle={() => (pushEnabled ? disablePush() : enablePush())}
+            />
+          )}
+
+          {pushLoading && (
+            <Text className="text-xs text-muted mb-2">Configurando notificaciones push...</Text>
+          )}
+
+          {pushError && (
+            <Text className="text-xs mb-2" style={{ color: colors.error }}>
+              {pushError}
+            </Text>
+          )}
 
           <SettingRow
             icon="volume-up"
