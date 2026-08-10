@@ -609,6 +609,13 @@
                 <span>Vibración</span>
                 <button class="config-toggle on" onclick="toggleConfig(this)"></button>
             </div>
+            <div class="config-item">
+                <div>
+                    <div>Notificaciones Push</div>
+                    <div style="font-size:12px;color:#98989d;margin-top:2px;" id="pushStatusText">Comprobando...</div>
+                </div>
+                <button class="config-toggle" id="pushToggle" onclick="onPushToggleClick()"></button>
+            </div>
             
             <h3 style="margin-top: 30px;">Actualización</h3>
             <div class="config-item">
@@ -623,7 +630,7 @@
             </div>
             <div class="config-item">
                 <span>Fuente de Datos</span>
-                <span style="color: #98989d;">OpenWeatherMap API (Plan Free)</span>
+                <span style="color: #98989d;">Open-Meteo (gratis, sin API key)</span>
             </div>
             <div class="config-item">
                 <span>Ubicación</span>
@@ -654,8 +661,9 @@
     </div>
 
     <script>
-        const API_KEY = '494ad746f7db3c750a3cd5eb8be4a186';
-        const GEO_URL = 'https://api.openweathermap.org/geo/1.0/direct';
+        const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+        const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+        const REVERSE_GEOCODE_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
         
         // Estado de la ubicación del usuario
         let userLocation = { lat: null, lng: null, city: 'Obteniendo...' };
@@ -664,7 +672,7 @@
         let alerts = [];
         let audioContext = null;
         let weatherData = null;
-        let forecastData = null;
+        let forecastPoints = null;
         let searchTimeout = null;
         let configSearchTimeout = null;
         let knownAlertIds = new Set();
@@ -697,7 +705,40 @@
         }
 
         // ========== CLASIFICACIÓN DE CONDICIONES ==========
-        
+
+        // Traduce el código WMO que devuelve Open-Meteo a un id de
+        // condición climática (mismo formato que ya interpreta
+        // classifyCondition), para no duplicar la lógica de severidad.
+        function mapWeatherCode(wmo) {
+            const map = {
+                0: 800, 1: 801, 2: 802, 3: 804,
+                45: 741, 48: 741,
+                51: 500, 53: 501, 55: 502, 56: 511, 57: 511,
+                61: 500, 63: 501, 65: 502, 66: 511, 67: 511,
+                71: 601, 73: 602, 75: 602, 77: 611,
+                80: 520, 81: 521, 82: 522,
+                85: 621, 86: 622,
+                95: 211, 96: 212, 99: 212,
+            };
+            return map[wmo] ?? 800;
+        }
+
+        function wmoDescription(code) {
+            const labels = {
+                0: 'Despejado', 1: 'Principalmente despejado', 2: 'Parcialmente nublado', 3: 'Nublado',
+                45: 'Niebla', 48: 'Niebla con escarcha',
+                51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna densa',
+                56: 'Llovizna helada ligera', 57: 'Llovizna helada densa',
+                61: 'Lluvia ligera', 63: 'Lluvia moderada', 65: 'Lluvia intensa',
+                66: 'Lluvia helada ligera', 67: 'Lluvia helada intensa',
+                71: 'Nevada ligera', 73: 'Nevada moderada', 75: 'Nevada intensa', 77: 'Granizo',
+                80: 'Chubascos ligeros', 81: 'Chubascos moderados', 82: 'Chubascos violentos',
+                85: 'Chubascos de nieve ligeros', 86: 'Chubascos de nieve intensos',
+                95: 'Tormenta eléctrica', 96: 'Tormenta eléctrica con granizo ligero', 99: 'Tormenta eléctrica con granizo intenso',
+            };
+            return labels[code] ?? 'Desconocido';
+        }
+
         function classifyCondition(weatherId, windSpeed) {
             if (windSpeed >= 17) return 'severa';
             if (windSpeed >= 10.8) return 'moderada';
@@ -810,19 +851,20 @@
         
         async function searchCities(query, resultsElement) {
             try {
-                const res = await fetch(`${GEO_URL}?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`);
-                const cities = await res.json();
+                const res = await fetch(`${GEOCODING_URL}?name=${encodeURIComponent(query)}&count=5&language=es&format=json`);
+                const data = await res.json();
+                const cities = Array.isArray(data.results) ? data.results : [];
                 
-                if (!Array.isArray(cities) || cities.length === 0) {
+                if (cities.length === 0) {
                     resultsElement.innerHTML = '<div class="search-result-item"><span class="result-city">Sin resultados</span></div>';
                     resultsElement.classList.add('visible');
                     return;
                 }
                 
                 resultsElement.innerHTML = cities.map(city => `
-                    <div class="search-result-item" onclick="selectCity(${city.lat}, ${city.lon}, '${escapeHtml(city.name)}', '${escapeHtml(city.country || '')}', '${escapeHtml(city.state || '')}', this)">
-                        <div class="result-city">${escapeHtmlText(city.name)}${city.state ? ', ' + escapeHtmlText(city.state) : ''}</div>
-                        <div class="result-country">${getCountryName(city.country)}${city.country ? ' · ' + city.country : ''}</div>
+                    <div class="search-result-item" onclick="selectCity(${city.latitude}, ${city.longitude}, '${escapeHtml(city.name)}', '${escapeHtml(city.country || '')}', '${escapeHtml(city.admin1 || '')}', this)">
+                        <div class="result-city">${escapeHtmlText(city.name)}${city.admin1 ? ', ' + escapeHtmlText(city.admin1) : ''}</div>
+                        <div class="result-country">${escapeHtmlText(city.country || '')}</div>
                     </div>
                 `).join('');
                 
@@ -844,20 +886,6 @@
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
         
-        function getCountryName(code) {
-            const names = {
-                'AR': 'Argentina', 'MX': 'México', 'ES': 'España', 'US': 'Estados Unidos',
-                'CL': 'Chile', 'PE': 'Perú', 'CO': 'Colombia', 'UY': 'Uruguay',
-                'EC': 'Ecuador', 'BR': 'Brasil', 'PY': 'Paraguay', 'BO': 'Bolivia',
-                'VE': 'Venezuela', 'CR': 'Costa Rica', 'GT': 'Guatemala', 'HN': 'Honduras',
-                'SV': 'El Salvador', 'NI': 'Nicaragua', 'PA': 'Panamá', 'CU': 'Cuba',
-                'DO': 'Rep. Dominicana', 'PR': 'Puerto Rico', 'FR': 'Francia',
-                'GB': 'Reino Unido', 'DE': 'Alemania', 'IT': 'Italia', 'PT': 'Portugal',
-                'JP': 'Japón', 'CN': 'China', 'IN': 'India', 'AU': 'Australia',
-                'CA': 'Canadá', 'RU': 'Rusia'
-            };
-            return names[code] || code || '';
-        }
         
         async function selectCity(lat, lng, name, country, state, element) {
             userLocation.lat = lat;
@@ -886,9 +914,9 @@
         
         async function reverseGeocode(lat, lng) {
             try {
-                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&lang=es`);
+                const res = await fetch(`${REVERSE_GEOCODE_URL}?latitude=${lat}&longitude=${lng}&localityLanguage=es`);
                 const data = await res.json();
-                return data.name || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+                return data.city || data.locality || data.principalSubdivision || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
             } catch (e) {
                 return `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
             }
@@ -925,17 +953,49 @@
             `;
             
             try {
-                const [currentRes, forecastRes] = await Promise.all([
-                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lng}&appid=${API_KEY}&units=metric&lang=es`),
-                    fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${userLocation.lat}&lon=${userLocation.lng}&appid=${API_KEY}&units=metric&lang=es`)
-                ]);
+                const res = await fetch(
+                    `${FORECAST_URL}?latitude=${userLocation.lat}&longitude=${userLocation.lng}` +
+                    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,cloud_cover` +
+                    `&hourly=weather_code,wind_speed_10m` +
+                    `&wind_speed_unit=ms&timezone=auto&forecast_days=5`
+                );
+                const data = await res.json();
                 
-                weatherData = await currentRes.json();
-                forecastData = await forecastRes.json();
-                
-                if (weatherData.cod !== 200) {
-                    throw new Error('API error: ' + weatherData.message);
+                if (!data.current) {
+                    throw new Error('API error: respuesta sin datos de clima actual');
                 }
+                
+                const current = data.current;
+                weatherData = {
+                    main: {
+                        temp: current.temperature_2m,
+                        feels_like: current.apparent_temperature,
+                        humidity: current.relative_humidity_2m
+                    },
+                    wind: { speed: current.wind_speed_10m },
+                    weather: [{
+                        id: mapWeatherCode(current.weather_code),
+                        description: wmoDescription(current.weather_code)
+                    }],
+                    clouds: { all: current.cloud_cover }
+                };
+                
+                const nowSec = Math.floor(Date.now() / 1000);
+                const hourly = data.hourly || {};
+                forecastPoints = [
+                    {
+                        dt: nowSec,
+                        weatherId: mapWeatherCode(current.weather_code),
+                        description: wmoDescription(current.weather_code),
+                        windSpeed: current.wind_speed_10m
+                    },
+                    ...(hourly.time || []).map((t, i) => ({
+                        dt: Math.floor(new Date(t).getTime() / 1000),
+                        weatherId: mapWeatherCode(hourly.weather_code[i]),
+                        description: wmoDescription(hourly.weather_code[i]),
+                        windSpeed: hourly.wind_speed_10m[i] ?? 0
+                    }))
+                ];
                 
                 displayWeather(weatherData);
                 generateAlerts();
@@ -985,7 +1045,7 @@
                     </div>
                 </div>
                 <div style="font-size:11px;color:#636368;margin-top:12px;text-align:center;">
-                    Fuente: OpenWeatherMap · Actualizado: ${new Date().toLocaleTimeString('es-ES')}
+                    Fuente: Open-Meteo · Actualizado: ${new Date().toLocaleTimeString('es-ES')}
                 </div>
             `;
         }
@@ -994,15 +1054,9 @@
         
         function generateAlerts() {
             alerts = [];
-            if (!weatherData || !forecastData) return;
+            if (!weatherData || !forecastPoints) return;
             
             const severityOrder = { severa: 0, moderada: 1, leve: 2 };
-            const forecastPoints = (forecastData.list || []).map(item => ({
-                dt: item.dt,
-                weatherId: item.weather?.[0]?.id ?? 800,
-                description: item.weather?.[0]?.description ?? '',
-                windSpeed: item.wind?.speed ?? 0
-            }));
             
             let open = null;
             
@@ -1018,16 +1072,16 @@
                 }
                 
                 if (open && severityOrder[severity] <= severityOrder[open.severity]) {
-                    open.end = point.dt + 3 * 3600;
+                    open.end = point.dt + 3600;
                     if (severityOrder[severity] < severityOrder[open.severity]) {
                         open.severity = severity;
                         open.description = point.description;
                     }
                 } else if (open) {
                     alerts.push(createAlert(open));
-                    open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+                    open = { start: point.dt, end: point.dt + 3600, severity, description: point.description };
                 } else {
-                    open = { start: point.dt, end: point.dt + 3 * 3600, severity, description: point.description };
+                    open = { start: point.dt, end: point.dt + 3600, severity, description: point.description };
                 }
             }
             
@@ -1052,7 +1106,7 @@
                 id: `${userLocation.city}_${open.severity}_${open.start}`,
                 title,
                 severity: open.severity,
-                description: `Pronóstico: ${open.description}. Viento y condiciones climáticas estimadas a partir de datos de OpenWeatherMap.`,
+                description: `Pronóstico: ${open.description}. Viento y condiciones climáticas estimadas a partir de datos de Open-Meteo.`,
                 lat: userLocation.lat,
                 lng: userLocation.lng,
                 radius,
@@ -1219,6 +1273,160 @@
             }
         }
         
+        // ========== NOTIFICACIONES PUSH ==========
+        // Notificaciones reales del sistema: llegan aunque la pestaña o el
+        // navegador estén cerrados. Requiere permiso del usuario + un
+        // Service Worker (sw.js) + suscribirse al servidor (server.js),
+        // que es quien las manda cuando detecta una alerta nueva.
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; i++) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        function setPushStatus(text) {
+            const el = document.getElementById('pushStatusText');
+            if (el) el.textContent = text;
+        }
+
+        function setPushToggleOn(on) {
+            const btn = document.getElementById('pushToggle');
+            if (!btn) return;
+            btn.classList.toggle('on', on);
+        }
+
+        async function enablePushNotifications() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                setPushStatus('Tu navegador no soporta notificaciones push');
+                setPushToggleOn(false);
+                return;
+            }
+
+            try {
+                setPushStatus('Activando...');
+                const registration = await navigator.serviceWorker.register('/sw.js');
+
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    setPushStatus('Bloqueadas por el navegador. Habilitalas en la config del sitio.');
+                    setPushToggleOn(false);
+                    return;
+                }
+
+                const { publicKey } = await fetch('/vapid-public-key').then(function(r) { return r.json(); });
+
+                let subscription = await registration.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(publicKey)
+                    });
+                }
+
+                await fetch('/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(subscription.toJSON())
+                });
+
+                localStorage.setItem('tormentar_push_enabled', '1');
+                setPushToggleOn(true);
+                setPushStatus('Activas: vas a recibir alertas aunque cierres el navegador');
+            } catch (e) {
+                console.error('Error activando notificaciones push:', e);
+                setPushStatus('No se pudo activar. Probá de nuevo.');
+                setPushToggleOn(false);
+            }
+        }
+
+        async function disablePushNotifications() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+                    if (registration) {
+                        const subscription = await registration.pushManager.getSubscription();
+                        if (subscription) {
+                            await fetch('/unsubscribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ endpoint: subscription.endpoint })
+                            });
+                            await subscription.unsubscribe();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error desactivando notificaciones push:', e);
+            } finally {
+                localStorage.setItem('tormentar_push_enabled', '0');
+                setPushToggleOn(false);
+                setPushStatus('Desactivadas');
+            }
+        }
+
+        function onPushToggleClick() {
+            const btn = document.getElementById('pushToggle');
+            const isOn = btn && btn.classList.contains('on');
+            if (isOn) {
+                disablePushNotifications();
+            } else {
+                enablePushNotifications();
+            }
+        }
+
+        // Al cargar la página: si el usuario ya había activado las push
+        // antes (y el navegador sigue teniendo el permiso), re-sincroniza
+        // en silencio en vez de pedirle que apriete el botón de nuevo.
+        async function initPushStatus() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                setPushStatus('No soportadas en este navegador');
+                return;
+            }
+
+            const wanted = localStorage.getItem('tormentar_push_enabled') === '1';
+
+            if (Notification.permission === 'denied') {
+                setPushStatus('Bloqueadas por el navegador');
+                setPushToggleOn(false);
+                return;
+            }
+
+            if (Notification.permission === 'granted' && wanted) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    let subscription = await registration.pushManager.getSubscription();
+                    if (!subscription) {
+                        const { publicKey } = await fetch('/vapid-public-key').then(function(r) { return r.json(); });
+                        subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(publicKey)
+                        });
+                        await fetch('/subscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(subscription.toJSON())
+                        });
+                    }
+                    setPushToggleOn(true);
+                    setPushStatus('Activas: vas a recibir alertas aunque cierres el navegador');
+                } catch (e) {
+                    console.error('Error re-sincronizando push:', e);
+                    setPushStatus('No se pudo verificar. Probá activarlas de nuevo.');
+                    setPushToggleOn(false);
+                }
+                return;
+            }
+
+            setPushStatus('Desactivadas');
+            setPushToggleOn(false);
+        }
+
         // ========== NAVEGACIÓN ==========
         
         function switchTab(tabId, btn) {
@@ -1375,33 +1583,37 @@
             regionalAlerts = [];
             zonasClima = {};
             
-            // Hacer fetch de todas las zonas en lotes de 5 (para no saturar la API)
-            var batchSize = 5;
-            var results = [];
+            // Una sola llamada con las 26 coordenadas separadas por coma:
+            // Open-Meteo devuelve un array en el mismo orden, sin necesidad
+            // de hacer 26 pedidos (ni de cuidar rate limit de API key).
+            var latitudes = zonasAmaba.map(function(z) { return z.lat; }).join(',');
+            var longitudes = zonasAmaba.map(function(z) { return z.lng; }).join(',');
             
-            for (var i = 0; i < zonasAmaba.length; i += batchSize) {
-                var batch = zonasAmaba.slice(i, i + batchSize);
-                var batchResults = await Promise.all(batch.map(function(zona) {
-                    return fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + zona.lat + '&lon=' + zona.lng + '&appid=' + API_KEY + '&units=metric&lang=es')
-                        .then(function(res) { return res.json(); })
-                        .then(function(data) {
-                            if (data.cod === 200) {
-                                return {
-                                    zone: zona,
-                                    temp: data.main.temp,
-                                    wind: data.wind.speed,
-                                    clouds: data.clouds.all,
-                                    weatherId: data.weather[0].id,
-                                    description: data.weather[0].description,
-                                    humidity: data.main.humidity
-                                };
-                            }
-                            return null;
-                        })
-                        .catch(function() { return null; });
-                }));
+            var results = [];
+            try {
+                var url = FORECAST_URL + '?latitude=' + latitudes + '&longitude=' + longitudes +
+                    '&current=weather_code,wind_speed_10m,cloud_cover,temperature_2m,relative_humidity_2m' +
+                    '&wind_speed_unit=ms&timezone=auto';
+                var res = await fetch(url);
+                var data = await res.json();
+                var zoneResponses = Array.isArray(data) ? data : [data];
                 
-                results = results.concat(batchResults);
+                results = zonasAmaba.map(function(zona, i) {
+                    var zoneData = zoneResponses[i];
+                    if (!zoneData || !zoneData.current) return null;
+                    var weatherId = mapWeatherCode(zoneData.current.weather_code);
+                    return {
+                        zone: zona,
+                        temp: zoneData.current.temperature_2m,
+                        wind: zoneData.current.wind_speed_10m,
+                        clouds: zoneData.current.cloud_cover,
+                        weatherId: weatherId,
+                        description: wmoDescription(zoneData.current.weather_code),
+                        humidity: zoneData.current.relative_humidity_2m
+                    };
+                });
+            } catch (e) {
+                console.error('Error consultando Open-Meteo para las zonas:', e);
             }
             
             // Procesar resultados y generar alertas regionales
@@ -1474,6 +1686,8 @@
         // ========== INICIALIZACIÓN ==========
         
         (async function init() {
+            initPushStatus();
+
             // Inicializar buscadores
             initSearch('citySearch', 'searchResults', 'main');
             initSearch('configCitySearch', 'configSearchResults', 'config');
