@@ -43,6 +43,7 @@ export interface AlertPreferences {
   notificationsEnabled: boolean;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  lightningAlertEnabled: boolean;
   // Intervalo unico de actualizacion, usado por todas las pantallas.
   updateIntervalMinutes: number;
 }
@@ -52,6 +53,7 @@ export const DEFAULT_PREFERENCES: AlertPreferences = {
   notificationsEnabled: true,
   soundEnabled: true,
   vibrationEnabled: true,
+  lightningAlertEnabled: false,
   updateIntervalMinutes: 15,
 };
 

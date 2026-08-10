@@ -161,11 +161,18 @@ export function useAlerts(options?: UseAlertsOptions) {
 
       if (prefs.notificationsEnabled) {
         const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
-        const newRelevantAlerts = currentAlerts.filter(
-          (a) =>
-            !knownAlertIds.current.has(a.id) &&
-            enabledSeverities.includes(a.severity)
-        );
+        const newRelevantAlerts = currentAlerts.filter((a) => {
+          if (knownAlertIds.current.has(a.id)) return false;
+
+          // Si es una alerta de rayos fuerte, depende de la preferencia específica
+          const isStrongLightning = a.tags?.includes("tormenta") && a.severity === "severa";
+          if (isStrongLightning) {
+            return prefs.lightningAlertEnabled;
+          }
+
+          // Para el resto de las alertas, usamos la severidad mínima
+          return enabledSeverities.includes(a.severity);
+        });
 
         let remindedChanged = false;
 
@@ -212,12 +219,16 @@ export function useAlerts(options?: UseAlertsOptions) {
         // vuelve a sonar igual, en vez de depender de que te hayas
         // acordado solo.
         const today = new Date();
-        const todaysReminders = currentAlerts.filter(
-          (a) =>
-            enabledSeverities.includes(a.severity) &&
-            isSameLocalDay(a.start, today) &&
-            !remindedAlertIds.current.has(a.id)
-        );
+        const todaysReminders = currentAlerts.filter((a) => {
+          if (!isSameLocalDay(a.start, today) || remindedAlertIds.current.has(a.id)) return false;
+
+          const isStrongLightning = a.tags?.includes("tormenta") && a.severity === "severa";
+          if (isStrongLightning) {
+            return prefs.lightningAlertEnabled;
+          }
+
+          return enabledSeverities.includes(a.severity);
+        });
 
         for (const alert of todaysReminders) {
           remindedAlertIds.current.add(alert.id);
@@ -320,7 +331,13 @@ export function useAlerts(options?: UseAlertsOptions) {
   const allAlerts: WeatherAlert[] = weather?.alerts || [];
   const enabledSeverities = getEnabledSeverities(preferences.minSeverity);
   const filteredAlerts = sortAlertsBySeverity(
-    allAlerts.filter((a) => enabledSeverities.includes(a.severity))
+    allAlerts.filter((a) => {
+      const isStrongLightning = a.tags?.includes("tormenta") && a.severity === "severa";
+      if (isStrongLightning) {
+        return preferences.lightningAlertEnabled;
+      }
+      return enabledSeverities.includes(a.severity);
+    })
   );
 
   return {

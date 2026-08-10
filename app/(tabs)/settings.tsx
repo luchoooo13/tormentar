@@ -28,7 +28,7 @@ export default function SettingsScreen() {
   const { preferences, updatePreferences, setMinSeverity } = useAlertPreferences();
   const { location, loading: locationLoading, error: locationError, getCurrentLocation, setManualLocation } =
     useLocation();
-  const { pushTestAlert } = useAlertsContext();
+  const { pushTestAlert, pushLightningTestAlert } = useAlertsContext();
   const {
     supported: pushSupported,
     enabled: pushEnabled,
@@ -318,6 +318,14 @@ export default function SettingsScreen() {
             value={preferences.vibrationEnabled && preferences.notificationsEnabled}
             onToggle={() => updatePreferences({ vibrationEnabled: !preferences.vibrationEnabled })}
           />
+
+          <SettingRow
+            icon="flash-on"
+            title="Alerta de rayos"
+            subtitle="Avisar solo cuando hay descargas fuertes"
+            value={preferences.lightningAlertEnabled && preferences.notificationsEnabled}
+            onToggle={() => updatePreferences({ lightningAlertEnabled: !preferences.lightningAlertEnabled })}
+          />
         </View>
 
         {/* Sección de Sensibilidad (unica en toda la app) */}
@@ -435,23 +443,23 @@ export default function SettingsScreen() {
               Dispara un popup de alerta falso para probar sonido, boton de cerrar y tiempo en
               pantalla, sin esperar clima real.
             </Text>
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-2 mb-3">
               {SEVERITY_LEVELS.map((level) => (
                 <Pressable
                   key={level.id}
                   onPress={() => pushTestAlert(level.id)}
                   style={({ pressed }) => ({
                     flex: 1,
-                    paddingVertical: 10,
+                    paddingVertical: 12,
                     borderRadius: 8,
+                    backgroundColor: level.color + "20",
                     borderWidth: 1,
                     borderColor: level.color,
-                    backgroundColor: level.color + "15",
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
                   <Text
-                    className="text-xs font-semibold text-center"
+                    className="text-xs font-bold text-center"
                     style={{ color: level.color }}
                   >
                     {level.label}
@@ -459,6 +467,25 @@ export default function SettingsScreen() {
                 </Pressable>
               ))}
             </View>
+
+            <Pressable
+              onPress={pushLightningTestAlert}
+              style={({ pressed }) => ({
+                paddingVertical: 12,
+                borderRadius: 8,
+                backgroundColor: "#EF444420",
+                borderWidth: 1,
+                borderColor: "#EF4444",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <MaterialIcons name="flash-on" size={16} color="#EF4444" />
+                <Text className="text-xs font-bold text-center" style={{ color: "#EF4444" }}>
+                  Probar Alerta de Rayos
+                </Text>
+              </View>
+            </Pressable>
           </View>
         </View>
 

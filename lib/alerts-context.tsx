@@ -20,6 +20,7 @@ type AlertsContextValue = ReturnType<typeof useAlerts> & {
   // Inyecta una alerta falsa en la cola del popup, sin pasar por la API.
   // Sirve para probar sonido / X / tiempo sin esperar una alerta real.
   pushTestAlert: (severity: AlertSeverity) => void;
+  pushLightningTestAlert: () => void;
 };
 
 const AlertsContext = createContext<AlertsContextValue | null>(null);
@@ -64,9 +65,28 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     [alerts.location, handleNewAlert]
   );
 
+  const pushLightningTestAlert = useCallback(() => {
+    const now = Math.floor(Date.now() / 1000);
+    const lightningAlert: WeatherAlert = {
+      id: `lightning-test-${Date.now()}`,
+      event: "Tormenta eléctrica fuerte",
+      description:
+        "PRUEBA: Se han detectado rayos y descargas eléctricas fuertes en la zona.",
+      start: now,
+      end: now + 3600,
+      sender_name: "Sistema de Alerta de Rayos (Prueba)",
+      severity: "severa",
+      latitude: alerts.location?.latitude ?? -34.6,
+      longitude: alerts.location?.longitude ?? -58.4,
+      radius: 10,
+      tags: ["tormenta"],
+    };
+    handleNewAlert(lightningAlert);
+  }, [alerts.location, handleNewAlert]);
+
   const value = useMemo(
-    () => ({ ...alerts, popupQueue, dismissPopup, pushTestAlert }),
-    [alerts, popupQueue, dismissPopup, pushTestAlert]
+    () => ({ ...alerts, popupQueue, dismissPopup, pushTestAlert, pushLightningTestAlert }),
+    [alerts, popupQueue, dismissPopup, pushTestAlert, pushLightningTestAlert]
   );
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;

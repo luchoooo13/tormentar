@@ -149,6 +149,7 @@ function buildAlertsFromPoints(
       latitude,
       longitude,
       radius: 10,
+      tags: phenomenaList,
     });
     open = null;
   };
