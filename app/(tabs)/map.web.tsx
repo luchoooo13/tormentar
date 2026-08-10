@@ -7,11 +7,12 @@
  * expo-maps (mapas nativos de iOS/Android) NO funciona en web, por
  * lo que antes esta pantalla mostraba solo una caja gris de
  * "Mapa interactivo" como placeholder y nunca se completo. Ahora
- * se dibuja un mapa real con Leaflet + OpenStreetMap (no requiere
- * API key ni configuracion adicional) cargado dinamicamente desde
- * un CDN, con un marcador para la ubicacion del usuario y un
- * circulo por cada alerta (coloreado por severidad, con radio real
- * en km) que al tocarlo muestra el detalle.
+ * se dibuja un mapa real con Leaflet sobre una base oscura (CARTO
+ * Dark Matter, gratis y sin API key) para que las alertas resalten
+ * mejor, cargado dinamicamente desde un CDN, con un marcador para
+ * la ubicacion del usuario y un circulo por cada alerta (coloreado
+ * por severidad, con radio real en km) que al tocarlo muestra el
+ * detalle.
  */
 import { ScrollView, Text, View, Pressable } from "react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -103,8 +104,12 @@ export default function MapScreen() {
 
         const map = L.map(mapContainerRef.current).setView([-34.6, -58.4], 10);
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        // Base oscura (CartoDB Dark Matter, gratis y sin API key) para que
+        // los circulos y mosaicos de alertas resalten mucho mas que sobre
+        // el mapa claro de OpenStreetMap.
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+          subdomains: "abcd",
           maxZoom: 19,
         }).addTo(map);
 
@@ -177,12 +182,15 @@ export default function MapScreen() {
       if (typeof alert.latitude !== "number" || typeof alert.longitude !== "number") return;
 
       const color = SEVERITY_COLORS[alert.severity];
+      // Sobre base oscura, relleno y borde mas intensos para que la
+      // alerta se vea claro de noche.
       const circle = L.circle([alert.latitude, alert.longitude], {
         radius: (alert.radius ?? 10) * 1000,
         color,
         fillColor: color,
-        fillOpacity: 0.25,
-        weight: 2,
+        fillOpacity: 0.4,
+        weight: 3,
+        opacity: 0.95,
       }).addTo(map);
 
       circle.bindPopup(
@@ -250,10 +258,12 @@ export default function MapScreen() {
         [cell.latitude - halfCell, cell.longitude - halfCell],
         [cell.latitude + halfCell, cell.longitude + halfCell],
       ];
+      // Sobre base oscura, relleno mas intenso para que las zonas
+      // alertadas se vean bien.
       const tile = L.rectangle(bounds, {
         color,
         fillColor: color,
-        fillOpacity: 0.3,
+        fillOpacity: 0.42,
         stroke: false,
       }).addTo(map);
 
@@ -300,7 +310,7 @@ export default function MapScreen() {
           <View
             className="w-full rounded-xl border-2 overflow-hidden"
             style={{
-              height: 320,
+              height: 520,
               backgroundColor: colors.surface,
               borderColor: colors.border,
             }}
