@@ -19,8 +19,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Tormentar";
   const options = {
     body: data.body || "",
-    icon: "/favicon.png",
-    badge: "/favicon.png",
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
     tag: data.alertId ? `alert-${data.alertId}` : undefined,
     data: { url: data.url || "/" },
     vibrate: [200, 100, 200],
