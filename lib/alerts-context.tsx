@@ -61,6 +61,19 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         radius: 10,
       };
       handleNewAlert(testAlert);
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        try {
+          const title = severity === "severa" ? "🚨 ALERTA DE TORMENTA FUERTE" : `⚠️ Alerta de prueba`;
+          new Notification(title, {
+            body: `${testAlert.event}\n${testAlert.description}`,
+            tag: `tormentar-test-${Date.now()}`,
+            icon: "/favicon.ico",
+            requireInteraction: true,
+          });
+        } catch (e) {
+          console.warn("No se pudo forzar la notificacion de prueba:", e);
+        }
+      }
     },
     [alerts.location, handleNewAlert]
   );
@@ -82,6 +95,18 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       tags: ["tormenta"],
     };
     handleNewAlert(lightningAlert);
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification("🚨 ALERTA DE TORMENTA FUERTE", {
+          body: `${lightningAlert.event}\n${lightningAlert.description}`,
+          tag: `tormentar-lightning-test-${Date.now()}`,
+          icon: "/favicon.ico",
+          requireInteraction: true,
+        });
+      } catch (e) {
+        console.warn("No se pudo forzar la notificacion de rayos:", e);
+      }
+    }
   }, [alerts.location, handleNewAlert]);
 
   const value = useMemo(

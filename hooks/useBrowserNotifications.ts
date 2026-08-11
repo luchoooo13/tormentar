@@ -45,16 +45,17 @@ export function useBrowserNotifications() {
   // Solo avisa si la pestaña NO esta visible o NO tiene foco: si el
   // usuario ya esta mirando la app, el popup en pantalla alcanza y
   // una notificacion del sistema seria redundante (y molesta).
-  const shouldNotify = useCallback((): boolean => {
+  const shouldNotify = useCallback((force = false): boolean => {
     if (!isSupported()) return false;
     if (Notification.permission !== "granted") return false;
+    if (force) return true;
     if (typeof document === "undefined") return true;
     return document.visibilityState !== "visible" || !document.hasFocus();
   }, []);
 
   const notify = useCallback(
-    (alert: WeatherAlert) => {
-      if (!shouldNotify()) return;
+    (alert: WeatherAlert, force = false) => {
+      if (!shouldNotify(force)) return;
       try {
         const title =
           alert.severity === "severa"
