@@ -81,8 +81,15 @@ export function usePushNotifications() {
         return false;
       }
 
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
+      let registration;
+      try {
+        registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await navigator.serviceWorker.ready;
+      } catch (regErr) {
+        console.warn("[Push] Error registrando /sw.js, intentando ruta relativa:", regErr);
+        registration = await navigator.serviceWorker.register("sw.js", { scope: "./" });
+        await navigator.serviceWorker.ready;
+      }
 
       let publicKey = publicKeyQuery.data?.publicKey;
       if (!publicKey) {

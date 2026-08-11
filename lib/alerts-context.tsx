@@ -41,7 +41,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   // Crea una alerta de mentira y la manda directo a la cola del popup,
   // sin tocar la API ni AsyncStorage. Solo para pruebas manuales.
   const pushTestAlert = useCallback(
-    (severity: AlertSeverity) => {
+    async (severity: AlertSeverity) => {
       const now = Math.floor(Date.now() / 1000);
       const testAlert: WeatherAlert = {
         id: `test-${severity}-${Date.now()}`,
@@ -61,24 +61,42 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         radius: 10,
       };
       handleNewAlert(testAlert);
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        try {
-          const title = severity === "severa" ? "🚨 ALERTA DE TORMENTA FUERTE" : `⚠️ Alerta de prueba`;
-          new Notification(title, {
-            body: `${testAlert.event}\n${testAlert.description}`,
-            tag: `tormentar-test-${Date.now()}`,
-            icon: "/favicon.ico",
-            requireInteraction: true,
-          });
-        } catch (e) {
-          console.warn("No se pudo forzar la notificacion de prueba:", e);
+      if (typeof window !== "undefined") {
+        if ("Notification" in window && Notification.permission === "granted") {
+          try {
+            const title = severity === "severa" ? "🚨 ALERTA DE TORMENTA FUERTE" : `⚠️ Alerta de prueba`;
+            // Intentar mostrar mediante service worker registration si esta disponible (garantiza barra de estado en moviles)
+            if ("serviceWorker" in navigator) {
+              const reg = await navigator.serviceWorker.getRegistration();
+              if (reg && reg.showNotification) {
+                await reg.showNotification(title, {
+                  body: `${testAlert.event}\n${testAlert.description}`,
+                  icon: "/favicon.ico",
+                  badge: "/favicon.ico",
+                  tag: `tormentar-test-${Date.now()}`,
+                  requireInteraction: true,
+                  vibrate: [200, 100, 200],
+                });
+                return;
+              }
+            }
+            // Fallback a constructor directo
+            new Notification(title, {
+              body: `${testAlert.event}\n${testAlert.description}`,
+              tag: `tormentar-test-${Date.now()}`,
+              icon: "/favicon.ico",
+              requireInteraction: true,
+            });
+          } catch (e) {
+            console.warn("No se pudo forzar la notificacion:", e);
+          }
         }
       }
     },
     [alerts.location, handleNewAlert]
   );
 
-  const pushLightningTestAlert = useCallback(() => {
+  const pushLightningTestAlert = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
     const lightningAlert: WeatherAlert = {
       id: `lightning-test-${Date.now()}`,
@@ -97,7 +115,22 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     handleNewAlert(lightningAlert);
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
       try {
-        new Notification("🚨 ALERTA DE TORMENTA FUERTE", {
+        const title = "🚨 ALERTA DE TORMENTA FUERTE";
+        if ("serviceWorker" in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, {
+              body: `${lightningAlert.event}\n${lightningAlert.description}`,
+              icon: "/favicon.ico",
+              badge: "/favicon.ico",
+              tag: `tormentar-lightning-test-${Date.now()}`,
+              requireInteraction: true,
+              vibrate: [200, 100, 200],
+            });
+            return;
+          }
+        }
+        new Notification(title, {
           body: `${lightningAlert.event}\n${lightningAlert.description}`,
           tag: `tormentar-lightning-test-${Date.now()}`,
           icon: "/favicon.ico",
