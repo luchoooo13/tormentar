@@ -78,7 +78,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
                   tag: `tormentar-test-${Date.now()}`,
                   requireInteraction: true,
                   vibrate: [200, 100, 200],
-                });
+                } as NotificationOptions & { vibrate?: number[] });
                 return;
               }
             }
@@ -128,7 +128,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
               tag: `tormentar-lightning-test-${Date.now()}`,
               requireInteraction: true,
               vibrate: [200, 100, 200],
-            });
+            } as NotificationOptions & { vibrate?: number[] });
             return;
           }
         }

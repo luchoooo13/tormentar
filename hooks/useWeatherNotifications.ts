@@ -32,6 +32,14 @@ export function useWeatherNotifications() {
   // hacian reaparecer el popup de alerta justo despues de cerrarlo.
   const requestPermissions = useCallback(async () => {
     try {
+      if (Platform.OS === "web") {
+        if (typeof Notification === "undefined") return false;
+        if (Notification.permission === "granted") return true;
+        if (Notification.permission === "denied") return false;
+        const permission = await Notification.requestPermission();
+        return permission === "granted";
+      }
+
       const { status: existing } = await Notifications.getPermissionsAsync();
       if (existing === "granted") return true;
       const { status } = await Notifications.requestPermissionsAsync();
@@ -118,6 +126,41 @@ export function useWeatherNotifications() {
 
       try {
         const config = getNotificationConfig(alert.severity);
+
+        // expo-notifications no entrega de forma confiable la notificación
+        // del sistema en navegador web. Las alertas de prueba sí aparecían
+        // porque usaban directamente la Web Notification API. Usamos el
+        // mismo camino para las alertas reales y dejamos Expo para nativo.
+        if (Platform.OS === "web") {
+          if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+            console.warn("[Notifications] Sin permiso web para mostrar alerta real");
+            return;
+          }
+
+          const options = {
+            body: `${alert.event}\n${alert.description}`,
+            tag: `tormentar-${alert.id}`,
+            icon: "/favicon.ico",
+            requireInteraction: alert.severity !== "leve",
+            data: {
+              alertId: alert.id,
+              severity: alert.severity,
+              url: "/",
+            },
+          };
+
+          const registration = await navigator.serviceWorker?.getRegistration();
+          if (registration?.showNotification) {
+            await registration.showNotification(config.title, options);
+          } else {
+            const notification = new Notification(config.title, options);
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+          }
+          return;
+        }
 
         await Notifications.scheduleNotificationAsync({
           content: {
