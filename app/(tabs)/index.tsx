@@ -10,10 +10,12 @@
  * leve, moderada y/o fuerte (severa), no un unico "minimo".
  */
 import { ScrollView, Text, View, Pressable, RefreshControl } from "react-native";
+import { useMemo } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertsContext } from "@/lib/alerts-context";
-import { useAlertPreferences } from "@/hooks/useAlertPreferences";
+import { useAlertPreferences, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
+import { getNearestRegionPoint } from "@/hooks/useRegionAlerts";
 import { formatAlertTime } from "@/lib/services/weatherService";
 import { SEVERITY_COLORS, SEVERITY_ICONS } from "@/shared/alertSeverity";
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
@@ -36,7 +38,33 @@ export default function HomeScreen() {
     error,
     hasApiKey,
     refresh,
+    regionPoints,
   } = useAlertsContext();
+
+  // Inicio debe mostrar también la alerta de la zona regional donde cae
+  // la ubicación. La alerta puntual puede consultar otro bloque del
+  // pronóstico y quedar en "Leve", aunque el mosaico regional ya marque
+  // "Moderada" para esa celda.
+  const regionalCurrentAlert = useMemo(() => {
+    if (!location) return null;
+    return getNearestRegionPoint(location.latitude, location.longitude, regionPoints)?.alert ?? null;
+  }, [location, regionPoints]);
+
+  const homeAlerts = useMemo(() => {
+    if (!regionalCurrentAlert) return filteredAlerts;
+
+    const existingIndex = filteredAlerts.findIndex((alert) => alert.id === regionalCurrentAlert.id);
+    if (existingIndex < 0) return [regionalCurrentAlert, ...filteredAlerts];
+
+    const existing = filteredAlerts[existingIndex];
+    if (SEVERITY_ORDER[regionalCurrentAlert.severity] >= SEVERITY_ORDER[existing.severity]) {
+      return filteredAlerts;
+    }
+
+    const next = [...filteredAlerts];
+    next[existingIndex] = regionalCurrentAlert;
+    return next;
+  }, [filteredAlerts, regionalCurrentAlert]);
 
   const renderAlertCard = (alert: WeatherAlert) => {
     const alertColor = SEVERITY_COLORS[alert.severity];
@@ -217,7 +245,7 @@ export default function HomeScreen() {
               <MaterialIcons name="warning" size={20} color={colors.error} />
               <Text className="text-lg font-bold text-foreground">Alertas Activas</Text>
             </View>
-            {filteredAlerts.length > 0 && (
+            {homeAlerts.length > 0 && (
               <View
                 style={{
                   backgroundColor: colors.error,
@@ -226,7 +254,7 @@ export default function HomeScreen() {
                   borderRadius: 12,
                 }}
               >
-                <Text className="text-white text-xs font-semibold">{filteredAlerts.length}</Text>
+                <Text className="text-white text-xs font-semibold">{homeAlerts.length}</Text>
               </View>
             )}
           </View>
@@ -237,8 +265,8 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {filteredAlerts.length > 0 ? (
-            <View>{filteredAlerts.map(renderAlertCard)}</View>
+          {homeAlerts.length > 0 ? (
+            <View>{homeAlerts.map(renderAlertCard)}</View>
           ) : (
             !error && (
               <View

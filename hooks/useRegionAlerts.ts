@@ -66,6 +66,32 @@ export interface RegionPoint {
   alert?: RegionAlert;
 }
 
+/** Devuelve el punto regional que usa el mosaico para una ubicación dada. */
+export function getNearestRegionPoint(
+  latitude: number,
+  longitude: number,
+  points: RegionPoint[]
+): RegionPoint | null {
+  if (points.length === 0) return null;
+
+  const midLat = -35.5;
+  const lonScale = Math.cos((midLat * Math.PI) / 180);
+  let nearest = points[0];
+  let nearestDistance = Infinity;
+
+  for (const point of points) {
+    const dLat = latitude - point.latitude;
+    const dLon = (longitude - point.longitude) * lonScale;
+    const distance = dLat * dLat + dLon * dLon;
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = point;
+    }
+  }
+
+  return nearest;
+}
+
 interface RegionCache {
   version: number;
   timestamp: number;

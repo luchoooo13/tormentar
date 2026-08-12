@@ -23,7 +23,6 @@ import { useRegionAlerts, type RegionPoint } from "@/hooks/useRegionAlerts";
 import { formatAlertTime } from "@/lib/services/weatherService";
 import { buildBuenosAiresGrid, BUENOS_AIRES_BBOX } from "@/lib/services/buenosAiresGrid";
 import { SEVERITY_COLORS, SEVERITY_ICONS, SEVERITY_LABELS } from "@/shared/alertSeverity";
-import type { WeatherAlert } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
@@ -149,7 +148,7 @@ export default function MapScreen() {
 
     const userIcon = L.divIcon({
       className: "",
-      html: `<div style="width:18px;height:18px;border-radius:50%;background:${colors.primary};border:3px solid white;box-shadow:0 0 0 2px ${colors.primary}, 0 1px 6px rgba(0,0,0,0.5)"></div>`,
+      html: `<div style="width:18px;height:18px;border-radius:50%;background:${colors.primary};border:3px solid white;box-shadow:0 1px 6px rgba(0,0,0,0.5)"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 9],
     });
@@ -170,41 +169,9 @@ export default function MapScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, location?.latitude, location?.longitude]);
 
-  // Dibujar un circulo por cada alerta.
-  useEffect(() => {
-    if (!mapReady || !mapInstanceRef.current) return;
-    const L = (window as any).L;
-    const map = mapInstanceRef.current;
-
-    const circles: any[] = [];
-
-    filteredAlerts.forEach((alert: WeatherAlert) => {
-      if (typeof alert.latitude !== "number" || typeof alert.longitude !== "number") return;
-
-      const color = SEVERITY_COLORS[alert.severity];
-      // Sobre base oscura, relleno y borde mas intensos para que la
-      // alerta se vea claro de noche.
-      const circle = L.circle([alert.latitude, alert.longitude], {
-        radius: (alert.radius ?? 10) * 1000,
-        color,
-        fillColor: color,
-        fillOpacity: 0.4,
-        weight: 3,
-        opacity: 0.95,
-      }).addTo(map);
-
-      circle.bindPopup(
-        `<b>${alert.event}</b><br/>${SEVERITY_LABELS[alert.severity]} - Radio ${alert.radius ?? 10} km<br/>Vigencia: ${formatAlertTime(alert.start, alert.end)}`
-      );
-      circle.on("click", () => setSelectedAlert((prev) => (prev === alert.id ? null : alert.id)));
-
-      circles.push(circle);
-    });
-
-    return () => {
-      circles.forEach((c) => c.remove());
-    };
-  }, [mapReady, filteredAlerts]);
+  // Las zonas se dibujan exclusivamente con el mosaico regional.
+  // No se dibujan radios circulares para evitar confundirlos con la
+  // ubicación o con un radio de precisión del GPS.
 
   // Dibujar el mosaico de la Provincia de Buenos Aires: en vez de UN
   // rectangulo grande por cada punto de grilla con alerta, se subdivide

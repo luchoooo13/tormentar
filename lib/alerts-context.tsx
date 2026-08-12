@@ -11,9 +11,10 @@
  */
 import { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useAlerts } from "@/hooks/useAlerts";
+import { useRegionAlerts } from "@/hooks/useRegionAlerts";
 import type { WeatherAlert, AlertSeverity } from "@/shared/types/weather";
 
-type AlertsContextValue = ReturnType<typeof useAlerts> & {
+type AlertsContextValue = ReturnType<typeof useAlerts> & ReturnType<typeof useRegionAlerts> & {
   // Cola de alertas nuevas pendientes de mostrar en el pop-up (web).
   popupQueue: WeatherAlert[];
   dismissPopup: (alertId: string) => void;
@@ -33,6 +34,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const alerts = useAlerts({ onNewAlert: handleNewAlert });
+  const regionalAlerts = useRegionAlerts();
 
   const dismissPopup = useCallback((alertId: string) => {
     setPopupQueue((prev) => prev.filter((a) => a.id !== alertId));
@@ -143,8 +145,15 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   }, [alerts.location, handleNewAlert]);
 
   const value = useMemo(
-    () => ({ ...alerts, popupQueue, dismissPopup, pushTestAlert, pushLightningTestAlert }),
-    [alerts, popupQueue, dismissPopup, pushTestAlert, pushLightningTestAlert]
+    () => ({
+      ...alerts,
+      ...regionalAlerts,
+      popupQueue,
+      dismissPopup,
+      pushTestAlert,
+      pushLightningTestAlert,
+    }),
+    [alerts, regionalAlerts, popupQueue, dismissPopup, pushTestAlert, pushLightningTestAlert]
   );
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;
