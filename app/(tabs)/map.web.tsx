@@ -19,7 +19,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertsContext } from "@/lib/alerts-context";
-import { useRegionAlerts, type RegionPoint } from "@/hooks/useRegionAlerts";
+import { useAlertPreferences, getEnabledSeverities, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
+import { getNearestRegionPoint, useRegionAlerts, type RegionPoint } from "@/hooks/useRegionAlerts";
 import { formatAlertTime } from "@/lib/services/weatherService";
 import { buildBuenosAiresGrid, BUENOS_AIRES_BBOX } from "@/lib/services/buenosAiresGrid";
 import { SEVERITY_COLORS, SEVERITY_ICONS, SEVERITY_LABELS } from "@/shared/alertSeverity";
@@ -57,6 +58,7 @@ function loadLeaflet(): Promise<any> {
 
 export default function MapScreen() {
   const colors = useColors();
+  const { preferences } = useAlertPreferences();
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null);
   const { location, filteredAlerts, hasApiKey, error } = useAlertsContext();
   const {
@@ -96,26 +98,37 @@ export default function MapScreen() {
   // La severidad de la zona donde esta el usuario debe salir del mismo
   // punto regional que pinta el mosaico. Asi no se mezcla con la alerta
   // puntual de otra consulta y la etiqueta coincide con el poligono tocado.
-  const locationRegionSeverity = useMemo(() => {
-    if (!location || regionPoints.length === 0) return null;
+  const nearestRegionPoint = useMemo(() => {
+    if (!location) return null;
+    return getNearestRegionPoint(location.latitude, location.longitude, regionPoints);
+  }, [location, regionPoints]);
 
-    const midLat = (BUENOS_AIRES_BBOX.minLat + BUENOS_AIRES_BBOX.maxLat) / 2;
-    const lonScale = Math.cos((midLat * Math.PI) / 180);
-    let nearest = regionPoints[0];
-    let nearestDistance = Infinity;
+  const locationRegionSeverity = nearestRegionPoint?.severity ?? null;
+  const enabledSeverities = useMemo(
+    () => getEnabledSeverities(preferences.minSeverity),
+    [preferences.minSeverity]
+  );
 
-    for (const point of regionPoints) {
-      const dLat = location.latitude - point.latitude;
-      const dLon = (location.longitude - point.longitude) * lonScale;
-      const distance = dLat * dLat + dLon * dLon;
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearest = point;
+  // La lista del area debe usar la misma alerta regional que el mosaico.
+  // Se descartan las severidades fuera del filtro actual, incluso si una
+  // cache regional vieja todavía contiene una alerta moderada.
+  const areaAlerts = useMemo(() => {
+    const merged = [...filteredAlerts];
+    const regionalAlert = nearestRegionPoint?.alert;
+
+    if (regionalAlert && enabledSeverities.includes(regionalAlert.severity)) {
+      const existingIndex = merged.findIndex((alert) => alert.id === regionalAlert.id);
+      if (existingIndex < 0) {
+        merged.unshift(regionalAlert);
+      } else if (
+        SEVERITY_ORDER[regionalAlert.severity] < SEVERITY_ORDER[merged[existingIndex].severity]
+      ) {
+        merged[existingIndex] = regionalAlert;
       }
     }
 
-    return nearest.severity;
-  }, [location, regionPoints]);
+    return merged.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+  }, [enabledSeverities, filteredAlerts, nearestRegionPoint]);
 
   // Inicializar el mapa una sola vez.
   useEffect(() => {
@@ -276,11 +289,11 @@ export default function MapScreen() {
   // Resaltar/centrar la alerta seleccionada desde la lista.
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current || !selectedAlert) return;
-    const alert = filteredAlerts.find((a) => a.id === selectedAlert);
+    const alert = areaAlerts.find((a) => a.id === selectedAlert);
     if (alert && typeof alert.latitude === "number" && typeof alert.longitude === "number") {
       mapInstanceRef.current.setView([alert.latitude, alert.longitude], 12);
     }
-  }, [selectedAlert, mapReady, filteredAlerts]);
+  }, [selectedAlert, mapReady, areaAlerts]);
 
   return (
     <ScreenContainer className="flex-1 gap-0">
@@ -458,7 +471,7 @@ export default function MapScreen() {
             </View>
           )}
 
-          {filteredAlerts.length === 0 && !error && (
+          {areaAlerts.length === 0 && !error && (
             <View className="bg-surface p-6 rounded-xl border items-center" style={{ borderColor: colors.border }}>
               <MaterialIcons name="check-circle" size={48} color={colors.success} />
               <Text className="text-base font-semibold text-foreground mt-2">Sin alertas</Text>
@@ -468,7 +481,7 @@ export default function MapScreen() {
             </View>
           )}
 
-          {filteredAlerts.map((alert) => {
+          {areaAlerts.map((alert) => {
             const alertColor = SEVERITY_COLORS[alert.severity];
             const alertIcon = SEVERITY_ICONS[alert.severity];
             const isSelected = selectedAlert === alert.id;
