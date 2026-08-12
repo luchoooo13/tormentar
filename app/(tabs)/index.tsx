@@ -14,7 +14,7 @@ import { useMemo } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertsContext } from "@/lib/alerts-context";
-import { useAlertPreferences, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
+import { useAlertPreferences, getEnabledSeverities, filterAlertsByMinSeverity, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
 import { getNearestRegionPoint } from "@/hooks/useRegionAlerts";
 import { formatAlertTime } from "@/lib/services/weatherService";
 import { SEVERITY_COLORS, SEVERITY_ICONS } from "@/shared/alertSeverity";
@@ -30,6 +30,10 @@ const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
 export default function HomeScreen() {
   const colors = useColors();
   const { preferences, setMinSeverity } = useAlertPreferences();
+  const enabledSeverities = useMemo(
+    () => getEnabledSeverities(preferences.minSeverity),
+    [preferences.minSeverity]
+  );
   const {
     location,
     filteredAlerts,
@@ -51,20 +55,26 @@ export default function HomeScreen() {
   }, [location, regionPoints]);
 
   const homeAlerts = useMemo(() => {
-    if (!regionalCurrentAlert) return filteredAlerts;
+    const visibleAlerts = filterAlertsByMinSeverity(filteredAlerts, preferences.minSeverity);
+    const regionalAllowed =
+      regionalCurrentAlert && enabledSeverities.includes(regionalCurrentAlert.severity)
+        ? regionalCurrentAlert
+        : null;
 
-    const existingIndex = filteredAlerts.findIndex((alert) => alert.id === regionalCurrentAlert.id);
-    if (existingIndex < 0) return [regionalCurrentAlert, ...filteredAlerts];
+    if (!regionalAllowed) return visibleAlerts;
 
-    const existing = filteredAlerts[existingIndex];
-    if (SEVERITY_ORDER[regionalCurrentAlert.severity] >= SEVERITY_ORDER[existing.severity]) {
-      return filteredAlerts;
+    const existingIndex = visibleAlerts.findIndex((alert) => alert.id === regionalAllowed.id);
+    if (existingIndex < 0) return [regionalAllowed, ...visibleAlerts];
+
+    const existing = visibleAlerts[existingIndex];
+    if (SEVERITY_ORDER[regionalAllowed.severity] >= SEVERITY_ORDER[existing.severity]) {
+      return visibleAlerts;
     }
 
-    const next = [...filteredAlerts];
-    next[existingIndex] = regionalCurrentAlert;
+    const next = [...visibleAlerts];
+    next[existingIndex] = regionalAllowed;
     return next;
-  }, [filteredAlerts, regionalCurrentAlert]);
+  }, [enabledSeverities, filteredAlerts, preferences.minSeverity, regionalCurrentAlert]);
 
   const renderAlertCard = (alert: WeatherAlert) => {
     const alertColor = SEVERITY_COLORS[alert.severity];

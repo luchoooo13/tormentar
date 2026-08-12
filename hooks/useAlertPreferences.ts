@@ -36,6 +36,15 @@ export function getEnabledSeverities(minSeverity: AlertSeverity): AlertSeverity[
   );
 }
 
+/** Filtra una colección respetando el mínimo de severidad vigente. */
+export function filterAlertsByMinSeverity<T extends { severity: AlertSeverity }>(
+  alerts: T[],
+  minSeverity: AlertSeverity
+): T[] {
+  const enabled = getEnabledSeverities(minSeverity);
+  return alerts.filter((alert) => enabled.includes(alert.severity));
+}
+
 export interface AlertPreferences {
   // Severidad minima que el usuario quiere recibir (leve, moderada o
   // fuerte/severa). Unica para toda la app.

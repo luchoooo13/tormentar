@@ -8,6 +8,7 @@ import { useLocation } from "@/hooks/useLocation";
 import {
   useAlertPreferences,
   getEnabledSeverities,
+  filterAlertsByMinSeverity,
 } from "@/hooks/useAlertPreferences";
 import { useWeatherNotifications } from "@/hooks/useWeatherNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -329,14 +330,11 @@ export function useAlerts(options?: UseAlertsOptions) {
   }, [location, fetchAlerts]);
 
   const allAlerts: WeatherAlert[] = weather?.alerts || [];
-  const enabledSeverities = getEnabledSeverities(preferences.minSeverity);
+  const severityFilteredAlerts = filterAlertsByMinSeverity(allAlerts, preferences.minSeverity);
   const filteredAlerts = sortAlertsBySeverity(
-    allAlerts.filter((a) => {
-      const isStrongLightning = a.tags?.includes("tormenta") && a.severity === "severa";
-      if (isStrongLightning) {
-        return preferences.lightningAlertEnabled;
-      }
-      return enabledSeverities.includes(a.severity);
+    severityFilteredAlerts.filter((alert) => {
+      const isStrongLightning = alert.tags?.includes("tormenta") && alert.severity === "severa";
+      return !isStrongLightning || preferences.lightningAlertEnabled;
     })
   );
 

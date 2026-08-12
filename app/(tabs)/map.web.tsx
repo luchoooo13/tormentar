@@ -19,7 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertsContext } from "@/lib/alerts-context";
-import { useAlertPreferences, getEnabledSeverities, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
+import { useAlertPreferences, getEnabledSeverities, filterAlertsByMinSeverity, SEVERITY_ORDER } from "@/hooks/useAlertPreferences";
 import { getNearestRegionPoint, useRegionAlerts, type RegionPoint } from "@/hooks/useRegionAlerts";
 import { formatAlertTime } from "@/lib/services/weatherService";
 import { buildBuenosAiresGrid, BUENOS_AIRES_BBOX } from "@/lib/services/buenosAiresGrid";
@@ -109,12 +109,12 @@ export default function MapScreen() {
     [preferences.minSeverity]
   );
   const visibleFilteredAlerts = useMemo(
-    () => filteredAlerts.filter((alert) => enabledSeverities.includes(alert.severity)),
-    [enabledSeverities, filteredAlerts]
+    () => filterAlertsByMinSeverity(filteredAlerts, preferences.minSeverity),
+    [filteredAlerts, preferences.minSeverity]
   );
   const visibleRegionAlerts = useMemo(
-    () => regionAlerts.filter((alert) => enabledSeverities.includes(alert.severity)),
-    [enabledSeverities, regionAlerts]
+    () => filterAlertsByMinSeverity(regionAlerts, preferences.minSeverity),
+    [preferences.minSeverity, regionAlerts]
   );
 
   // La lista del area debe usar la misma alerta regional que el mosaico.
