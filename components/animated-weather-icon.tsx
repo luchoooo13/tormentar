@@ -34,53 +34,98 @@ const COLORS: Record<WeatherIconKind, string> = {
 export function AnimatedWeatherIcon({ weatherId, size = 64 }: { weatherId: number; size?: number }) {
   const kind = useMemo(() => getWeatherIconKind(weatherId), [weatherId]);
   const translateY = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
   const rotate = useRef(new Animated.Value(0)).current;
+  const tilt = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     translateY.stopAnimation();
+    translateX.stopAnimation();
     rotate.stopAnimation();
+    tilt.stopAnimation();
     scale.stopAnimation();
     opacity.stopAnimation();
     translateY.setValue(0);
+    translateX.setValue(0);
     rotate.setValue(0);
+    tilt.setValue(0);
     scale.setValue(1);
     opacity.setValue(1);
 
     const animations = {
       clear: Animated.loop(
-        Animated.sequence([
-          Animated.timing(scale, { toValue: 1.12, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(scale, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(scale, { toValue: 1.14, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(scale, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
+          Animated.sequence([
+            Animated.timing(tilt, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(tilt, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
         ])
       ),
       cloud: Animated.loop(
-        Animated.sequence([
-          Animated.timing(translateY, { toValue: -4, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(translateX, { toValue: 7, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(translateX, { toValue: -7, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(translateX, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
+          Animated.sequence([
+            Animated.timing(translateY, { toValue: -5, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(translateY, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
         ])
       ),
       rain: Animated.loop(
-        Animated.sequence([
-          Animated.timing(translateY, { toValue: 5, duration: 380, easing: Easing.in(Easing.ease), useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: 0, duration: 380, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(translateY, { toValue: 8, duration: 330, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+            Animated.timing(translateY, { toValue: 0, duration: 330, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          ]),
+          Animated.sequence([
+            Animated.timing(tilt, { toValue: -1, duration: 330, useNativeDriver: true }),
+            Animated.timing(tilt, { toValue: 1, duration: 660, useNativeDriver: true }),
+            Animated.timing(tilt, { toValue: 0, duration: 330, useNativeDriver: true }),
+          ]),
         ])
       ),
       storm: Animated.loop(
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 0.35, duration: 100, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-          Animated.delay(700),
+          Animated.delay(450),
+          Animated.parallel([
+            Animated.timing(opacity, { toValue: 0.2, duration: 80, useNativeDriver: true }),
+            Animated.timing(scale, { toValue: 1.18, duration: 80, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+            Animated.timing(scale, { toValue: 1, duration: 220, useNativeDriver: true }),
+          ]),
+          Animated.delay(850),
         ])
       ),
       snow: Animated.loop(
-        Animated.timing(rotate, { toValue: 1, duration: 2800, easing: Easing.linear, useNativeDriver: true })
+        Animated.parallel([
+          Animated.timing(rotate, { toValue: 1, duration: 2800, easing: Easing.linear, useNativeDriver: true }),
+          Animated.sequence([
+            Animated.timing(translateX, { toValue: 5, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(translateX, { toValue: -5, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
+        ])
       ),
       fog: Animated.loop(
-        Animated.sequence([
-          Animated.timing(translateY, { toValue: -3, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(translateX, { toValue: 9, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(translateX, { toValue: -9, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
+          Animated.sequence([
+            Animated.timing(opacity, { toValue: 0.55, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          ]),
         ])
       ),
     };
@@ -88,12 +133,13 @@ export function AnimatedWeatherIcon({ weatherId, size = 64 }: { weatherId: numbe
     const animation = animations[kind];
     animation.start();
     return () => animation.stop();
-  }, [kind, opacity, rotate, scale, translateY]);
+  }, [kind, opacity, rotate, scale, tilt, translateX, translateY]);
 
   const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  const tiltDegrees = tilt.interpolate({ inputRange: [-1, 0, 1], outputRange: ["-5deg", "0deg", "5deg"] });
 
   return (
-    <Animated.View style={{ transform: [{ translateY }, { scale }, { rotate: spin }], opacity }}>
+    <Animated.View style={{ transform: [{ translateX }, { translateY }, { scale }, { rotate: spin }, { rotateZ: tiltDegrees }], opacity }}>
       <MaterialIcons name={ICONS[kind]} size={size} color={COLORS[kind]} />
     </Animated.View>
   );
