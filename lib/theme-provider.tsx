@@ -1,19 +1,30 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-native";
+import { Appearance, View } from "react-native";
 import { colorScheme as nativewindColorScheme, vars } from "nativewind";
 
 import { SchemeColors, type ColorScheme } from "@/constants/theme";
+import { useAlertPreferences, type ThemeMode } from "@/hooks/useAlertPreferences";
 
 type ThemeContextValue = {
   colorScheme: ColorScheme;
+  themeMode: ThemeMode;
   setColorScheme: (scheme: ColorScheme) => void;
+  setThemeMode: (mode: ThemeMode) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemScheme = useSystemColorScheme() ?? "light";
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(systemScheme);
+  const { preferences, updatePreferences } = useAlertPreferences();
+  const [clock, setClock] = useState(() => new Date());
+  const themeMode = preferences.themeMode ?? "schedule";
+  const scheduledScheme: ColorScheme = clock.getHours() >= 7 && clock.getHours() < 19 ? "light" : "dark";
+  const colorScheme: ColorScheme = themeMode === "schedule" ? scheduledScheme : themeMode;
+
+  useEffect(() => {
+    const timer = setInterval(() => setClock(new Date()), 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const applyScheme = useCallback((scheme: ColorScheme) => {
     nativewindColorScheme.set(scheme);
@@ -29,10 +40,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    updatePreferences({ themeMode: mode });
+  }, [updatePreferences]);
+
   const setColorScheme = useCallback((scheme: ColorScheme) => {
-    setColorSchemeState(scheme);
-    applyScheme(scheme);
-  }, [applyScheme]);
+    setThemeMode(scheme);
+  }, [setThemeMode]);
 
   useEffect(() => {
     applyScheme(colorScheme);
@@ -57,11 +71,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       colorScheme,
+      themeMode,
       setColorScheme,
+      setThemeMode,
     }),
-    [colorScheme, setColorScheme],
+    [colorScheme, setColorScheme, setThemeMode, themeMode],
   );
-  console.log(value, themeVariables)
 
   return (
     <ThemeContext.Provider value={value}>

@@ -15,6 +15,7 @@ import { useAlertsContext } from "@/lib/alerts-context";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { searchCities, type CitySearchResult } from "@/lib/services/geocodingService";
 import type { AlertSeverity } from "@/shared/types/weather";
+import type { ThemeMode } from "@/hooks/useAlertPreferences";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
@@ -370,6 +371,60 @@ export default function SettingsScreen() {
                 );
               })}
             </View>
+          </View>
+        </View>
+
+        {/* Sección de tema */}
+        <View className="px-4 py-4">
+          <View className="flex-row items-center gap-2 mb-3">
+            <MaterialIcons name="palette" size={18} color={colors.foreground} />
+            <Text className="text-sm font-semibold text-foreground uppercase">Tema de la aplicación</Text>
+          </View>
+          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+            <Text className="text-sm text-foreground mb-3">
+              Elegí cómo querés que se adapte la interfaz.
+            </Text>
+            <View className="flex-row gap-2">
+              {([
+                { id: "light", label: "Claro", icon: "light-mode" },
+                { id: "dark", label: "Oscuro", icon: "dark-mode" },
+                { id: "schedule", label: "Según horario", icon: "schedule" },
+              ] as const).map((mode) => {
+                const isActive = preferences.themeMode === mode.id;
+                return (
+                  <Pressable
+                    key={mode.id}
+                    onPress={() => updatePreferences({ themeMode: mode.id as ThemeMode })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isActive }}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      minHeight: 68,
+                      paddingVertical: 9,
+                      paddingHorizontal: 4,
+                      borderRadius: 10,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1,
+                      borderColor: isActive ? colors.primary : colors.border,
+                      backgroundColor: isActive ? colors.primary + "18" : colors.surface,
+                      opacity: pressed ? 0.78 : 1,
+                    })}
+                  >
+                    <MaterialIcons name={mode.icon as any} size={20} color={isActive ? colors.primary : colors.muted} />
+                    <Text
+                      className="text-xs font-semibold text-center mt-1"
+                      style={{ color: isActive ? colors.primary : colors.foreground }}
+                    >
+                      {mode.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text className="text-xs text-muted mt-3">
+              Según horario usa tema claro de 07:00 a 18:59 y oscuro de 19:00 a 06:59.
+            </Text>
           </View>
         </View>
 

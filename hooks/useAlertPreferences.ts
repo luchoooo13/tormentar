@@ -45,6 +45,8 @@ export function filterAlertsByMinSeverity<T extends { severity: AlertSeverity }>
   return alerts.filter((alert) => enabled.includes(alert.severity));
 }
 
+export type ThemeMode = "light" | "dark" | "schedule";
+
 export interface AlertPreferences {
   // Severidad minima que el usuario quiere recibir (leve, moderada o
   // fuerte/severa). Unica para toda la app.
@@ -53,6 +55,7 @@ export interface AlertPreferences {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   lightningAlertEnabled: boolean;
+  themeMode: ThemeMode;
 }
 
 export const DEFAULT_PREFERENCES: AlertPreferences = {
@@ -61,6 +64,7 @@ export const DEFAULT_PREFERENCES: AlertPreferences = {
   soundEnabled: true,
   vibrationEnabled: true,
   lightningAlertEnabled: false,
+  themeMode: "schedule",
 };
 
 // Cache en memoria compartido entre todos los componentes que usan el
