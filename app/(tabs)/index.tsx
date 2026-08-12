@@ -20,6 +20,7 @@ import { formatAlertTime } from "@/lib/services/weatherService";
 import { SEVERITY_COLORS, SEVERITY_ICONS } from "@/shared/alertSeverity";
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AnimatedWeatherIcon } from "@/components/animated-weather-icon";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
   { id: "leve", label: "Leve", color: SEVERITY_COLORS.leve },
@@ -159,7 +160,7 @@ export default function HomeScreen() {
                 <View className="flex-1">
                   <View className="flex-row items-baseline gap-1 mb-2">
                     <MaterialIcons name="thermostat" size={24} color={colors.primary} />
-                    <Text className="text-3xl font-bold text-foreground">
+                    <Text className="text-5xl font-bold text-foreground">
                       {Math.round(weather.current.temp)}°
                     </Text>
                     <Text className="text-sm text-muted">C</Text>
@@ -180,7 +181,7 @@ export default function HomeScreen() {
                     </View>
                   </View>
                 </View>
-                <MaterialIcons name="wb-cloudy" size={60} color={colors.primary} />
+                <AnimatedWeatherIcon weatherId={weather.current.weather?.[0]?.id ?? 800} size={68} />
               </View>
             </View>
           </View>
