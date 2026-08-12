@@ -94,6 +94,30 @@ export default function MapScreen() {
   );
   const mosaicCellSizeDeg = gridSpacingDeg / MOSAIC_SUBDIVISIONS;
 
+  // La severidad de la zona donde esta el usuario debe salir del mismo
+  // punto regional que pinta el mosaico. Asi no se mezcla con la alerta
+  // puntual de otra consulta y la etiqueta coincide con el poligono tocado.
+  const locationRegionSeverity = useMemo(() => {
+    if (!location || regionPoints.length === 0) return null;
+
+    const midLat = (BUENOS_AIRES_BBOX.minLat + BUENOS_AIRES_BBOX.maxLat) / 2;
+    const lonScale = Math.cos((midLat * Math.PI) / 180);
+    let nearest = regionPoints[0];
+    let nearestDistance = Infinity;
+
+    for (const point of regionPoints) {
+      const dLat = location.latitude - point.latitude;
+      const dLon = (location.longitude - point.longitude) * lonScale;
+      const distance = dLat * dLat + dLon * dLon;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = point;
+      }
+    }
+
+    return nearest.severity;
+  }, [location, regionPoints]);
+
   // Inicializar el mapa una sola vez.
   useEffect(() => {
     let cancelled = false;
@@ -149,7 +173,7 @@ export default function MapScreen() {
 
     const userIcon = L.divIcon({
       className: "",
-      html: `<div style="width:18px;height:18px;border-radius:50%;background:${colors.primary};border:3px solid white;box-shadow:0 0 0 2px ${colors.primary}, 0 1px 6px rgba(0,0,0,0.5)"></div>`,
+      html: `<div style="width:18px;height:18px;border-radius:50%;background:${colors.primary};border:3px solid white;box-shadow:0 1px 6px rgba(0,0,0,0.5)"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 9],
     });
@@ -340,6 +364,28 @@ export default function MapScreen() {
           {mapError && (
             <View className="mt-2 p-3 rounded-lg border" style={{ borderColor: colors.error, backgroundColor: colors.surface }}>
               <Text className="text-xs" style={{ color: colors.error }}>{mapError}</Text>
+            </View>
+          )}
+
+          {locationRegionSeverity && (
+            <View
+              className="mt-2 px-3 py-2 rounded-lg border flex-row items-center gap-2"
+              style={{
+                borderColor: SEVERITY_COLORS[locationRegionSeverity],
+                backgroundColor: SEVERITY_COLORS[locationRegionSeverity] + "18",
+              }}
+            >
+              <View
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: SEVERITY_COLORS[locationRegionSeverity],
+                }}
+              />
+              <Text className="text-xs font-semibold" style={{ color: SEVERITY_COLORS[locationRegionSeverity] }}>
+                Tu ubicación está en alerta {SEVERITY_LABELS[locationRegionSeverity].toLowerCase()}
+              </Text>
             </View>
           )}
 
