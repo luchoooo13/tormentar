@@ -108,12 +108,20 @@ export default function MapScreen() {
     () => getEnabledSeverities(preferences.minSeverity),
     [preferences.minSeverity]
   );
+  const visibleFilteredAlerts = useMemo(
+    () => filteredAlerts.filter((alert) => enabledSeverities.includes(alert.severity)),
+    [enabledSeverities, filteredAlerts]
+  );
+  const visibleRegionAlerts = useMemo(
+    () => regionAlerts.filter((alert) => enabledSeverities.includes(alert.severity)),
+    [enabledSeverities, regionAlerts]
+  );
 
   // La lista del area debe usar la misma alerta regional que el mosaico.
   // Se descartan las severidades fuera del filtro actual, incluso si una
   // cache regional vieja todavía contiene una alerta moderada.
   const areaAlerts = useMemo(() => {
-    const merged = [...filteredAlerts];
+    const merged = [...visibleFilteredAlerts];
     const regionalAlert = nearestRegionPoint?.alert;
 
     if (regionalAlert && enabledSeverities.includes(regionalAlert.severity)) {
@@ -128,7 +136,7 @@ export default function MapScreen() {
     }
 
     return merged.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-  }, [enabledSeverities, filteredAlerts, nearestRegionPoint]);
+  }, [enabledSeverities, nearestRegionPoint, visibleFilteredAlerts]);
 
   // Inicializar el mapa una sola vez.
   useEffect(() => {
@@ -409,16 +417,16 @@ export default function MapScreen() {
             </View>
           )}
 
-          {!regionLoading && regionAlerts.length === 0 && !regionError ? (
+          {!regionLoading && visibleRegionAlerts.length === 0 && !regionError ? (
             <Text className="text-xs text-muted">
               No se detectaron alertas estimadas en la provincia por ahora.
             </Text>
           ) : (
             <View className="gap-2">
               {(["severa", "moderada", "leve"] as const)
-                .filter((sev) => regionAlerts.some((a) => a.severity === sev))
+                .filter((sev) => visibleRegionAlerts.some((a) => a.severity === sev))
                 .map((sev) => {
-                  const count = regionAlerts.filter((a) => a.severity === sev).length;
+                  const count = visibleRegionAlerts.filter((a) => a.severity === sev).length;
                   return (
                     <View
                       key={sev}
