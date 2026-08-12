@@ -18,17 +18,15 @@ import {
   type GridPoint,
 } from "@/lib/services/buenosAiresGrid";
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
+import { UPDATE_INTERVAL_MS } from "@/shared/updateInterval";
 
 // Cuantos puntos de la grilla se consultan en simultaneo. Evita pegarle
 // a la API gratuita de Open-Meteo con muchos pedidos al mismo tiempo.
 const CONCURRENCY = 5;
 
-// Intervalo de actualizacion PROPIO de la grilla regional, independiente
-// del intervalo configurado para la ubicacion personal (que suele ser
-// mucho mas corto). Barrer 12 puntos cada pocos minutos consumiria el
-// cupo diario de la API gratuita muy rapido; cada 30 minutos alcanza
-// para detectar tormentas nuevas sin gastar de mas.
-const REGION_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+// La grilla regional usa el mismo intervalo fijo que el resto de la app.
+// Quince minutos equilibran rapidez de aviso y consumo de la API gratuita.
+const REGION_REFRESH_INTERVAL_MS = UPDATE_INTERVAL_MS;
 
 // Cache en disco: si el usuario entra y sale de la pantalla de Mapa
 // varias veces, no vuelve a barrer toda la grilla cada vez que se monta

@@ -44,8 +44,6 @@ export interface AlertPreferences {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   lightningAlertEnabled: boolean;
-  // Intervalo unico de actualizacion, usado por todas las pantallas.
-  updateIntervalMinutes: number;
 }
 
 export const DEFAULT_PREFERENCES: AlertPreferences = {
@@ -54,7 +52,6 @@ export const DEFAULT_PREFERENCES: AlertPreferences = {
   soundEnabled: true,
   vibrationEnabled: true,
   lightningAlertEnabled: false,
-  updateIntervalMinutes: 15,
 };
 
 // Cache en memoria compartido entre todos los componentes que usan el

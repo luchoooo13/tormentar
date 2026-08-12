@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { getWeatherAlerts } from "./services/weatherService";
 import { getEnabledSeverities } from "../hooks/useAlertPreferences";
+import { UPDATE_INTERVAL_MINUTES } from "../shared/updateInterval";
 
 const BACKGROUND_ALERT_TASK = "background-weather-alerts";
 const LAST_LOCATION_KEY = "tormentar_location"; // Coincidir con useLocation.ts
@@ -40,7 +41,6 @@ TaskManager.defineTask(BACKGROUND_ALERT_TASK, async () => {
           minSeverity: "leve",
           soundEnabled: true,
           vibrationEnabled: true,
-          updateIntervalMinutes: 15,
         };
 
     if (!preferences.notificationsEnabled) {
@@ -141,18 +141,14 @@ export async function registerBackgroundAlertsAsync() {
       console.warn("[BackgroundAlerts] Notification permissions not granted");
     }
 
-    // Obtener el intervalo preferido por el usuario
-    const prefsRaw = await AsyncStorage.getItem(PREFERENCES_KEY);
-    const intervalMinutes = prefsRaw ? JSON.parse(prefsRaw).updateIntervalMinutes : 15;
-
-    // Registrar la tarea de fondo
+    // Registrar la tarea de fondo con el intervalo fijo de toda la app.
     await BackgroundFetch.registerTaskAsync(BACKGROUND_ALERT_TASK, {
-      minimumInterval: Math.max(intervalMinutes * 60, 15 * 60), // Mínimo 15 min (limitación de iOS)
+      minimumInterval: UPDATE_INTERVAL_MINUTES * 60, // 15 min (limitación de iOS)
       stopOnTerminate: false, // Seguir corriendo si la app se cierra
       startOnBoot: true, // Empezar al reiniciar el dispositivo
     });
 
-    console.log(`[BackgroundAlerts] Background task registered with interval: ${intervalMinutes} min`);
+    console.log(`[BackgroundAlerts] Background task registered with interval: ${UPDATE_INTERVAL_MINUTES} min`);
     return true;
   } catch (error) {
     console.error("[BackgroundAlerts] Failed to register:", error);

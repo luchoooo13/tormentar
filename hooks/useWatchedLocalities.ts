@@ -15,6 +15,7 @@ import {
 } from "@/lib/services/geocodingService";
 import { getWeatherAlerts, sortAlertsBySeverity, hasApiKey } from "@/lib/services/weatherService";
 import type { WeatherAlert } from "@/shared/types/weather";
+import { UPDATE_INTERVAL_MS } from "@/shared/updateInterval";
 
 const WATCHED_LOCALITIES_KEY = "tormentar_watched_localities";
 const SEARCH_DEBOUNCE_MS = 400;
@@ -184,13 +185,12 @@ export function useWatchedLocalities() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, localities]);
 
-  // Actualizacion periodica, mismo intervalo que la ubicacion actual.
+  // Actualizacion periodica, mismo intervalo fijo que la ubicacion actual.
   useEffect(() => {
     if (localities.length === 0) return;
-    const intervalMs = preferences.updateIntervalMinutes * 60 * 1000;
-    const id = setInterval(refreshAll, intervalMs);
+    const id = setInterval(refreshAll, UPDATE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [localities.length, preferences.updateIntervalMinutes, refreshAll]);
+  }, [localities.length, refreshAll]);
 
   return {
     localities,

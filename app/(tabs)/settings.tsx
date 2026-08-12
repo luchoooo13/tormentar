@@ -373,62 +373,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Sección de Actualización */}
-        <View className="px-4 py-4">
-          <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="schedule" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Actualizacion</Text>
-          </View>
-
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-foreground font-semibold">Intervalo de Actualizacion</Text>
-              <View
-                style={{
-                  backgroundColor: colors.primary,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 20,
-                }}
-              >
-                <Text className="text-white text-sm font-bold">
-                  {preferences.updateIntervalMinutes} min
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row gap-2">
-              {[5, 10, 15, 30].map((interval) => (
-                <Pressable
-                  key={interval}
-                  onPress={() => updatePreferences({ updateIntervalMinutes: interval })}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    backgroundColor:
-                      preferences.updateIntervalMinutes === interval ? colors.primary : colors.border,
-                    paddingVertical: 8,
-                    borderRadius: 6,
-                    opacity: pressed ? 0.8 : 1,
-                  })}
-                >
-                  <Text
-                    className="text-center font-semibold text-xs"
-                    style={{
-                      color: preferences.updateIntervalMinutes === interval ? "white" : colors.foreground,
-                    }}
-                  >
-                    {interval}m
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text className="text-xs text-muted mt-3">
-              La app actualizara las alertas cada {preferences.updateIntervalMinutes} minutos
-            </Text>
-          </View>
-        </View>
-
         {/* Sección de Prueba de Alertas (temporal, para testing) */}
         <View className="px-4 py-4">
           <View className="flex-row items-center gap-2 mb-3">

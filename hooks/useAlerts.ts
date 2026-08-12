@@ -17,6 +17,7 @@ import {
   sortAlertsBySeverity,
 } from "@/lib/services/weatherService";
 import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
+import { UPDATE_INTERVAL_MS } from "@/shared/updateInterval";
 
 // Titulos usados tanto en la notificacion local (pestaña abierta) como
 // en el push real (llega aunque el navegador este cerrado), para que
@@ -288,16 +289,15 @@ export function useAlerts(options?: UseAlertsOptions) {
     if (location) {
       fetchAlerts();
     }
-  }, [location?.latitude, location?.longitude, fetchAlerts]);
+  }, [location, fetchAlerts]);
 
   // Alertas "en vivo" mientras la pagina esta abierta: se re-piden solas
-  // cada updateIntervalMinutes, sin que el usuario tenga que refrescar.
+  // cada 15 minutos, sin que el usuario tenga que refrescar.
   useEffect(() => {
     if (!location) return;
-    const intervalMs = preferences.updateIntervalMinutes * 60 * 1000;
-    const id = setInterval(fetchAlerts, intervalMs);
+    const id = setInterval(fetchAlerts, UPDATE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [location, preferences.updateIntervalMinutes, fetchAlerts]);
+  }, [location, fetchAlerts]);
 
   // Ademas del intervalo, refrescar apenas la pestana vuelve a estar
   // visible/en foco (por ej. el usuario minimizo el navegador, cambio
