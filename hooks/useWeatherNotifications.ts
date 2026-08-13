@@ -8,6 +8,7 @@ import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
 import { Platform } from "react-native";
 import type { WeatherAlert, AlertSeverity } from "@/shared/types/weather";
+import { getAlertNotificationPrefix } from "@/shared/alert-timing";
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   Notifications.setNotificationHandler({
@@ -138,7 +139,7 @@ export function useWeatherNotifications() {
           }
 
           const options = {
-            body: `${alert.event}\n${alert.description}`,
+            body: `${getAlertNotificationPrefix(alert)}${alert.event}\n${alert.description}`,
             tag: `tormentar-${alert.id}`,
             icon: "/favicon.ico",
             requireInteraction: alert.severity !== "leve",
@@ -165,7 +166,7 @@ export function useWeatherNotifications() {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: config.title,
-            body: alert.description,
+            body: `${getAlertNotificationPrefix(alert)}${alert.description}`,
             data: {
               alertId: alert.id,
               latitude: alert.latitude,

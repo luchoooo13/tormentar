@@ -19,6 +19,7 @@ import {
 } from "@/lib/services/weatherService";
 import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
 import { UPDATE_INTERVAL_MS } from "@/shared/updateInterval";
+import { isAlertInNotificationWindow } from "@/shared/alert-timing";
 
 // Titulos usados tanto en la notificacion local (pestaña abierta) como
 // en el push real (llega aunque el navegador este cerrado), para que
@@ -164,6 +165,10 @@ export function useAlerts(options?: UseAlertsOptions) {
       if (prefs.notificationsEnabled) {
         const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
         const newRelevantAlerts = currentAlerts.filter((a) => {
+          // No avisar con más de 48 horas de anticipación. Las alertas
+          // lejanas tampoco se marcan como conocidas, para que puedan
+          // entrar en la ventana en una consulta posterior.
+          if (!isAlertInNotificationWindow(a)) return false;
           if (knownAlertIds.current.has(a.id)) return false;
 
           // Si es una alerta de rayos fuerte, depende de la preferencia específica
@@ -257,20 +262,6 @@ export function useAlerts(options?: UseAlertsOptions) {
         }
       }
 
-      let changed = false;
-      currentAlerts.forEach((a) => {
-        if (!knownAlertIds.current.has(a.id)) {
-          knownAlertIds.current.add(a.id);
-          changed = true;
-        }
-      });
-
-      if (changed) {
-        await AsyncStorage.setItem(
-          KNOWN_ALERTS_KEY,
-          JSON.stringify(Array.from(knownAlertIds.current))
-        );
-      }
     } catch (err) {
       if (isStale()) return;
       const message = err instanceof Error ? err.message : "Error desconocido";

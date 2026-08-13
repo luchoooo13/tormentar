@@ -12,6 +12,10 @@ import { Platform } from "react-native";
 import { getWeatherAlerts } from "./services/weatherService";
 import { getEnabledSeverities } from "../hooks/useAlertPreferences";
 import { UPDATE_INTERVAL_MINUTES } from "../shared/updateInterval";
+import {
+  getAlertNotificationPrefix,
+  isAlertInNotificationWindow,
+} from "../shared/alert-timing";
 
 const BACKGROUND_ALERT_TASK = "background-weather-alerts";
 const LAST_LOCATION_KEY = "tormentar_location"; // Coincidir con useLocation.ts
@@ -65,7 +69,10 @@ TaskManager.defineTask(BACKGROUND_ALERT_TASK, async () => {
 
     const enabledSeverities = getEnabledSeverities(preferences.minSeverity);
     const newRelevantAlerts = weatherData.alerts.filter(
-      (a) => !knownIds.has(a.id) && enabledSeverities.includes(a.severity)
+      (a) =>
+        isAlertInNotificationWindow(a) &&
+        !knownIds.has(a.id) &&
+        enabledSeverities.includes(a.severity)
     );
 
     if (newRelevantAlerts.length === 0) {
@@ -75,9 +82,13 @@ TaskManager.defineTask(BACKGROUND_ALERT_TASK, async () => {
 
     // Notificar cada nueva alerta
     for (const alert of newRelevantAlerts) {
-      await sendLocalNotification(alert.event, alert.description, {
-        alertId: alert.id,
-      });
+      await sendLocalNotification(
+        `${getAlertNotificationPrefix(alert)}${alert.event}`,
+        alert.description,
+        {
+          alertId: alert.id,
+        }
+      );
       knownIds.add(alert.id);
     }
 
