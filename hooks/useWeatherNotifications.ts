@@ -197,14 +197,14 @@ export function useWeatherNotifications() {
       name: "Alertas de Clima",
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF6B35",
+      lightColor: "#F97316",
     } as any);
 
     await Notifications.setNotificationChannelAsync("storm_alerts", {
       name: "Alertas de Tormentas Severas",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250, 250, 250],
-      lightColor: "#EF4444",
+      lightColor: "#DC2626",
     } as any);
   }, []);
 

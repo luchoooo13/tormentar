@@ -7,9 +7,9 @@
 import type { AlertSeverity } from "@/shared/types/weather";
 
 export const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  leve: "#FFA500",
-  moderada: "#FF6B35",
-  severa: "#EF4444",
+  leve: "#16A34A",
+  moderada: "#F97316",
+  severa: "#DC2626",
 };
 
 export const SEVERITY_ICONS: Record<AlertSeverity, string> = {

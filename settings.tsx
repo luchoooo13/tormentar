@@ -18,9 +18,9 @@ import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
-  { id: "leve", label: "Leve", color: "#FFA500" },
-  { id: "moderada", label: "Moderada", color: "#FF6B35" },
-  { id: "severa", label: "Fuerte", color: "#EF4444" },
+  { id: "leve", label: "Leve", color: "#16A34A" },
+  { id: "moderada", label: "Moderada", color: "#F97316" },
+  { id: "severa", label: "Fuerte", color: "#DC2626" },
 ];
 
 export default function SettingsScreen() {

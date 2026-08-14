@@ -18,9 +18,9 @@ import type { AlertSeverity } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  leve: "#FFA500",
-  moderada: "#FF6B35",
-  severa: "#EF4444",
+  leve: "#16A34A",
+  moderada: "#F97316",
+  severa: "#DC2626",
 };
 
 const SEVERITY_ICONS: Record<AlertSeverity, string> = {
@@ -233,9 +233,9 @@ export default function MapScreen() {
 
           <View className="gap-2">
             {[
-              { color: "#FFA500", label: "Leve", desc: "Lluvia ligera" },
-              { color: "#FF6B35", label: "Moderada", desc: "Tormentas con vientos" },
-              { color: "#EF4444", label: "Fuerte", desc: "Alerta critica" },
+              { color: "#16A34A", label: "Leve", desc: "Lluvia ligera" },
+              { color: "#F97316", label: "Moderada", desc: "Tormentas con vientos" },
+              { color: "#DC2626", label: "Fuerte", desc: "Alerta critica" },
             ].map((item) => (
               <View key={item.label} className="flex-row items-center gap-3 p-3 rounded-lg bg-surface">
                 <View
