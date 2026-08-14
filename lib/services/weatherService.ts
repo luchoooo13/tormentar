@@ -23,6 +23,7 @@ import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/we
 // adicional. La variable de entorno se conserva solo por compatibilidad.
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || "";
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+const OPENWEATHER_URL = "https://api.openweathermap.org/data/2.5/weather";
 
 // Indica si hay una API key configurada. Con Open-Meteo siempre se
 // puede consultar (no hay key), así que la app nunca queda "a ciegas".
@@ -187,7 +188,78 @@ function buildAlertsFromPoints(
   return alerts;
 }
 
-// Obtener datos de clima y alertas (estimadas del pronóstico gratuito)
+function normalizeOpenWeatherData(data: any, latitude: number, longitude: number): WeatherData {
+  const weather = data.weather?.[0];
+  const weatherId = Number(weather?.id ?? 800);
+  const now = Number(data.dt ?? Math.floor(Date.now() / 1000));
+  const classification = classifyCondition(weatherId, Number(data.wind?.speed ?? 0));
+  const alerts: WeatherAlert[] = classification
+    ? [{
+        id: `openweather-${now}-${weatherId}`,
+        event: buildEventName(classification.severity, classification.phenomena),
+        description: `Datos de respaldo de OpenWeather: ${weather?.description ?? "condición meteorológica adversa"}.`,
+        start: now,
+        end: now + 3600,
+        sender_name: "OpenWeather (respaldo)",
+        severity: classification.severity,
+        latitude,
+        longitude,
+        radius: 10,
+        tags: classification.phenomena,
+      }]
+    : [];
+
+  return {
+    lat: latitude,
+    lon: longitude,
+    timezone: data.timezone ? `UTC${data.timezone >= 0 ? "+" : ""}${data.timezone / 3600}` : "UTC",
+    current: {
+      temp: Number(data.main?.temp ?? 0),
+      feels_like: Number(data.main?.feels_like ?? data.main?.temp ?? 0),
+      humidity: Number(data.main?.humidity ?? 0),
+      pressure: Number(data.main?.pressure ?? 0),
+      wind_speed: Number(data.wind?.speed ?? 0),
+      wind_deg: Number(data.wind?.deg ?? 0),
+      clouds: Number(data.clouds?.all ?? 0),
+      weather: [{
+        id: weatherId,
+        main: weather?.main ?? "",
+        description: weather?.description ?? "Desconocido",
+        icon: weather?.icon ?? "",
+      }],
+    },
+    alerts,
+  };
+}
+
+async function getOpenWeatherFallback(
+  latitude: number,
+  longitude: number
+): Promise<WeatherData | null> {
+  if (!API_KEY) return null;
+
+  try {
+    const response = await axios.get(OPENWEATHER_URL, {
+      params: {
+        lat: latitude,
+        lon: longitude,
+        appid: API_KEY,
+        units: "metric",
+        lang: "es",
+      },
+    });
+    return normalizeOpenWeatherData(response.data, latitude, longitude);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.warn("OpenWeather fallback no disponible:", error.response?.status ?? error.message);
+    } else {
+      console.warn("OpenWeather fallback no disponible:", error);
+    }
+    return null;
+  }
+}
+
+// Obtener datos de clima y alertas (Open-Meteo principal; OpenWeather como respaldo)
 export async function getWeatherAlerts(
   latitude: number,
   longitude: number
@@ -261,10 +333,17 @@ export async function getWeatherAlerts(
       const status = error.response?.status;
       const detail =
         (error.response?.data as any)?.message ?? JSON.stringify(error.response?.data ?? {});
-      console.error("Error de Open-Meteo:", status, detail);
-      throw new Error(`Error consultando el servicio meteorológico (${status ?? "sin conexión"}): ${detail}`);
+      console.warn("Open-Meteo no disponible:", status, detail);
+    } else {
+      console.warn("Error consultando Open-Meteo:", error);
     }
-    console.error("Error fetching weather data:", error);
+
+    const fallback = await getOpenWeatherFallback(latitude, longitude);
+    if (fallback) {
+      console.info("Usando OpenWeather como respaldo de Open-Meteo");
+      return fallback;
+    }
+
     return null;
   }
 }
