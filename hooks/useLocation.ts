@@ -60,6 +60,9 @@ interface LocationState {
 // en la app, igual que memoryCache/listeners en useAlertPreferences.ts.
 let stateCache: LocationState = { location: null, loading: true, error: undefined };
 let initPromise: Promise<void> | null = null;
+let refreshPromise: Promise<void> | null = null;
+let lastWebRefreshAt = 0;
+const WEB_REFRESH_THROTTLE_MS = 30_000;
 const listeners = new Set<(state: LocationState) => void>();
 
 function broadcast(next: Partial<LocationState>) {
@@ -69,6 +72,9 @@ function broadcast(next: Partial<LocationState>) {
 
 // Obtener ubicación actual (GPS/navegador). Actualiza el estado global.
 async function getCurrentLocationShared() {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
   try {
     broadcast({ loading: true, error: undefined });
 
@@ -102,6 +108,13 @@ async function getCurrentLocationShared() {
     console.error("Error getting location:", err);
     broadcast({ error: message, loading: false });
   }
+  })();
+
+  try {
+    await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
 }
 
 // Establecer ubicación manual (busqueda de ciudad). Actualiza el estado
@@ -125,17 +138,25 @@ async function initLocation(): Promise<void> {
       const isValid =
         parsed && typeof parsed.latitude === "number" && typeof parsed.longitude === "number";
       if (isValid) {
+        // Se muestra enseguida como respaldo, pero siempre se actualiza con el GPS actual.
         broadcast({ location: parsed, loading: false });
-        return;
+      } else {
+        await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
       }
-      // Ubicación guardada corrupta o de un formato viejo: descartarla y pedir una nueva.
-      await AsyncStorage.removeItem(LOCATION_STORAGE_KEY);
     }
     await getCurrentLocationShared();
   } catch (err) {
     console.error("Error initializing location:", err);
     broadcast({ loading: false });
   }
+}
+
+async function refreshOnWebEntry() {
+  if (Platform.OS !== "web") return;
+  const now = Date.now();
+  if (now - lastWebRefreshAt < WEB_REFRESH_THROTTLE_MS) return;
+  lastWebRefreshAt = now;
+  await getCurrentLocationShared();
 }
 
 export function useLocation() {
@@ -151,6 +172,21 @@ export function useLocation() {
     // Por si initLocation ya termino antes de que este componente se
     // montara, sincronizamos una vez mas con el valor actual.
     setState(stateCache);
+
+    if (Platform.OS === "web") {
+      void refreshOnWebEntry();
+      const handlePageEntry = () => {
+        if (document.visibilityState === "visible") void refreshOnWebEntry();
+      };
+      window.addEventListener("focus", handlePageEntry);
+      document.addEventListener("visibilitychange", handlePageEntry);
+
+      return () => {
+        listeners.delete(listener);
+        window.removeEventListener("focus", handlePageEntry);
+        document.removeEventListener("visibilitychange", handlePageEntry);
+      };
+    }
 
     return () => {
       listeners.delete(listener);
