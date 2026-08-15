@@ -80,20 +80,38 @@ function mapWeatherCode(wmo: number): number {
 // SEPARADO, cada uno con su propia severidad, y despues se combinan:
 // la severidad final es la mas grave de las dos, y el mensaje incluye
 // TODOS los fenomenos que hayan alcanzado esa severidad maxima.
-function classifyCondition(weatherId: number, windSpeed: number): Classification | null {
+function classifyCondition(
+  weatherId: number,
+  windSpeed: number,
+  precipitationMm = 0,
+  precipitationProbability = 100
+): Classification | null {
   const candidates: { severity: AlertSeverity; phenomenon: Phenomenon }[] = [];
 
   if (windSpeed >= 17) candidates.push({ severity: "severa", phenomenon: "viento" }); // ~61 km/h
   else if (windSpeed >= 10.8) candidates.push({ severity: "moderada", phenomenon: "viento" }); // ~39 km/h
 
-  if ([202, 212, 232].includes(weatherId)) candidates.push({ severity: "severa", phenomenon: "tormenta" });
-  else if (weatherId >= 200 && weatherId <= 232) candidates.push({ severity: "moderada", phenomenon: "tormenta" });
-  else if (weatherId === 781 || weatherId === 771) candidates.push({ severity: "severa", phenomenon: "viento" }); // tornado / squalls
-  else if ([503, 504].includes(weatherId)) candidates.push({ severity: "severa", phenomenon: "lluvia" });
-  else if ([502, 511, 522, 531].includes(weatherId)) candidates.push({ severity: "moderada", phenomenon: "lluvia" });
-  else if ([500, 501, 520, 521].includes(weatherId)) candidates.push({ severity: "leve", phenomenon: "lluvia" });
-  else if ([602, 622].includes(weatherId)) candidates.push({ severity: "moderada", phenomenon: "nieve" });
-  else if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId)) candidates.push({ severity: "leve", phenomenon: "nieve" });
+  const hasMeaningfulPrecipitation = precipitationMm >= 0.2;
+  const hasReliablePrecipitationForecast = precipitationProbability >= 50 && hasMeaningfulPrecipitation;
+  const hasReliableStormForecast = precipitationProbability >= 40 && precipitationMm >= 0.5;
+
+  if ([202, 212, 232].includes(weatherId) && hasReliableStormForecast) {
+    candidates.push({ severity: "severa", phenomenon: "tormenta" });
+  } else if (weatherId >= 200 && weatherId <= 232 && hasReliableStormForecast) {
+    candidates.push({ severity: "moderada", phenomenon: "tormenta" });
+  } else if (weatherId === 781 || weatherId === 771) {
+    candidates.push({ severity: "severa", phenomenon: "viento" }); // tornado / squalls
+  } else if ([503, 504].includes(weatherId) && precipitationMm >= 4 && precipitationProbability >= 70) {
+    candidates.push({ severity: "severa", phenomenon: "lluvia" });
+  } else if ([502, 511, 522, 531].includes(weatherId) && precipitationMm >= 1 && hasReliablePrecipitationForecast) {
+    candidates.push({ severity: "moderada", phenomenon: "lluvia" });
+  } else if ([500, 501, 520, 521].includes(weatherId) && hasReliablePrecipitationForecast) {
+    candidates.push({ severity: "leve", phenomenon: "lluvia" });
+  } else if ([602, 622].includes(weatherId) && precipitationMm >= 1 && hasReliablePrecipitationForecast) {
+    candidates.push({ severity: "moderada", phenomenon: "nieve" });
+  } else if ([601, 611, 612, 613, 615, 616, 621].includes(weatherId) && hasMeaningfulPrecipitation) {
+    candidates.push({ severity: "leve", phenomenon: "nieve" });
+  }
 
   if (candidates.length === 0) return null;
 
@@ -124,6 +142,8 @@ interface ForecastPoint {
   weatherId: number;
   description: string;
   windSpeed: number;
+  precipitationMm: number;
+  precipitationProbability: number;
 }
 
 function buildAlertsFromPoints(
@@ -156,7 +176,12 @@ function buildAlertsFromPoints(
   };
 
   for (const point of points) {
-    const classification = classifyCondition(point.weatherId, point.windSpeed);
+    const classification = classifyCondition(
+      point.weatherId,
+      point.windSpeed,
+      point.precipitationMm,
+      point.precipitationProbability
+    );
     if (!classification) {
       closeOpen();
       continue;
@@ -192,7 +217,12 @@ function normalizeOpenWeatherData(data: any, latitude: number, longitude: number
   const weather = data.weather?.[0];
   const weatherId = Number(weather?.id ?? 800);
   const now = Number(data.dt ?? Math.floor(Date.now() / 1000));
-  const classification = classifyCondition(weatherId, Number(data.wind?.speed ?? 0));
+  const classification = classifyCondition(
+    weatherId,
+    Number(data.wind?.speed ?? 0),
+    Number(data.rain?.["1h"] ?? data.snow?.["1h"] ?? 0),
+    100
+  );
   const alerts: WeatherAlert[] = classification
     ? [{
         id: `openweather-${now}-${weatherId}`,
@@ -272,8 +302,8 @@ export async function getWeatherAlerts(
         latitude,
         longitude,
         current:
-          "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover",
-        hourly: "temperature_2m,weather_code,wind_speed_10m",
+          "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation",
+        hourly: "temperature_2m,weather_code,wind_speed_10m,precipitation,precipitation_probability",
         wind_speed_unit: "ms", // m/s, igual que OpenWeatherMap
         temperature_unit: "celsius",
         timezone: "auto",
@@ -294,12 +324,16 @@ export async function getWeatherAlerts(
         weatherId: mapWeatherCode(current?.weather_code ?? 0),
         description: wmoDescription(current?.weather_code),
         windSpeed: current?.wind_speed_10m ?? 0,
+        precipitationMm: current?.precipitation ?? 0,
+        precipitationProbability: 100,
       },
       ...(hourly?.time ?? []).map((t: string, i: number) => ({
         dt: Math.floor(new Date(t).getTime() / 1000),
         weatherId: mapWeatherCode(hourly.weather_code[i] ?? 0),
         description: wmoDescription(hourly.weather_code[i]),
         windSpeed: hourly.wind_speed_10m[i] ?? 0,
+        precipitationMm: hourly.precipitation?.[i] ?? 0,
+        precipitationProbability: hourly.precipitation_probability?.[i] ?? 0,
       })),
     ];
 
