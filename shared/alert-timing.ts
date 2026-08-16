@@ -1,10 +1,10 @@
 import type { WeatherAlert } from "@/shared/types/weather";
 
-export const PREALERT_WINDOW_MS = 48 * 60 * 60 * 1000;
+export const PREALERT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Una alerta se puede notificar cuando sigue vigente y ya comenzó o empieza
- * dentro de las próximas 48 horas. Así no se marcan como conocidas alertas
+ * dentro de las próximas 24 horas. Así no se marcan como conocidas alertas
  * demasiado lejanas antes de que entren en la ventana de prealerta.
  */
 export function isAlertInNotificationWindow(

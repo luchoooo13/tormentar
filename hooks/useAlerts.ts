@@ -165,7 +165,7 @@ export function useAlerts(options?: UseAlertsOptions) {
       if (prefs.notificationsEnabled) {
         const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
         const newRelevantAlerts = currentAlerts.filter((a) => {
-          // No avisar con más de 48 horas de anticipación. Las alertas
+          // No avisar con más de 24 horas de anticipación. Las alertas
           // lejanas tampoco se marcan como conocidas, para que puedan
           // entrar en la ventana en una consulta posterior.
           if (!isAlertInNotificationWindow(a)) return false;
