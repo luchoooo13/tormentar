@@ -188,6 +188,9 @@ export function useAlerts(options?: UseAlertsOptions) {
           // si otro fetch se dispara mientras esto corre, ya la ve
           // como conocida y no la vuelve a encolar.
           knownAlertIds.current.add(alert.id);
+          // El pop-up interno no depende de que el navegador permita o
+          // pueda mostrar una notificación del sistema.
+          onNewAlertRef.current?.(alert);
           await sendNotification(alert, {
             soundEnabled: prefs.soundEnabled,
             vibrationEnabled: prefs.vibrationEnabled,
@@ -199,7 +202,8 @@ export function useAlerts(options?: UseAlertsOptions) {
             alertId: alert.id,
           });
           if (isStale()) return;
-          onNewAlertRef.current?.(alert);
+          // El pop-up ya fue encolado antes de enviar la notificacion.
+          // Si el navegador bloquea el aviso o el audio, no se pierde.
           // Si esta alerta recien descubierta ademas arranca HOY (aviso
           // corto), este mismo mensaje ya cumple el rol de "recordatorio
           // del dia": se marca de una para que el bloque de abajo no la

@@ -160,6 +160,13 @@ export function useWeatherNotifications() {
               notification.close();
             };
           }
+          // La Web Notification API no reproduce sonido de forma fiable.
+          // Intentamos usar el mismo audio explícito que en Android/iOS;
+          // puede requerir una interacción previa del usuario por las
+          // políticas de reproducción automática del navegador.
+          if (soundEnabled && alert.severity !== "leve") {
+            await playAlertSound(alert.severity);
+          }
           return;
         }
 
