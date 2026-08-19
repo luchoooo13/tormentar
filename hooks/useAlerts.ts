@@ -3,6 +3,7 @@
  * Trae alertas REALES desde Open-Meteo (servicio gratuito sin API key).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocation } from "@/hooks/useLocation";
 import {
@@ -17,7 +18,11 @@ import {
   hasApiKey,
   sortAlertsBySeverity,
 } from "@/lib/services/weatherService";
-import type { WeatherAlert, WeatherData, AlertSeverity } from "@/shared/types/weather";
+import type {
+  WeatherAlert,
+  WeatherData,
+  AlertSeverity,
+} from "@/shared/types/weather";
 import { UPDATE_INTERVAL_MS } from "@/shared/updateInterval";
 import { isAlertInNotificationWindow } from "@/shared/alert-timing";
 
@@ -64,11 +69,8 @@ export function useAlerts(options?: UseAlertsOptions) {
     getCurrentLocation,
   } = useLocation();
   const { preferences } = useAlertPreferences();
-  const {
-    sendNotification,
-    setupNotificationChannels,
-    requestPermissions,
-  } = useWeatherNotifications();
+  const { sendNotification, setupNotificationChannels, requestPermissions } =
+    useWeatherNotifications();
   // Push real (Web Push): llega al celular aunque el navegador este
   // cerrado. sendPush es un no-op silencioso si el usuario no activo
   // "Notificaciones push" en Configuracion.
@@ -123,15 +125,20 @@ export function useAlerts(options?: UseAlertsOptions) {
 
   const fetchAlerts = useCallback(async () => {
     if (!location) return;
-    if (typeof location.latitude !== "number" || typeof location.longitude !== "number") {
-      setError("La ubicación no es válida todavía. Volvé a intentar en unos segundos.");
+    if (
+      typeof location.latitude !== "number" ||
+      typeof location.longitude !== "number"
+    ) {
+      setError(
+        "La ubicación no es válida todavía. Volvé a intentar en unos segundos.",
+      );
       setLoading(false);
       return;
     }
 
     if (!hasApiKey()) {
       setError(
-        "No se pudo conectar con el servicio meteorologico gratuito (Open-Meteo). Verifica tu conexion a internet."
+        "No se pudo conectar con el servicio meteorologico gratuito (Open-Meteo). Verifica tu conexion a internet.",
       );
       setLoading(false);
       return;
@@ -145,7 +152,10 @@ export function useAlerts(options?: UseAlertsOptions) {
 
     try {
       await knownAlertsLoadedRef.current;
-      const data = await getWeatherAlerts(location.latitude, location.longitude);
+      const data = await getWeatherAlerts(
+        location.latitude,
+        location.longitude,
+      );
 
       // Llegó, pero ya hay un fetch más nuevo en curso: se descarta en
       // silencio para no notificar/mostrar el popup con datos viejos.
@@ -164,6 +174,10 @@ export function useAlerts(options?: UseAlertsOptions) {
 
       if (prefs.notificationsEnabled) {
         const enabledSeverities = getEnabledSeverities(prefs.minSeverity);
+        const notificationSeverities =
+          Platform.OS === "web"
+            ? enabledSeverities
+            : enabledSeverities.filter((severity) => severity !== "leve");
         const newRelevantAlerts = currentAlerts.filter((a) => {
           // No avisar con más de 24 horas de anticipación. Las alertas
           // lejanas tampoco se marcan como conocidas, para que puedan
@@ -172,13 +186,14 @@ export function useAlerts(options?: UseAlertsOptions) {
           if (knownAlertIds.current.has(a.id)) return false;
 
           // Si es una alerta de rayos fuerte, depende de la preferencia específica
-          const isStrongLightning = a.tags?.includes("tormenta") && a.severity === "severa";
+          const isStrongLightning =
+            a.tags?.includes("tormenta") && a.severity === "severa";
           if (isStrongLightning) {
             return prefs.lightningAlertEnabled;
           }
 
           // Para el resto de las alertas, usamos la severidad mínima
-          return enabledSeverities.includes(a.severity);
+          return notificationSeverities.includes(a.severity);
         });
 
         let remindedChanged = false;
@@ -217,7 +232,7 @@ export function useAlerts(options?: UseAlertsOptions) {
         if (newRelevantAlerts.length > 0) {
           await AsyncStorage.setItem(
             KNOWN_ALERTS_KEY,
-            JSON.stringify(Array.from(knownAlertIds.current))
+            JSON.stringify(Array.from(knownAlertIds.current)),
           );
         }
 
@@ -231,22 +246,33 @@ export function useAlerts(options?: UseAlertsOptions) {
         // acordado solo.
         const today = new Date();
         const todaysReminders = currentAlerts.filter((a) => {
-          if (!isSameLocalDay(a.start, today) || remindedAlertIds.current.has(a.id)) return false;
+          if (
+            !isSameLocalDay(a.start, today) ||
+            remindedAlertIds.current.has(a.id)
+          )
+            return false;
 
-          const isStrongLightning = a.tags?.includes("tormenta") && a.severity === "severa";
+          const isStrongLightning =
+            a.tags?.includes("tormenta") && a.severity === "severa";
           if (isStrongLightning) {
             return prefs.lightningAlertEnabled;
           }
 
-          return enabledSeverities.includes(a.severity);
+          return notificationSeverities.includes(a.severity);
         });
 
         for (const alert of todaysReminders) {
           remindedAlertIds.current.add(alert.id);
           remindedChanged = true;
           await sendNotification(
-            { ...alert, description: `Recordatorio de hoy: ${alert.description}` },
-            { soundEnabled: prefs.soundEnabled, vibrationEnabled: prefs.vibrationEnabled }
+            {
+              ...alert,
+              description: `Recordatorio de hoy: ${alert.description}`,
+            },
+            {
+              soundEnabled: prefs.soundEnabled,
+              vibrationEnabled: prefs.vibrationEnabled,
+            },
           );
           sendPush({
             title: SEVERITY_PUSH_TITLES[alert.severity],
@@ -261,11 +287,10 @@ export function useAlerts(options?: UseAlertsOptions) {
         if (remindedChanged) {
           await AsyncStorage.setItem(
             REMINDED_ALERTS_KEY,
-            JSON.stringify(Array.from(remindedAlertIds.current))
+            JSON.stringify(Array.from(remindedAlertIds.current)),
           );
         }
       }
-
     } catch (err) {
       if (isStale()) return;
       const message = err instanceof Error ? err.message : "Error desconocido";
@@ -325,12 +350,16 @@ export function useAlerts(options?: UseAlertsOptions) {
   }, [location, fetchAlerts]);
 
   const allAlerts: WeatherAlert[] = weather?.alerts || [];
-  const severityFilteredAlerts = filterAlertsByMinSeverity(allAlerts, preferences.minSeverity);
+  const severityFilteredAlerts = filterAlertsByMinSeverity(
+    allAlerts,
+    preferences.minSeverity,
+  );
   const filteredAlerts = sortAlertsBySeverity(
     severityFilteredAlerts.filter((alert) => {
-      const isStrongLightning = alert.tags?.includes("tormenta") && alert.severity === "severa";
+      const isStrongLightning =
+        alert.tags?.includes("tormenta") && alert.severity === "severa";
       return !isStrongLightning || preferences.lightningAlertEnabled;
-    })
+    }),
   );
 
   return {

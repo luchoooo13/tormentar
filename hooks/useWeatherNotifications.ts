@@ -83,12 +83,12 @@ export function useWeatherNotifications() {
       },
       moderada: {
         title: "⚠️ Alerta de Clima Moderada",
-        sound: "default",
+        sound: "eas-alarm-canada.mp3",
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       severa: {
         title: "🚨 ALERTA DE TORMENTA FUERTE",
-        sound: "alert",
+        sound: "eas-alarm-canada.mp3",
         priority: Notifications.AndroidNotificationPriority.MAX,
       },
     };
@@ -104,9 +104,11 @@ export function useWeatherNotifications() {
       let soundUri: string;
 
       if (severity === "severa") {
-        soundUri = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+        soundUri =
+          "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
       } else if (severity === "moderada") {
-        soundUri = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+        soundUri =
+          "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
       } else {
         return;
       }
@@ -121,7 +123,10 @@ export function useWeatherNotifications() {
   }, []);
 
   const sendNotification = useCallback(
-    async (alert: WeatherAlert, options?: { soundEnabled?: boolean; vibrationEnabled?: boolean }) => {
+    async (
+      alert: WeatherAlert,
+      options?: { soundEnabled?: boolean; vibrationEnabled?: boolean },
+    ) => {
       const soundEnabled = options?.soundEnabled ?? true;
       const vibrationEnabled = options?.vibrationEnabled ?? true;
 
@@ -133,8 +138,13 @@ export function useWeatherNotifications() {
         // porque usaban directamente la Web Notification API. Usamos el
         // mismo camino para las alertas reales y dejamos Expo para nativo.
         if (Platform.OS === "web") {
-          if (typeof Notification === "undefined" || Notification.permission !== "granted") {
-            console.warn("[Notifications] Sin permiso web para mostrar alerta real");
+          if (
+            typeof Notification === "undefined" ||
+            Notification.permission !== "granted"
+          ) {
+            console.warn(
+              "[Notifications] Sin permiso web para mostrar alerta real",
+            );
             return;
           }
 
@@ -182,8 +192,13 @@ export function useWeatherNotifications() {
               event: alert.event,
             },
             sound: soundEnabled ? config.sound : null,
+            channelId:
+              alert.severity === "severa" ? "storm_alerts" : "weather_alerts",
             priority: config.priority,
-            vibrate: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+            vibrate: vibrationEnabled
+              ? [0, 350, 150, 350, 150, alert.severity === "severa" ? 800 : 500]
+              : undefined,
+            fullScreenIntent: alert.severity === "severa",
           } as any,
           trigger: null,
         });
@@ -195,7 +210,7 @@ export function useWeatherNotifications() {
         console.error("Error sending notification:", error);
       }
     },
-    [getNotificationConfig, playAlertSound]
+    [getNotificationConfig, playAlertSound],
   );
 
   const setupNotificationChannels = useCallback(async () => {
@@ -203,15 +218,21 @@ export function useWeatherNotifications() {
     await Notifications.setNotificationChannelAsync("weather_alerts", {
       name: "Alertas de Clima",
       importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: [0, 300, 150, 300, 150, 500],
       lightColor: "#F97316",
+      sound: "eas-alarm-canada.mp3",
+      enableVibrate: true,
+      enableLights: true,
     } as any);
 
     await Notifications.setNotificationChannelAsync("storm_alerts", {
       name: "Alertas de Tormentas Severas",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250, 250, 250],
+      vibrationPattern: [0, 500, 150, 500, 150, 800],
       lightColor: "#DC2626",
+      sound: "eas-alarm-canada.mp3",
+      enableVibrate: true,
+      enableLights: true,
     } as any);
   }, []);
 

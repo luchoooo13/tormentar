@@ -17,7 +17,10 @@ import {
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
+import {
+  initManusRuntime,
+  subscribeSafeAreaInsets,
+} from "@/lib/_core/manus-runtime";
 import { registerBackgroundAlertsAsync } from "@/lib/background-alerts";
 import { AlertsProvider } from "@/lib/alerts-context";
 import { WeatherAlertPopup } from "@/components/weather-alert-popup";
@@ -43,9 +46,9 @@ export default function RootLayout() {
 
   // Register background alerts task on mount (mobile only)
   useEffect(() => {
-    if (Platform.OS !== "web") {
+    if (Platform.OS === "android") {
       registerBackgroundAlertsAsync().catch((error) =>
-        console.error("Failed to register background alerts:", error)
+        console.error("Failed to register background alerts:", error),
       );
     }
   }, []);
@@ -79,7 +82,10 @@ export default function RootLayout() {
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
-    const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
+    const metrics = initialWindowMetrics ?? {
+      insets: initialInsets,
+      frame: initialFrame,
+    };
     return {
       ...metrics,
       insets: {
@@ -132,7 +138,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+        {content}
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }

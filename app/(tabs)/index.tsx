@@ -10,6 +10,7 @@
  * leve, moderada y/o fuerte (severa), no un unico "minimo".
  */
 import {
+  Platform,
   ScrollView,
   Text,
   View,
@@ -32,6 +33,7 @@ import { SEVERITY_COLORS, SEVERITY_ICONS } from "@/shared/alertSeverity";
 import type { AlertSeverity, WeatherAlert } from "@/shared/types/weather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { AnimatedWeatherIcon } from "@/components/animated-weather-icon";
+import { TormentarWebContainer } from "@/components/tormentar-web-container";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
   { id: "leve", label: "Leve", color: SEVERITY_COLORS.leve },
@@ -176,6 +178,10 @@ export default function HomeScreen() {
       </View>
     );
   };
+
+  if (Platform.OS !== "web") {
+    return <TormentarWebContainer />;
+  }
 
   return (
     <ScreenContainer className="flex-1 gap-0">
