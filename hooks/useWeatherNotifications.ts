@@ -83,12 +83,12 @@ export function useWeatherNotifications() {
       },
       moderada: {
         title: "⚠️ Alerta de Clima Moderada",
-        sound: "eas-alarm-canada.mp3",
+        sound: "eas_alarm_canada.mp3",
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       severa: {
         title: "🚨 ALERTA DE TORMENTA FUERTE",
-        sound: "eas-alarm-canada.mp3",
+        sound: "eas_alarm_canada.mp3",
         priority: Notifications.AndroidNotificationPriority.MAX,
       },
     };
@@ -220,7 +220,7 @@ export function useWeatherNotifications() {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 300, 150, 300, 150, 500],
       lightColor: "#F97316",
-      sound: "eas-alarm-canada.mp3",
+      sound: "eas_alarm_canada.mp3",
       enableVibrate: true,
       enableLights: true,
     } as any);
@@ -230,7 +230,7 @@ export function useWeatherNotifications() {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 150, 500, 150, 800],
       lightColor: "#DC2626",
-      sound: "eas-alarm-canada.mp3",
+      sound: "eas_alarm_canada.mp3",
       enableVibrate: true,
       enableLights: true,
     } as any);

@@ -60,7 +60,7 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sounds/eas-alarm-canada.mp3"],
+          "sounds": ["./assets/sounds/eas_alarm_canada.mp3"],
           "color": "#DC2626",
           "defaultChannel": "weather_alerts"
         }

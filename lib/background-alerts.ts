@@ -18,7 +18,7 @@ import {
 
 const NATIVE_BACKGROUND_INTERVAL_SECONDS = 60;
 const NATIVE_MIN_SEVERITIES = ["moderada", "severa"] as const;
-const ALERT_SOUND_FILE = "eas-alarm-canada.mp3";
+const ALERT_SOUND_FILE = "eas_alarm_canada.mp3";
 
 const BACKGROUND_ALERT_TASK = "background-weather-alerts";
 const LAST_LOCATION_KEY = "tormentar_location"; // Coincidir con useLocation.ts
