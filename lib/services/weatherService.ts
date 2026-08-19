@@ -91,8 +91,10 @@ function classifyCondition(
   if (windSpeed >= 17) candidates.push({ severity: "severa", phenomenon: "viento" }); // ~61 km/h
   else if (windSpeed >= 10.8) candidates.push({ severity: "moderada", phenomenon: "viento" }); // ~39 km/h
 
+  const LIGHT_RAIN_THRESHOLD_MM = 1;
   const hasMeaningfulPrecipitation = precipitationMm >= 0.5;
   const hasReliablePrecipitationForecast = precipitationProbability >= 50 && hasMeaningfulPrecipitation;
+  const hasReliableLightRainForecast = precipitationProbability >= 50 && precipitationMm >= LIGHT_RAIN_THRESHOLD_MM;
   const hasReliableStormForecast = precipitationProbability >= 40 && precipitationMm >= 0.5;
 
   if ([202, 212, 232].includes(weatherId) && hasReliableStormForecast) {
@@ -105,7 +107,7 @@ function classifyCondition(
     candidates.push({ severity: "severa", phenomenon: "lluvia" });
   } else if ([502, 511, 522, 531].includes(weatherId) && precipitationMm >= 2 && hasReliablePrecipitationForecast) {
     candidates.push({ severity: "moderada", phenomenon: "lluvia" });
-  } else if ([500, 501, 520, 521].includes(weatherId) && hasReliablePrecipitationForecast) {
+  } else if ([500, 501, 520, 521].includes(weatherId) && hasReliableLightRainForecast) {
     candidates.push({ severity: "leve", phenomenon: "lluvia" });
   } else if ([602, 622].includes(weatherId) && precipitationMm >= 2 && hasReliablePrecipitationForecast) {
     candidates.push({ severity: "moderada", phenomenon: "nieve" });
