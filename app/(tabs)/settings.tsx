@@ -6,29 +6,47 @@
  * desincronizada del resto de la app.
  */
 import { useState } from "react";
-import { ScrollView, Text, View, Pressable, Switch, TextInput, ActivityIndicator } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  Pressable,
+  Switch,
+  TextInput,
+  ActivityIndicator,
+} from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAlertPreferences } from "@/hooks/useAlertPreferences";
 import { useLocation } from "@/hooks/useLocation";
 import { useAlertsContext } from "@/lib/alerts-context";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { searchCities, type CitySearchResult } from "@/lib/services/geocodingService";
+import {
+  searchCities,
+  type CitySearchResult,
+} from "@/lib/services/geocodingService";
 import type { AlertSeverity } from "@/shared/types/weather";
+import { SEVERITY_COLORS } from "@/shared/alertSeverity";
 import type { ThemeMode } from "@/hooks/useAlertPreferences";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const SEVERITY_LEVELS: { id: AlertSeverity; label: string; color: string }[] = [
-  { id: "leve", label: "Leve", color: "#FFA500" },
-  { id: "moderada", label: "Moderada", color: "#FF6B35" },
-  { id: "severa", label: "Fuerte", color: "#EF4444" },
+  { id: "leve", label: "Leve", color: SEVERITY_COLORS.leve },
+  { id: "moderada", label: "Moderada", color: SEVERITY_COLORS.moderada },
+  { id: "severa", label: "Fuerte", color: SEVERITY_COLORS.severa },
 ];
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { preferences, updatePreferences, setMinSeverity } = useAlertPreferences();
-  const { location, loading: locationLoading, error: locationError, getCurrentLocation, setManualLocation } =
-    useLocation();
+  const { preferences, updatePreferences, setMinSeverity } =
+    useAlertPreferences();
+  const {
+    location,
+    loading: locationLoading,
+    error: locationError,
+    getCurrentLocation,
+    setManualLocation,
+  } = useLocation();
   const { pushTestAlert, pushLightningTestAlert } = useAlertsContext();
   const {
     supported: pushSupported,
@@ -56,7 +74,8 @@ export default function SettingsScreen() {
         setSearchError("No se encontraron ciudades con ese nombre.");
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error buscando la ciudad";
+      const message =
+        err instanceof Error ? err.message : "Error buscando la ciudad";
       setSearchError(message);
     } finally {
       setSearching(false);
@@ -89,7 +108,10 @@ export default function SettingsScreen() {
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <View className="flex-row items-center justify-between p-3 rounded-lg mb-2" style={{ backgroundColor: colors.surface }}>
+      <View
+        className="flex-row items-center justify-between p-3 rounded-2xl mb-2 border"
+        style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+      >
         <View className="flex-row items-center gap-3 flex-1">
           <View
             style={{
@@ -101,10 +123,16 @@ export default function SettingsScreen() {
               alignItems: "center",
             }}
           >
-            <MaterialIcons name={icon as any} size={20} color={colors.primary} />
+            <MaterialIcons
+              name={icon as any}
+              size={20}
+              color={colors.primary}
+            />
           </View>
           <View className="flex-1">
-            <Text className="text-foreground font-semibold text-sm">{title}</Text>
+            <Text className="text-foreground font-semibold text-sm">
+              {title}
+            </Text>
             <Text className="text-muted text-xs">{subtitle}</Text>
           </View>
         </View>
@@ -121,18 +149,30 @@ export default function SettingsScreen() {
     <ScreenContainer className="flex-1 gap-0">
       <ScrollView className="flex-1">
         {/* Encabezado */}
-        <View className="px-4 pt-4 pb-3 border-b" style={{ borderBottomColor: colors.border }}>
+        <View
+          className="px-5 pt-6 pb-5 border-b"
+          style={{
+            borderBottomColor: colors.border,
+            backgroundColor: colors.surface,
+          }}
+        >
           <View className="flex-row items-center gap-2">
             <MaterialIcons name="settings" size={24} color={colors.primary} />
-            <Text className="text-2xl font-bold text-foreground">Configuracion</Text>
+            <Text className="text-2xl font-bold text-foreground">
+              Configuracion
+            </Text>
           </View>
         </View>
 
         {/* Sección de Ubicación */}
-        <View className="px-4 py-4">
+        <View className="px-5 py-5">
           <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="location-on" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Ubicacion</Text>
+            <MaterialIcons
+              name="location-on"
+              size={18}
+              color={colors.foreground}
+            />
+            <Text className="text-xs font-semibold">Ubicacion</Text>
           </View>
 
           <Pressable
@@ -149,7 +189,11 @@ export default function SettingsScreen() {
               }}
             >
               <View className="flex-row items-center gap-2 flex-1">
-                <MaterialIcons name="edit-location" size={20} color={colors.primary} />
+                <MaterialIcons
+                  name="edit-location"
+                  size={20}
+                  color={colors.primary}
+                />
                 <View className="flex-1">
                   <Text className="text-foreground font-semibold text-sm">
                     Cambiar Ubicacion
@@ -197,7 +241,10 @@ export default function SettingsScreen() {
                     borderRadius: 8,
                     paddingHorizontal: 16,
                     justifyContent: "center",
-                    opacity: pressed || searching || searchCity.trim().length < 2 ? 0.6 : 1,
+                    opacity:
+                      pressed || searching || searchCity.trim().length < 2
+                        ? 0.6
+                        : 1,
                   })}
                 >
                   {searching ? (
@@ -208,7 +255,11 @@ export default function SettingsScreen() {
                 </Pressable>
               </View>
 
-              {searchError && <Text className="text-xs" style={{ color: colors.error }}>{searchError}</Text>}
+              {searchError && (
+                <Text className="text-xs" style={{ color: colors.error }}>
+                  {searchError}
+                </Text>
+              )}
 
               {searchResults.length > 0 && (
                 <View className="gap-1">
@@ -222,9 +273,16 @@ export default function SettingsScreen() {
                     >
                       <View
                         className="p-3 rounded-lg border flex-row items-center gap-2"
-                        style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+                        style={{
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                        }}
                       >
-                        <MaterialIcons name="place" size={18} color={colors.primary} />
+                        <MaterialIcons
+                          name="place"
+                          size={18}
+                          color={colors.primary}
+                        />
                         <Text className="text-sm text-foreground flex-1">
                           {city.name}
                           {city.admin1 ? `, ${city.admin1}` : ""}
@@ -236,7 +294,10 @@ export default function SettingsScreen() {
                 </View>
               )}
 
-              <View className="h-px my-1" style={{ backgroundColor: colors.border }} />
+              <View
+                className="h-px my-1"
+                style={{ backgroundColor: colors.border }}
+              />
 
               <Pressable
                 onPress={getCurrentLocation}
@@ -247,15 +308,24 @@ export default function SettingsScreen() {
               >
                 <View
                   className="p-3 rounded-lg border flex-row items-center gap-2"
-                  style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  }}
                 >
                   {locationLoading ? (
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : (
-                    <MaterialIcons name="my-location" size={18} color={colors.primary} />
+                    <MaterialIcons
+                      name="my-location"
+                      size={18}
+                      color={colors.primary}
+                    />
                   )}
                   <Text className="text-sm font-semibold text-foreground">
-                    {locationLoading ? "Obteniendo ubicacion..." : "Usar mi ubicacion actual"}
+                    {locationLoading
+                      ? "Obteniendo ubicacion..."
+                      : "Usar mi ubicacion actual"}
                   </Text>
                 </View>
               </Pressable>
@@ -270,10 +340,14 @@ export default function SettingsScreen() {
         </View>
 
         {/* Sección de Notificaciones */}
-        <View className="px-4 py-4">
+        <View className="px-5 py-5">
           <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="notifications" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Notificaciones</Text>
+            <MaterialIcons
+              name="notifications"
+              size={18}
+              color={colors.foreground}
+            />
+            <Text className="text-xs font-semibold">Notificaciones</Text>
           </View>
 
           <SettingRow
@@ -281,7 +355,11 @@ export default function SettingsScreen() {
             title="Notificaciones"
             subtitle="Recibir alertas de clima"
             value={preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ notificationsEnabled: !preferences.notificationsEnabled })}
+            onToggle={() =>
+              updatePreferences({
+                notificationsEnabled: !preferences.notificationsEnabled,
+              })
+            }
           />
 
           {pushSupported && (
@@ -295,11 +373,16 @@ export default function SettingsScreen() {
           )}
 
           {pushLoading && (
-            <Text className="text-xs text-muted mb-2">Configurando notificaciones push...</Text>
+            <Text className="text-xs text-muted mb-2">
+              Configurando notificaciones push...
+            </Text>
           )}
 
           {pushError && (
-            <Text className="text-xs mb-2" style={{ color: colors.error }}>
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: colors.error, letterSpacing: 0.4 }}
+            >
               {pushError}
             </Text>
           )}
@@ -309,40 +392,58 @@ export default function SettingsScreen() {
             title="Sonido"
             subtitle="Reproducir sonido de alerta"
             value={preferences.soundEnabled && preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ soundEnabled: !preferences.soundEnabled })}
+            onToggle={() =>
+              updatePreferences({ soundEnabled: !preferences.soundEnabled })
+            }
           />
 
           <SettingRow
             icon="vibration"
             title="Vibracion"
             subtitle="Vibracion en alertas"
-            value={preferences.vibrationEnabled && preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ vibrationEnabled: !preferences.vibrationEnabled })}
+            value={
+              preferences.vibrationEnabled && preferences.notificationsEnabled
+            }
+            onToggle={() =>
+              updatePreferences({
+                vibrationEnabled: !preferences.vibrationEnabled,
+              })
+            }
           />
 
           <SettingRow
             icon="flash-on"
             title="Alerta de rayos"
             subtitle="Avisar solo cuando hay descargas fuertes"
-            value={preferences.lightningAlertEnabled && preferences.notificationsEnabled}
-            onToggle={() => updatePreferences({ lightningAlertEnabled: !preferences.lightningAlertEnabled })}
+            value={
+              preferences.lightningAlertEnabled &&
+              preferences.notificationsEnabled
+            }
+            onToggle={() =>
+              updatePreferences({
+                lightningAlertEnabled: !preferences.lightningAlertEnabled,
+              })
+            }
           />
         </View>
 
         {/* Sección de Sensibilidad (unica en toda la app) */}
-        <View className="px-4 py-4">
+        <View className="px-5 py-5">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="tune" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">
+            <Text className="text-xs font-semibold">
               Sensibilidad de alertas
             </Text>
           </View>
 
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+          <View
+            className="bg-surface p-4 rounded-lg border"
+            style={{ borderColor: colors.border }}
+          >
             <Text className="text-xs text-muted mb-3">
-              Elegi la severidad minima que queres recibir: vas a recibir esa y todo lo que sea
-              igual o mas grave. Este ajuste es unico para toda la app: se aplica en Inicio,
-              Mapa y en las notificaciones push.
+              Elegi la severidad minima que queres recibir: vas a recibir esa y
+              todo lo que sea igual o mas grave. Este ajuste es unico para toda
+              la app: se aplica en Inicio, Mapa y en las notificaciones push.
             </Text>
             <View className="flex-row gap-2">
               {SEVERITY_LEVELS.map((level) => {
@@ -357,13 +458,17 @@ export default function SettingsScreen() {
                       borderRadius: 8,
                       borderWidth: 2,
                       borderColor: isActive ? level.color : colors.border,
-                      backgroundColor: isActive ? level.color + "20" : colors.background,
+                      backgroundColor: isActive
+                        ? level.color + "20"
+                        : colors.background,
                       opacity: pressed ? 0.7 : 1,
                     })}
                   >
                     <Text
                       className="text-xs font-semibold text-center"
-                      style={{ color: isActive ? level.color : colors.foreground }}
+                      style={{
+                        color: isActive ? level.color : colors.foreground,
+                      }}
                     >
                       {level.label}
                     </Text>
@@ -375,26 +480,33 @@ export default function SettingsScreen() {
         </View>
 
         {/* Sección de tema */}
-        <View className="px-4 py-4">
+        <View className="px-5 py-5">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="palette" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Tema de la aplicación</Text>
+            <Text className="text-xs font-semibold">Tema de la aplicación</Text>
           </View>
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+          <View
+            className="bg-surface p-4 rounded-lg border"
+            style={{ borderColor: colors.border }}
+          >
             <Text className="text-sm text-foreground mb-3">
               Elegí cómo querés que se adapte la interfaz.
             </Text>
             <View className="flex-row gap-2">
-              {([
-                { id: "light", label: "Claro", icon: "light-mode" },
-                { id: "dark", label: "Oscuro", icon: "dark-mode" },
-                { id: "schedule", label: "Según horario", icon: "schedule" },
-              ] as const).map((mode) => {
+              {(
+                [
+                  { id: "light", label: "Claro", icon: "light-mode" },
+                  { id: "dark", label: "Oscuro", icon: "dark-mode" },
+                  { id: "schedule", label: "Según horario", icon: "schedule" },
+                ] as const
+              ).map((mode) => {
                 const isActive = preferences.themeMode === mode.id;
                 return (
                   <Pressable
                     key={mode.id}
-                    onPress={() => updatePreferences({ themeMode: mode.id as ThemeMode })}
+                    onPress={() =>
+                      updatePreferences({ themeMode: mode.id as ThemeMode })
+                    }
                     accessibilityRole="button"
                     accessibilityState={{ selected: isActive }}
                     style={({ pressed }) => ({
@@ -407,14 +519,22 @@ export default function SettingsScreen() {
                       justifyContent: "center",
                       borderWidth: 1,
                       borderColor: isActive ? colors.primary : colors.border,
-                      backgroundColor: isActive ? colors.primary + "18" : colors.surface,
+                      backgroundColor: isActive
+                        ? colors.primary + "18"
+                        : colors.surface,
                       opacity: pressed ? 0.78 : 1,
                     })}
                   >
-                    <MaterialIcons name={mode.icon as any} size={20} color={isActive ? colors.primary : colors.muted} />
+                    <MaterialIcons
+                      name={mode.icon as any}
+                      size={20}
+                      color={isActive ? colors.primary : colors.muted}
+                    />
                     <Text
                       className="text-xs font-semibold text-center mt-1"
-                      style={{ color: isActive ? colors.primary : colors.foreground }}
+                      style={{
+                        color: isActive ? colors.primary : colors.foreground,
+                      }}
                     >
                       {mode.label}
                     </Text>
@@ -423,24 +543,32 @@ export default function SettingsScreen() {
               })}
             </View>
             <Text className="text-xs text-muted mt-3">
-              Según horario usa tema claro de 07:00 a 18:59 y oscuro de 19:00 a 06:59.
+              Según horario usa tema claro de 07:00 a 18:59 y oscuro de 19:00 a
+              06:59.
             </Text>
           </View>
         </View>
 
         {/* Sección de Prueba de Alertas (temporal, para testing) */}
-        <View className="px-4 py-4">
+        <View className="px-5 py-5">
           <View className="flex-row items-center gap-2 mb-3">
-            <MaterialIcons name="bug-report" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">
+            <MaterialIcons
+              name="bug-report"
+              size={18}
+              color={colors.foreground}
+            />
+            <Text className="text-xs font-semibold">
               Probar alertas (no reales)
             </Text>
           </View>
 
-          <View className="bg-surface p-4 rounded-lg border" style={{ borderColor: colors.border }}>
+          <View
+            className="bg-surface p-4 rounded-lg border"
+            style={{ borderColor: colors.border }}
+          >
             <Text className="text-xs text-muted mb-3">
-              Dispara un popup de alerta falso para probar sonido, boton de cerrar y tiempo en
-              pantalla, sin esperar clima real.
+              Dispara un popup de alerta falso para probar sonido, boton de
+              cerrar y tiempo en pantalla, sin esperar clima real.
             </Text>
             <View className="flex-row gap-2 mb-3">
               {SEVERITY_LEVELS.map((level) => (
@@ -480,7 +608,10 @@ export default function SettingsScreen() {
             >
               <View className="flex-row items-center justify-center gap-2">
                 <MaterialIcons name="flash-on" size={16} color="#EF4444" />
-                <Text className="text-xs font-bold text-center" style={{ color: "#EF4444" }}>
+                <Text
+                  className="text-xs font-bold text-center"
+                  style={{ color: "#EF4444" }}
+                >
                   Probar Alerta de Rayos
                 </Text>
               </View>
@@ -489,19 +620,24 @@ export default function SettingsScreen() {
         </View>
 
         {/* Sección de Información */}
-        <View className="px-4 py-4">
+        <View className="px-5 py-5">
           <View className="flex-row items-center gap-2 mb-3">
             <MaterialIcons name="info" size={18} color={colors.foreground} />
-            <Text className="text-sm font-semibold text-foreground uppercase">Informacion</Text>
+            <Text className="text-xs font-semibold">Informacion</Text>
           </View>
 
-          <View className="bg-surface p-4 rounded-lg border gap-3" style={{ borderColor: colors.border }}>
+          <View
+            className="bg-surface p-4 rounded-lg border gap-3"
+            style={{ borderColor: colors.border }}
+          >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
                 <MaterialIcons name="info" size={16} color={colors.muted} />
                 <Text className="text-muted text-sm">Version</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">1.0.0</Text>
+              <Text className="text-foreground font-semibold text-sm">
+                1.0.0
+              </Text>
             </View>
 
             <View className="h-px" style={{ backgroundColor: colors.border }} />
@@ -511,17 +647,25 @@ export default function SettingsScreen() {
                 <MaterialIcons name="cloud" size={16} color={colors.muted} />
                 <Text className="text-muted text-sm">Fuente de Datos</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">Open-Meteo (gratis, sin API key)</Text>
+              <Text className="text-foreground font-semibold text-sm">
+                Open-Meteo (gratis, sin API key)
+              </Text>
             </View>
 
             <View className="h-px" style={{ backgroundColor: colors.border }} />
 
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
-                <MaterialIcons name="developer-mode" size={16} color={colors.muted} />
+                <MaterialIcons
+                  name="developer-mode"
+                  size={16}
+                  color={colors.muted}
+                />
                 <Text className="text-muted text-sm">Desarrollador</Text>
               </View>
-              <Text className="text-foreground font-semibold text-sm">Tormentar</Text>
+              <Text className="text-foreground font-semibold text-sm">
+                Tormentar
+              </Text>
             </View>
           </View>
         </View>

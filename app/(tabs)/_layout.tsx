@@ -19,12 +19,17 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          paddingTop: 8,
+          paddingTop: 9,
           paddingBottom: bottomPadding,
-          height: tabBarHeight,
-          backgroundColor: colors.background,
+          height: tabBarHeight + 2,
+          backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          borderTopWidth: 1,
+          shadowColor: "#000",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 8,
         },
       }}
     >
@@ -32,14 +37,18 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Alertas",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="house.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
           title: "Mapa",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="map.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -55,7 +64,9 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Configuración",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="gearshape.fill" color={color} />
+          ),
         }}
       />
     </Tabs>
